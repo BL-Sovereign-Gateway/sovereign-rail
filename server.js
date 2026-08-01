@@ -23,7 +23,7 @@ function calculateConvenienceFee(baseAmount) {
     }
 
     const totalAmount = baseAmount + markup;
-    const totalAmountInKobo = Math.round(totalAmount * 100); // Squad expects amount in Kobo
+    const totalAmountInKobo = Math.round(totalAmount * 100);
 
     return {
         baseAmount,
@@ -59,32 +59,44 @@ app.post('/webhook', (req, res) => {
 // ==========================================
 app.post('/api/v1/register-merchant', async (req, res) => {
     try {
-        const { displayName, accountName, email } = req.body;
+        const { displayName, accountName, email, accountNumber, phoneNumber } = req.body;
 
         if (!displayName || !accountName || !email) {
             return res.status(400).json({ status: 'error', message: 'Missing parameters' });
         }
 
-        console.log(`@BL Gateway: Onboarding merchant - ${displayName}`);
+        console.log(`@BL Gateway: Onboarding live merchant - ${displayName}`);
 
-        const response = await axios.post(`${SQUAD_BASE_URL}/merchant/create-sub-account`, {
+        const authHeader = SQUAD_SECRET_KEY.startsWith('Bearer ') 
+            ? SQUAD_SECRET_KEY 
+            : `Bearer ${SQUAD_SECRET_KEY}`;
+
+        // Live Production Payload Setup
+        const squadPayload = {
             display_name: displayName,
             account_name: accountName,
-            email: email
-        }, {
+            email: email,
+            bank_code: "090405", // Official Bank Code for Moniepoint MFB
+            account_number: accountNumber || "9067888972", 
+            phone_number: phoneNumber || "09067888972"
+        };
+
+        // Hit Squad Live Production API
+        const response = await axios.post(`${SQUAD_BASE_URL}/merchant/create-sub-users`, squadPayload, {
             headers: {
-                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
+                'Authorization': authHeader,
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 15000
         });
 
         return res.status(200).json(response.data);
 
     } catch (error) {
         console.error("@BL Error:", error.response ? error.response.data : error.message);
-        return res.status(502).json({
+        return res.status(error.response ? error.response.status : 500).json({
             status: 'error',
-            message: 'Failed to communicate with Squad engine',
+            message: 'Squad registration failed',
             details: error.response ? error.response.data : error.message
         });
     }
@@ -106,6 +118,10 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
 
         console.log(`@BL Fee Calculation: Base=₦${feeCalculation.baseAmount}, Markup=₦${feeCalculation.markup}, Final=₦${feeCalculation.totalAmount}`);
 
+        const authHeader = SQUAD_SECRET_KEY.startsWith('Bearer ') 
+            ? SQUAD_SECRET_KEY 
+            : `Bearer ${SQUAD_SECRET_KEY}`;
+
         // Hit Squad Payment Initiation Endpoint
         const squadPayload = {
             email: email,
@@ -118,7 +134,7 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
 
         const response = await axios.post(`${SQUAD_BASE_URL}/transaction/initiate`, squadPayload, {
             headers: {
-                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
+                'Authorization': authHeader,
                 'Content-Type': 'application/json'
             }
         });
@@ -142,4 +158,5 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
 
 // Port configuration
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log(`@BL Rail with Tiered Markup Engine is LIVE on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`@BL Rail is LIVE on port ${PORT}`));
+    
