@@ -6,7 +6,9 @@ app.use(express.json());
 // Environment Variables from Railway
 const SECRET_HASH = process.env.FLW_SECRET_HASH;
 const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY;
-const SQUAD_BASE_URL = 'https://api.squadco.com';
+
+// 🚨 CORRECT SQUAD PRODUCTION BASE URL
+const SQUAD_BASE_URL = 'https://api-d.squadco.com';
 
 // ==========================================
 // 💡 @BL SOVEREIGN TIERED MARKUP ENGINE
@@ -59,9 +61,9 @@ app.post('/webhook', (req, res) => {
 // ==========================================
 app.post('/api/v1/register-merchant', async (req, res) => {
     try {
-        const { displayName, accountName, email, accountNumber, phoneNumber } = req.body;
+        const { displayName, accountName, accountNumber, phoneNumber } = req.body;
 
-        if (!displayName || !accountName || !email) {
+        if (!displayName || !accountName) {
             return res.status(400).json({ status: 'error', message: 'Missing parameters' });
         }
 
@@ -71,30 +73,29 @@ app.post('/api/v1/register-merchant', async (req, res) => {
             ? SQUAD_SECRET_KEY 
             : `Bearer ${SQUAD_SECRET_KEY}`;
 
-        // Live Production Payload Setup
+        // Squad Official Sub-Merchant Schema
         const squadPayload = {
             display_name: displayName,
             account_name: accountName,
-            email: email,
-            bank_code: "090405", // Official Bank Code for Moniepoint MFB
-            account_number: accountNumber || "9067888972", 
-            phone_number: phoneNumber || "09067888972"
+            account_number: accountNumber || "9067888972",
+            bank_code: "090405", // Moniepoint MFB Code
+            bank: "Moniepoint MFB"
         };
 
-        // Hit Squad Live Production API
+        // Hit Squad Production API
         const response = await axios.post(`${SQUAD_BASE_URL}/merchant/create-sub-users`, squadPayload, {
             headers: {
                 'Authorization': authHeader,
                 'Content-Type': 'application/json'
             },
-            timeout: 15000
+            timeout: 10000
         });
 
         return res.status(200).json(response.data);
 
     } catch (error) {
         console.error("@BL Error:", error.response ? error.response.data : error.message);
-        return res.status(error.response ? error.response.status : 500).json({
+        return res.status(error.response ? error.response.status : 400).json({
             status: 'error',
             message: 'Squad registration failed',
             details: error.response ? error.response.data : error.message
@@ -159,4 +160,3 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
 // Port configuration
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`@BL Rail is LIVE on port ${PORT}`));
-    
