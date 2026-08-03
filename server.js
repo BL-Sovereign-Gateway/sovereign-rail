@@ -1,31 +1,40 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
+
 app.use(express.json());
 
 // Environment Variables from Railway
 const SECRET_HASH = process.env.FLW_SECRET_HASH;
 const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY;
 
-// 🚨 CORRECT SQUAD PRODUCTION BASE URL
+// Squad Official Base URL
 const SQUAD_BASE_URL = 'https://api-d.squadco.com';
 
-// ==========================================
-// 💡 @BL SOVEREIGN TIERED MARKUP ENGINE
-// ==========================================
+// Helper function to format Bearer Token safely
+const getAuthHeader = () => {
+    if (!SQUAD_SECRET_KEY) return '';
+    return SQUAD_SECRET_KEY.startsWith('Bearer ') 
+        ? SQUAD_SECRET_KEY 
+        : `Bearer ${SQUAD_SECRET_KEY.trim()}`;
+};
+
+// =========================================================================
+// 💡 1. @BL SOVEREIGN TIERED CONVENIENCE MARKUP ENGINE
+// =========================================================================
 function calculateConvenienceFee(baseAmount) {
     let markup = 0;
 
     if (baseAmount <= 20000) {
-        markup = 20; // ₦20 for transactions up to ₦20,000
+        markup = 20; // ₦20 for amounts up to ₦20,000
     } else if (baseAmount <= 50000) {
-        markup = 25; // ₦25 for transactions between ₦20,001 and ₦50,000
+        markup = 25; // ₦25 for amounts between ₦20,001 and ₦50,000
     } else {
-        markup = 30; // ₦30 for transactions above ₦50,000
+        markup = 30; // ₦30 for amounts above ₦50,000
     }
 
     const totalAmount = baseAmount + markup;
-    const totalAmountInKobo = Math.round(totalAmount * 100);
+    const totalAmountInKobo = Math.round(totalAmount * 100); // Squad expects Kobo
 
     return {
         baseAmount,
@@ -35,9 +44,20 @@ function calculateConvenienceFee(baseAmount) {
     };
 }
 
-// ==========================================
-// 1. FLUTTERWAVE WEBHOOK ENDPOINT
-// ==========================================
+// =========================================================================
+// 2. HEALTHCHECK & SYSTEM STATUS
+// =========================================================================
+app.get('/', (req, res) => {
+    res.status(200).json({
+        system: "@BL SOVEREIGN GATEWAY",
+        status: "LIVE & OPERATIONAL",
+        timestamp: new Date().toISOString()
+    });
+});
+
+// =========================================================================
+// 3. FLUTTERWAVE WEBHOOK ENDPOINT
+// =========================================================================
 app.post('/webhook', (req, res) => {
     const signature = req.headers['verif-hash'];
     
@@ -47,83 +67,84 @@ app.post('/webhook', (req, res) => {
     }
 
     const payload = req.body;
-    console.log(`@BL Sovereign: Processing Trade Ref: ${payload.tx_ref}`);
+    console.log(`@BL Sovereign Webhook: Processing Ref: ${payload.tx_ref}`);
     
     if (payload.status === 'successful') {
-        console.log(`CONFIRMED: ${payload.amount} ${payload.currency} received from ${payload.customer.email}`);
+        console.log(`CONFIRMED: ${payload.amount} ${payload.currency} received from ${payload.customer?.email}`);
     }
 
     res.status(200).end();
 });
 
-// ==========================================
-// 2. SQUAD SUB-MERCHANT REGISTRATION ENDPOINT
-// ==========================================
+// =========================================================================
+// 4. DYNAMIC SQUAD SUB-MERCHANT ONBOARDING ENDPOINT
+// =========================================================================
 app.post('/api/v1/register-merchant', async (req, res) => {
     try {
-        const { displayName, accountName, accountNumber, phoneNumber } = req.body;
+        const { displayName, accountName, email, accountNumber, bankCode, bankName } = req.body;
 
-        if (!displayName || !accountName) {
-            return res.status(400).json({ status: 'error', message: 'Missing parameters' });
+        // Dynamic validation check
+        if (!displayName || !accountName || !email || !accountNumber) {
+            return res.status(400).json({ 
+                status: 'error', 
+                message: 'Missing required parameters. Include: displayName, accountName, email, accountNumber, bankCode, bankName.'
+            });
         }
 
-        console.log(`@BL Gateway: Onboarding live merchant - ${displayName}`);
+        console.log(`@BL Gateway: Onboarding merchant -> ${displayName}`);
 
-        const authHeader = SQUAD_SECRET_KEY.startsWith('Bearer ') 
-            ? SQUAD_SECRET_KEY 
-            : `Bearer ${SQUAD_SECRET_KEY}`;
-
-        // Squad Official Sub-Merchant Schema
         const squadPayload = {
             display_name: displayName,
             account_name: accountName,
-            account_number: accountNumber || "9067888972",
-            bank_code: "090405", // Moniepoint MFB Code
-            bank: "Moniepoint MFB"
+            email: email,
+            account_number: accountNumber,
+            bank_code: bankCode || "090405",           // Default: Moniepoint MFB if omitted
+            bank: bankName || "Moniepoint MFB"
         };
 
-        // Hit Squad Production API
         const response = await axios.post(`${SQUAD_BASE_URL}/merchant/create-sub-users`, squadPayload, {
             headers: {
-                'Authorization': authHeader,
+                'Authorization': getAuthHeader(),
                 'Content-Type': 'application/json'
             },
-            timeout: 10000
+            timeout: 12000
         });
 
-        return res.status(200).json(response.data);
+        return res.status(200).json({
+            status: 'success',
+            message: `Sub-merchant '${displayName}' registered successfully`,
+            squad_data: response.data
+        });
 
     } catch (error) {
-        console.error("@BL Error:", error.response ? error.response.data : error.message);
-        return res.status(error.response ? error.response.status : 400).json({
+        console.error("@BL Sub-Merchant Onboarding Error:", error.response ? error.response.data : error.message);
+        return res.status(error.response ? error.response.status : 500).json({
             status: 'error',
-            message: 'Squad registration failed',
+            message: 'Squad merchant onboarding failed or timed out',
             details: error.response ? error.response.data : error.message
         });
     }
 });
 
-// ==========================================
-// 3. TRANSACTION CHARGE ENDPOINT (WITH MARKUP)
-// ==========================================
+// =========================================================================
+// 5. TRANSACTION CHARGE ENDPOINT (WITH MARKUP APPLICATION)
+// =========================================================================
 app.post('/api/v1/initiate-payment', async (req, res) => {
     try {
         const { email, amount, subAccountId, transactionRef } = req.body;
 
         if (!email || !amount || !subAccountId) {
-            return res.status(400).json({ status: 'error', message: 'Missing payment details' });
+            return res.status(400).json({ 
+                status: 'error', 
+                message: 'Missing payment parameters. Provide email, amount, and subAccountId.' 
+            });
         }
 
-        // Apply Tiered Fee Markup Logic
+        // Apply Tiered Markup
         const feeCalculation = calculateConvenienceFee(Number(amount));
 
-        console.log(`@BL Fee Calculation: Base=₦${feeCalculation.baseAmount}, Markup=₦${feeCalculation.markup}, Final=₦${feeCalculation.totalAmount}`);
+        console.log(`@BL Fee Engine: Base=₦${feeCalculation.baseAmount} | Markup=₦${feeCalculation.markup} | Total Charged=₦${feeCalculation.totalAmount}`);
 
-        const authHeader = SQUAD_SECRET_KEY.startsWith('Bearer ') 
-            ? SQUAD_SECRET_KEY 
-            : `Bearer ${SQUAD_SECRET_KEY}`;
-
-        // Hit Squad Payment Initiation Endpoint
         const squadPayload = {
             email: email,
             amount: feeCalculation.totalAmountInKobo,
@@ -135,9 +156,10 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
 
         const response = await axios.post(`${SQUAD_BASE_URL}/transaction/initiate`, squadPayload, {
             headers: {
-                'Authorization': authHeader,
+                'Authorization': getAuthHeader(),
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 12000
         });
 
         return res.status(200).json({
@@ -148,8 +170,8 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("@BL Payment Error:", error.response ? error.response.data : error.message);
-        return res.status(502).json({
+        console.error("@BL Payment Initiation Error:", error.response ? error.response.data : error.message);
+        return res.status(error.response ? error.response.status : 502).json({
             status: 'error',
             message: 'Failed to initiate transaction on Squad',
             details: error.response ? error.response.data : error.message
@@ -157,6 +179,6 @@ app.post('/api/v1/initiate-payment', async (req, res) => {
     }
 });
 
-// Port configuration
+// Port configuration & Server Launch
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log(`@BL Rail is LIVE on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`@BL Sovereign Rail Master Template LIVE on port ${PORT}`));
