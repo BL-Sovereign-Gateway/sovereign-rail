@@ -1,12 +1,24 @@
+/**
+ * ============================================================================
+ * @BL SOVEREIGN GATEWAY - ALL-IN-ONE MASTER PRODUCTION ENGINE
+ * Ecosystem: Nomba API + Pass-Through Billing + ₦2.00 Cashback + Merchant Auth
+ * Engine: Node.js (Express) Deployed on Railway
+ * ============================================================================
+ */
+
 const express = require('express');
+const path = require('path');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 
 const app = express();
-app.use(express.json());
 
-// Serve static front-end files from "public" directory
-app.use(express.static('public'));
+// Body Parser Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Explicitly Serve Static Public Assets (HTML, CSS, JS, Images)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables from Railway
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
@@ -21,27 +33,31 @@ const getAuthHeader = () => {
         : `Bearer ${NOMBA_ACCESS_TOKEN.trim()}`;
 };
 
-// In-Memory Database Fallback (Prevents Railway Crashes if DB is Offline)
+// In-Memory Database Fallback (Prevents Server Crashes Prior to Database Hookup)
 const tempMerchantStore = [];
 
 // =========================================================================
-// 1. @BL SOVEREIGN PASS-THROUGH FEE & CASHBACK ENGINE
+// 💡 1. PASS-THROUGH CONVENIENCE FEE & ₦2.00 CASHBACK ENGINE
 // =========================================================================
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
 
+    // Platform Tiered Markup (1k–20k: ₦20 | 21k–50k: ₦25 | 51k+: ₦30)
     let grossPlatformFee = 20.00;
     if (target > 20000 && target <= 50000) grossPlatformFee = 25.00;
     if (target > 50000) grossPlatformFee = 30.00;
 
+    // Nomba Negotiated Flat Charge (₦30.00) + 7.5% VAT (₦2.25) = ₦32.25
     const nombaBaseFee = 30.00;
     const nombaVat = nombaBaseFee * 0.075;
     const totalNombaDeduction = nombaBaseFee + nombaVat;
 
+    // ₦2.00 Merchant Cashback Reward
     const CASHBACK_AMOUNT = 2.00;
     const netGatewayProfit = grossPlatformFee - CASHBACK_AMOUNT;
     const totalMerchantPayout = target + CASHBACK_AMOUNT;
 
+    // Total Amount Customer Transfers to Nomba Virtual NUBAN
     const totalCustomerPayment = Math.ceil(target + totalNombaDeduction + grossPlatformFee);
 
     return {
@@ -56,19 +72,44 @@ function calculateInvoiceSplit(targetAmount) {
 }
 
 // =========================================================================
-// 2. HEALTHCHECK & SYSTEM STATUS
+// 🌐 2. FRONT-END ROUTING & PAGES (SERVED FROM /public)
 // =========================================================================
-app.get('/health', (req, res) => {
-    res.status(200).json({
-        system: "@BL SOVEREIGN GATEWAY",
-        provider: "NOMBA SWITCH ENGINE",
-        status: "LIVE & OPERATIONAL",
-        timestamp: new Date().toISOString()
+
+// Home / Healthcheck Page
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            res.status(200).json({
+                system: "@BL SOVEREIGN GATEWAY",
+                provider: "NOMBA SWITCH ENGINE",
+                status: "LIVE & OPERATIONAL",
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+});
+
+// Self-Registration Page Route
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'register.html'), (err) => {
+        if (err) {
+            res.status(404).send("<h2>@BL Gateway: register.html not found inside 'public' folder on GitHub.</h2>");
+        }
+    });
+});
+
+// Merchant Portal / Dashboard Route
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'), (err) => {
+        if (err) {
+            res.status(404).send("<h2>@BL Gateway: dashboard.html not found inside 'public' folder on GitHub.</h2>");
+        }
     });
 });
 
 // =========================================================================
-// 3. MERCHANT SELF-REGISTRATION ENDPOINT
+// 🔐 3. MERCHANT SELF-REGISTRATION ENDPOINT
 // =========================================================================
 app.post('/api/v1/auth/register-merchant', async (req, res) => {
     try {
@@ -125,7 +166,7 @@ app.post('/api/v1/auth/register-merchant', async (req, res) => {
 });
 
 // =========================================================================
-// 4. NOMBA VIRTUAL ACCOUNT CREATION ENDPOINT
+// ⚡ 4. NOMBA VIRTUAL ACCOUNT CREATION ENDPOINT
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
@@ -185,7 +226,7 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
 });
 
 // =========================================================================
-// 5. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
+// 🔔 5. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
 // =========================================================================
 app.post('/api/v1/nomba-webhook', (req, res) => {
     try {
@@ -200,7 +241,7 @@ app.post('/api/v1/nomba-webhook', (req, res) => {
             const accountRef = data.accountRef || data.customerIdentifier;
             const grossPaidAmount = parseFloat(data.amount || 0);
 
-            console.log(`✅ PAYMENT RECEIVED: Ref: ${transactionRef} | AccountRef: ${accountRef} | Amount: ₦${grossPaidAmount}`);
+            console.log(`✅ PAYMENT CONFIRMED: Ref: ${transactionRef} | AccountRef: ${accountRef} | Amount Received: ₦${grossPaidAmount}`);
             console.log(`🎉 ₦2.00 Cashback credited to merchant ledger.`);
         }
 
