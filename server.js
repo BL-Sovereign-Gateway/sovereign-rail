@@ -252,4 +252,5 @@ router.post('/api/v1/auth/register-merchant', async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = router; // Serve static front-end files from the "public" folder
+app.use(express.static('public'));
