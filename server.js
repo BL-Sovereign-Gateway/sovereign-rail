@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(express.json());
