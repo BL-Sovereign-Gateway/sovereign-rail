@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchant Registration - @BL Sovereign Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-700">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-cyan-400">@BL SOVEREIGN GATEWAY</h1>
+            <p class="text-slate-400 text-sm mt-1">Self-Serve Merchant Onboarding</p>
+        </div>
+
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-3 rounded-xl mb-6 text-center text-xs font-semibold shadow-lg">
+            🎉 EARN ₦2.00 INSTANT CASHBACK ON EVERY TRANSACTION PROCESSED!
+        </div>
+
+        <form id="regForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Business / School Name *</label>
+                <input type="text" id="businessName" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-sm">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Email Address *</label>
+                    <input type="email" id="email" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Phone Number *</label>
+                    <input type="tel" id="phone" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Password *</label>
+                <input type="password" id="password" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-sm">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Settlement Account No. *</label>
+                    <input type="text" id="settlementAccountNumber" maxlength="10" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Bank Code *</label>
+                    <input type="text" id="settlementBankCode" placeholder="e.g. 058" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-cyan-500 text-sm">
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-cyan-500 hover:bg-cyan-600 font-semibold py-2.5 rounded-lg text-slate-950 transition text-sm mt-2">
+                Create Merchant Account
+            </button>
+        </form>
+
+        <p id="responseMsg" class="text-center text-xs mt-4 hidden"></p>
+    </div>
+
+    <script>
+        document.getElementById('regForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const msg = document.getElementById('responseMsg');
+            
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            msg.classList.add('hidden');
+
+            const payload = {
+                businessName: document.getElementById('businessName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                password: document.getElementById('password').value,
+                settlementAccountNumber: document.getElementById('settlementAccountNumber').value,
+                settlementBankCode: document.getElementById('settlementBankCode').value
+            };
+
+            try {
+                const res = await fetch('/api/v1/auth/register-merchant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                msg.classList.remove('hidden');
+                if (res.ok) {
+                    msg.className = "text-center text-xs mt-4 text-emerald-400 font-medium";
+                    msg.innerText = "🎉 Account Created! Check your dashboard access.";
+                    document.getElementById('regForm').reset();
+                } else {
+                    msg.className = "text-center text-xs mt-4 text-rose-400 font-medium";
+                    msg.innerText = "❌ " + (data.message || "Registration failed.");
+                }
+            } catch (err) {
+                msg.classList.remove('hidden');
+                msg.className = "text-center text-xs mt-4 text-rose-400 font-medium";
+                msg.innerText = "❌ Connection error. Try again.";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Create Merchant Account";
+            }
+        });
+    </script>
+</body>
+</html>
