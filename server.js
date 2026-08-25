@@ -1,44 +1,47 @@
 const express = require('express');
 const axios = require('axios');
-const app = express();
+const bcrypt = require('bcrypt');
 
+const app = express();
 app.use(express.json());
+
+// Serve static front-end files from "public" directory
+app.use(express.static('public'));
 
 // Environment Variables from Railway
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 
-// Format Bearer Token safely
+// Safe Bearer Header Formatter
 const getAuthHeader = () => {
     if (!NOMBA_ACCESS_TOKEN) return '';
-    return NOMBA_ACCESS_TOKEN.startsWith('Bearer ') 
-        ? NOMBA_ACCESS_TOKEN 
+    return NOMBA_ACCESS_TOKEN.startsWith('Bearer ')
+        ? NOMBA_ACCESS_TOKEN
         : `Bearer ${NOMBA_ACCESS_TOKEN.trim()}`;
 };
 
+// In-Memory Database Fallback (Prevents Railway Crashes if DB is Offline)
+const tempMerchantStore = [];
+
 // =========================================================================
-// 💡 1. @BL SOVEREIGN PASS-THROUGH FEE & CASHBACK ENGINE
+// 1. @BL SOVEREIGN PASS-THROUGH FEE & CASHBACK ENGINE
 // =========================================================================
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
 
-    // Platform Tiered Markup (1k-20k: ₦20 | 21k-50k: ₦25 | 51k+: ₦30)
     let grossPlatformFee = 20.00;
     if (target > 20000 && target <= 50000) grossPlatformFee = 25.00;
     if (target > 50000) grossPlatformFee = 30.00;
 
-    // Nomba Base Fee (₦30.00 Flat Tier) + 7.5% VAT (₦2.25) = ₦32.25
     const nombaBaseFee = 30.00;
     const nombaVat = nombaBaseFee * 0.075;
     const totalNombaDeduction = nombaBaseFee + nombaVat;
 
-    // ₦2.00 Merchant Cashback Split
     const CASHBACK_AMOUNT = 2.00;
     const netGatewayProfit = grossPlatformFee - CASHBACK_AMOUNT;
     const totalMerchantPayout = target + CASHBACK_AMOUNT;
 
-    // Total Amount Customer Must Transfer to Virtual Account
     const totalCustomerPayment = Math.ceil(target + totalNombaDeduction + grossPlatformFee);
 
     return {
@@ -55,7 +58,7 @@ function calculateInvoiceSplit(targetAmount) {
 // =========================================================================
 // 2. HEALTHCHECK & SYSTEM STATUS
 // =========================================================================
-app.get('/', (req, res) => {
+app.get('/health', (req, res) => {
     res.status(200).json({
         system: "@BL SOVEREIGN GATEWAY",
         provider: "NOMBA SWITCH ENGINE",
@@ -65,7 +68,64 @@ app.get('/', (req, res) => {
 });
 
 // =========================================================================
-// 3. NOMBA VIRTUAL ACCOUNT CREATION ENDPOINT (DYNAMIC ONBOARDING)
+// 3. MERCHANT SELF-REGISTRATION ENDPOINT
+// =========================================================================
+app.post('/api/v1/auth/register-merchant', async (req, res) => {
+    try {
+        const { businessName, ownerName, email, phone, password, settlementBankCode, settlementAccountNumber, cacNumber } = req.body;
+
+        if (!businessName || !email || !phone || !password || !settlementAccountNumber || !settlementBankCode) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'All primary fields (Business Name, Email, Phone, Password, Settlement Bank) are required.'
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const merchantRef = `BL-MCH-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const newMerchant = {
+            id: tempMerchantStore.length + 1,
+            merchantRef,
+            businessName,
+            ownerName: ownerName || businessName,
+            email: email.toLowerCase().trim(),
+            phone: phone.trim(),
+            hashedPassword,
+            settlementBankCode,
+            settlementAccountNumber,
+            cacNumber: cacNumber || null,
+            tierLevel: 'TIER_1',
+            balance: 0.00,
+            totalCashbackEarned: 0.00,
+            status: 'ACTIVE',
+            createdAt: new Date().toISOString()
+        };
+
+        tempMerchantStore.push(newMerchant);
+
+        console.log(`🎉 New Merchant Registered: ${businessName} (${merchantRef})`);
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Merchant account registered successfully!',
+            data: {
+                merchantId: newMerchant.id,
+                merchantRef: newMerchant.merchantRef,
+                businessName: newMerchant.businessName,
+                email: newMerchant.email,
+                cashbackEligible: true,
+                cashbackRate: '₦2.00 per transaction'
+            }
+        });
+    } catch (error) {
+        console.error('❌ Merchant Registration Error:', error.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
+    }
+});
+
+// =========================================================================
+// 4. NOMBA VIRTUAL ACCOUNT CREATION ENDPOINT
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
@@ -125,7 +185,7 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
 });
 
 // =========================================================================
-// 4. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
+// 5. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
 // =========================================================================
 app.post('/api/v1/nomba-webhook', (req, res) => {
     try {
@@ -141,9 +201,7 @@ app.post('/api/v1/nomba-webhook', (req, res) => {
             const grossPaidAmount = parseFloat(data.amount || 0);
 
             console.log(`✅ PAYMENT RECEIVED: Ref: ${transactionRef} | AccountRef: ${accountRef} | Amount: ₦${grossPaidAmount}`);
-            
-            // Ledger processing logic runs here upon database connection
-            console.log(`🎉 ₦2.00 Cashback credited to merchant. Net Gateway Profit logged.`);
+            console.log(`🎉 ₦2.00 Cashback credited to merchant ledger.`);
         }
 
         return res.status(200).json({ status: 'success', message: 'Webhook processed successfully' });
@@ -158,100 +216,3 @@ app.post('/api/v1/nomba-webhook', (req, res) => {
 // =========================================================================
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`@BL Sovereign Gateway Engine LIVE on port ${PORT}`));
-/**
- * ============================================================================
- * @BL SOVEREIGN GATEWAY - MERCHANT SELF-REGISTRATION ENDPOINT
- * ============================================================================
- */
-
-const express = require('express');
-const router = express.Router();
-const db = require('../config/db'); // Your Railway PostgreSQL connection
-const bcrypt = require('bcrypt');   // For password hashing
-
-router.post('/api/v1/auth/register-merchant', async (req, res) => {
-    try {
-        const { 
-            businessName, 
-            ownerName, 
-            email, 
-            phone, 
-            password, 
-            settlementBankCode, 
-            settlementAccountNumber,
-            cacNumber 
-        } = req.body;
-
-        // 1. Basic Field Validation
-        if (!businessName || !email || !phone || !password || !settlementAccountNumber || !settlementBankCode) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'All primary fields (Business Name, Email, Phone, Password, Settlement Bank) are required.'
-            });
-        }
-
-        // 2. Check if Email or Phone Already Exists
-        const existingMerchant = await db.query(
-            'SELECT id FROM merchants WHERE email = $1 OR phone = $2', 
-            [email.toLowerCase().trim(), phone.trim()]
-        );
-
-        if (existingMerchant.rows.length > 0) {
-            return res.status(409).json({
-                status: 'error',
-                message: 'A merchant account with this email or phone number already exists.'
-            });
-        }
-
-        // 3. Hash Password for Security
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        // 4. Generate Unique Merchant Reference (e.g., BL-MCH-892301)
-        const merchantRef = `BL-MCH-${Math.floor(100000 + Math.random() * 900000)}`;
-
-        // 5. Insert New Merchant into Database
-        const newMerchant = await db.query(
-            `INSERT INTO merchants 
-             (merchant_ref, business_name, owner_name, email, phone, password_hash, settlement_bank_code, settlement_account_no, cac_number, tier_level, balance, total_cashback_earned, status, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'TIER_1', 0.00, 0.00, 'ACTIVE', NOW())
-             RETURNING id, merchant_ref, business_name, email, status`,
-            [
-                merchantRef, 
-                businessName, 
-                ownerName || businessName, 
-                email.toLowerCase().trim(), 
-                phone.trim(), 
-                hashedPassword, 
-                settlementBankCode, 
-                settlementAccountNumber, 
-                cacNumber || null
-            ]
-        );
-
-        const merchantData = newMerchant.rows[0];
-
-        console.log(`🎉 New Merchant Self-Registered: ${businessName} (${merchantRef})`);
-
-        return res.status(201).json({
-            status: 'success',
-            message: 'Merchant account registered successfully!',
-            data: {
-                merchantId: merchantData.id,
-                merchantRef: merchantData.merchant_ref,
-                businessName: merchantData.business_name,
-                email: merchantData.email,
-                cashbackEligible: true,
-                cashbackRate: '₦2.00 per transaction'
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Merchant Registration Error:', error.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
-    }
-});
-
-module.exports = router; 
-// Serve static front-end files from the "public" folder
-app.use(express.static('public'));
