@@ -1,12 +1,13 @@
 {
-  "name": "sovereign-rail",
+  "name": "bl-sovereign-gateway",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "axios": "^1.7.0",
-    "express": "^4.19.0"
+    "axios": "^1.6.0",
+    "bcrypt": "^5.1.1",
+    "express": "^4.18.2"
   }
 }
