@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTech Initiative - @BL Sovereign Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-lg w-full bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <h1 class="text-2xl font-bold text-cyan-400 text-center">Transformative Education Fund</h1>
+        <p class="text-xs text-slate-400 text-center mt-1 mb-6">Support quality educational infrastructure across local communities.</p>
+
+        <form id="donateForm" class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Donor Full Name</label>
+                <input type="text" id="donorName" placeholder="John Doe" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Email Address</label>
+                <input type="email" id="donorEmail" placeholder="john@example.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Donation Amount (₦) *</label>
+                <input type="number" id="amount" required placeholder="5000" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+            </div>
+            <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-2.5 rounded-lg text-slate-950 text-sm">Process Donation</button>
+        </form>
+        <p id="msg" class="text-center text-xs mt-4 hidden"></p>
+    </div>
+
+    <script>
+        document.getElementById('donateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('msg');
+            msg.classList.remove('hidden');
+            msg.innerText = "Processing donation...";
+
+            try {
+                const res = await fetch('/api/v1/donate/initiate', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        donorName: document.getElementById('donorName').value,
+                        donorEmail: document.getElementById('donorEmail').value,
+                        amount: document.getElementById('amount').value
+                    })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    msg.className = "text-center text-xs mt-4 text-emerald-400 font-medium";
+                    msg.innerText = "🎉 " + data.message;
+                } else {
+                    msg.className = "text-center text-xs mt-4 text-rose-400 font-medium";
+                    msg.innerText = "❌ " + data.message;
+                }
+            } catch(e) {
+                msg.innerText = "❌ Network connection error.";
+            }
+        });
+    </script>
+</body>
+</html>
