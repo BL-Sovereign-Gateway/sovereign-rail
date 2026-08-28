@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sail Credit Support - @BL Sovereign Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-lg w-full bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <h1 class="text-2xl font-bold text-cyan-400 text-center">Sail Credit Support</h1>
+        <p class="text-xs text-slate-400 text-center mt-1 mb-6">Working capital loans & transactional credit lines for verified subscribers.</p>
+
+        <form id="creditForm" class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Merchant Reference / ID *</label>
+                <input type="text" id="merchantRef" required placeholder="BL-MCH-XXXXXX" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Requested Loan Amount (₦) *</label>
+                <input type="number" id="requestedAmount" required placeholder="500000" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">Average Monthly Transaction Turnover (₦)</label>
+                <input type="number" id="monthlyTurnover" placeholder="1000000" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
+            </div>
+            <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-600 font-semibold py-2.5 rounded-lg text-slate-950 text-sm">Submit Credit Application</button>
+        </form>
+        <p id="msg" class="text-center text-xs mt-4 hidden"></p>
+    </div>
+
+    <script>
+        document.getElementById('creditForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('msg');
+            msg.classList.remove('hidden');
+            msg.innerText = "Submitting application...";
+
+            try {
+                const res = await fetch('/api/v1/credit/apply', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        merchantRef: document.getElementById('merchantRef').value,
+                        requestedAmount: document.getElementById('requestedAmount').value,
+                        monthlyTurnover: document.getElementById('monthlyTurnover').value
+                    })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    msg.className = "text-center text-xs mt-4 text-emerald-400 font-medium";
+                    msg.innerText = "🎉 " + data.message + " Ref: " + data.applicationRef;
+                } else {
+                    msg.className = "text-center text-xs mt-4 text-rose-400 font-medium";
+                    msg.innerText = "❌ " + data.message;
+                }
+            } catch(e) {
+                msg.innerText = "❌ Network connection error.";
+            }
+        });
+    </script>
+</body>
+</html>
