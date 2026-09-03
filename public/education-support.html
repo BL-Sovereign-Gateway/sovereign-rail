@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Education Support & School Development | @BL SOVEREIGN GATEWAY</title>
+    <title>Education Support Fund | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -12,11 +12,20 @@
         .header h2 { font-size: 1.6rem; color: #0ea5e9; letter-spacing: 0.5px; }
         .header p { font-size: 0.9rem; color: #94a3b8; margin-top: 4px; }
         .banner { background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8; font-size: 0.85rem; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 600; line-height: 1.4; }
+        
+        .bank-details-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .bank-details-card h3 { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
+        .bank-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; }
+        .bank-row .label { color: #94a3b8; }
+        .bank-row .value { color: #fff; font-weight: 600; }
+        .bank-row .highlight { color: #38bdf8; font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; }
+
         .form-group { margin-bottom: 16px; }
         .form-row { display: flex; gap: 12px; }
         .form-row .form-group { flex: 1; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; font-weight: 500; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+        input[readonly] { background: #1b2537; color: #94a3b8; cursor: not-allowed; border-color: #1e293b; }
         input:focus, select:focus { border-color: #0ea5e9; }
         select option { background: #1e293b; color: #fff; }
         button { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
@@ -41,10 +50,30 @@
         🤝 FREE-WILL DONATIONS FOR SCHOOL INFRASTRUCTURE, EQUIPMENT & GROWTH
     </div>
 
+    <div class="bank-details-card">
+        <h3>Primary Settlement Details</h3>
+        <div class="bank-row">
+            <span class="label">Beneficiary:</span>
+            <span class="value">Real Schools, Eyita</span>
+        </div>
+        <div class="bank-row">
+            <span class="label">Account Name:</span>
+            <span class="value">All Time Business Ltd</span>
+        </div>
+        <div class="bank-row">
+            <span class="label">Bank Name:</span>
+            <span class="value">Access Bank Plc</span>
+        </div>
+        <div class="bank-row">
+            <span class="label">Account Number:</span>
+            <span class="value highlight">0037323182</span>
+        </div>
+    </div>
+
     <form id="eduForm">
         <div class="form-group">
-            <label for="institutionName">Beneficiary School / Academy *</label>
-            <input type="text" id="institutionName" placeholder="e.g. Real Schools, Eyita" required>
+            <label for="institutionName">Beneficiary School *</label>
+            <input type="text" id="institutionName" value="Real Schools, Eyita" readonly required>
         </div>
 
         <div class="form-row">
@@ -55,7 +84,7 @@
             <div class="form-group">
                 <label for="donationPurpose">Support Purpose *</label>
                 <select id="donationPurpose" required>
-                    <option value="" disabled selected>Select Category</option>
+                    <option value="" disabled selected>Select Purpose</option>
                     <option value="GENERAL_GROWTH">General School Growth Fund</option>
                     <option value="INFRASTRUCTURE">Building & Facility Improvement</option>
                     <option value="LAB_TECH">ICT & Science Lab Equipment</option>
@@ -70,7 +99,7 @@
             <input type="number" id="targetAmount" min="1000" step="500" placeholder="e.g. 25000" required>
         </div>
 
-        <button type="submit" id="submitBtn">Generate Donation Virtual Account</button>
+        <button type="submit" id="submitBtn">Generate Dynamic Payment Virtual NUBAN</button>
     </form>
 
     <div id="message"></div>
@@ -112,12 +141,12 @@
                 msgDiv.className = 'success';
                 msgDiv.innerHTML = `
                     <div class="virtual-account-box">
-                        <p><strong>Bank Name:</strong> <span>${details.bankName}</span></p>
-                        <p><strong>Account Number:</strong> <span style="font-size:1.2rem; color:#34d399;">${details.accountNumber}</span></p>
+                        <p><strong>Pay To Bank:</strong> <span>${details.bankName}</span></p>
+                        <p><strong>Dynamic Virtual Account:</strong> <span style="font-size:1.2rem; color:#34d399;">${details.accountNumber}</span></p>
                         <p><strong>Account Name:</strong> <span>${details.accountName}</span></p>
                         <p><strong>Total Transfer Amount:</strong> <span>${details.customerMustTransfer}</span></p>
                         <hr style="border:0; border-top:1px solid #334155; margin:10px 0;">
-                        <p style="font-size:0.8rem; color:#94a3b8; text-align:center;">Transfer your free-will donation to the account above. Thank you for supporting school growth!</p>
+                        <p style="font-size:0.8rem; color:#94a3b8; text-align:center;">Transfer your free-will donation to the Virtual NUBAN above or directly to Access Bank 0037323182. Thank you for supporting school growth!</p>
                     </div>
                 `;
                 msgDiv.style.display = 'block';
@@ -131,7 +160,7 @@
             msgDiv.innerText = '❌ ' + err.message;
             msgDiv.style.display = 'block';
             btn.disabled = false;
-            btn.innerText = 'Generate Donation Virtual Account';
+            btn.innerText = 'Generate Dynamic Payment Virtual NUBAN';
         }
     });
 </script>
