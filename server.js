@@ -113,12 +113,15 @@ app.get('/dashboard', (req, res) => {
 // =========================================================================
 app.post('/api/v1/auth/register-merchant', async (req, res) => {
     try {
-        const { businessName, ownerName, email, phone, password, settlementBankCode, settlementAccountNumber, cacNumber } = req.body;
+        // Updated payload extraction: businessName maps to Merchant/School Name, bankCode supports select dropdown
+        const { businessName, ownerName, email, phone, password, bankCode, settlementBankCode, settlementAccountNumber, cacNumber } = req.body;
 
-        if (!businessName || !email || !phone || !password || !settlementAccountNumber || !settlementBankCode) {
+        const effectiveBankCode = bankCode || settlementBankCode;
+
+        if (!businessName || !email || !phone || !password || !settlementAccountNumber || !effectiveBankCode) {
             return res.status(400).json({
                 status: 'error',
-                message: 'All primary fields (Business Name, Email, Phone, Password, Settlement Bank) are required.'
+                message: 'All primary fields (Merchant Name, Email, Phone, Password, Settlement Account & Bank) are required.'
             });
         }
 
@@ -133,7 +136,7 @@ app.post('/api/v1/auth/register-merchant', async (req, res) => {
             email: email.toLowerCase().trim(),
             phone: phone.trim(),
             hashedPassword,
-            settlementBankCode,
+            settlementBankCode: effectiveBankCode,
             settlementAccountNumber,
             cacNumber: cacNumber || null,
             tierLevel: 'TIER_1',
@@ -170,22 +173,24 @@ app.post('/api/v1/auth/register-merchant', async (req, res) => {
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
-        const { schoolName, targetAmount, accountRef } = req.body;
+        // Accepts merchantName or schoolName interchangeably
+        const { merchantName, schoolName, targetAmount, accountRef } = req.body;
+        const activeMerchantName = merchantName || schoolName;
 
-        if (!schoolName || !targetAmount || !accountRef) {
+        if (!activeMerchantName || !targetAmount || !accountRef) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Missing required parameters: schoolName, targetAmount, accountRef'
+                message: 'Missing required parameters: merchantName (or schoolName), targetAmount, accountRef'
             });
         }
 
         const pricing = calculateInvoiceSplit(targetAmount);
 
-        console.log(`@BL Gateway: Issuing Virtual Account for ${schoolName} | Target: ₦${pricing.cleanTarget} | Transfer Total: ₦${pricing.totalCustomerPayment}`);
+        console.log(`@BL Gateway: Issuing Virtual Account for ${activeMerchantName} | Target: ₦${pricing.cleanTarget} | Transfer Total: ₦${pricing.totalCustomerPayment}`);
 
         const nombaPayload = {
             accountRef: accountRef,
-            accountName: schoolName,
+            accountName: activeMerchantName,
             currency: "NGN",
             amount: pricing.totalCustomerPayment
         };
@@ -203,11 +208,11 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
 
         return res.status(200).json({
             status: 'success',
-            message: `Virtual account generated for '${schoolName}'`,
+            message: `Virtual account generated for '${activeMerchantName}'`,
             account_details: {
                 accountNumber: accountData.accountNumber,
                 bankName: accountData.bankName || 'Nomba / MFB',
-                accountName: schoolName,
+                accountName: activeMerchantName,
                 customerMustTransfer: `₦${pricing.totalCustomerPayment}`,
                 merchantTargetPayout: `₦${pricing.cleanTarget}`,
                 cashbackEarned: `₦${pricing.cashbackAmount}`
