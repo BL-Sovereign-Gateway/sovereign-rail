@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sail Credit Support | @BL SOVEREIGN GATEWAY</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 550px; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h2 { color: #a855f7; }
+        .banner { background: rgba(168, 85, 247, 0.15); border: 1px solid #a855f7; color: #c084fc; font-size: 0.85rem; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 600; }
+        .form-group { margin-bottom: 16px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
+        button { width: 100%; padding: 14px; background: #a855f7; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        #message { margin-top: 16px; font-size: 0.9rem; text-align: center; border-radius: 8px; padding: 10px; display: none; }
+        .success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+        .error { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <h2>SAIL CREDIT SUPPORT</h2>
+        <p>Working Capital & Inventory Financing for Merchants</p>
+    </div>
+    <div class="banner">🚀 ACCESSIBLE CREDIT LINES POWERED BY YOUR DAILY SETTLEMENT VOLUME!</div>
+    <form id="creditForm">
+        <div class="form-group">
+            <label for="merchantRef">Merchant ID / Business Name *</label>
+            <input type="text" id="merchantRef" placeholder="Enter Merchant ID or Business Name" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="requestedAmount">Credit Amount Requested (₦) *</label>
+                <input type="number" id="requestedAmount" min="50000" step="10000" placeholder="e.g. 250000" required>
+            </div>
+            <div class="form-group">
+                <label for="repaymentTenor">Repayment Tenor *</label>
+                <select id="repaymentTenor" required>
+                    <option value="" disabled selected>Select Tenor</option>
+                    <option value="30_DAYS">30 Days (Daily Deduction)</option>
+                    <option value="60_DAYS">60 Days (Bi-Weekly Deduction)</option>
+                    <option value="90_DAYS">90 Days (Monthly Deduction)</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="monthlyTurnover">Estimated Monthly Gateway Turnover (₦) *</label>
+            <input type="number" id="monthlyTurnover" placeholder="e.g. 1000000" required>
+        </div>
+        <button type="submit" id="submitBtn">Submit Credit Application</button>
+    </form>
+    <div id="message"></div>
+</div>
+<script>
+    const form = document.getElementById('creditForm');
+    const msgDiv = document.getElementById('message');
+    const btn = document.getElementById('submitBtn');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.innerText = 'Evaluating Application...';
+        msgDiv.style.display = 'none';
+        const payload = {
+            merchantRef: document.getElementById('merchantRef').value,
+            requestedAmount: document.getElementById('requestedAmount').value,
+            repaymentTenor: document.getElementById('repaymentTenor').value,
+            monthlyTurnover: document.getElementById('monthlyTurnover').value
+        };
+        try {
+            const res = await fetch('/api/v1/credit/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                msgDiv.className = 'success';
+                msgDiv.innerText = '🎉 ' + data.message;
+                msgDiv.style.display = 'block';
+            } else {
+                throw new Error(data.message || 'Credit application evaluation failed.');
+            }
+        } catch (err) {
+            msgDiv.className = 'error';
+            msgDiv.innerText = '❌ ' + err.message;
+            msgDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = 'Submit Credit Application';
+        }
+    });
+</script>
+</body>
+</html>
