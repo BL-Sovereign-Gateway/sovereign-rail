@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Education Support | @BL SOVEREIGN GATEWAY</title>
+    <title>Education Support & School Development | @BL SOVEREIGN GATEWAY</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 550px; }
+        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 550px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
         .header { text-align: center; margin-bottom: 24px; }
-        .header h2 { color: #0ea5e9; }
-        .banner { background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8; font-size: 0.85rem; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 600; }
+        .header h2 { font-size: 1.6rem; color: #0ea5e9; letter-spacing: 0.5px; }
+        .header p { font-size: 0.9rem; color: #94a3b8; margin-top: 4px; }
+        .banner { background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8; font-size: 0.85rem; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 600; line-height: 1.4; }
         .form-group { margin-bottom: 16px; }
         .form-row { display: flex; gap: 12px; }
         .form-row .form-group { flex: 1; }
-        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
-        button { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; font-weight: 500; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+        input:focus, select:focus { border-color: #0ea5e9; }
+        select option { background: #1e293b; color: #fff; }
+        button { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
+        button:hover { background: #38bdf8; }
         #message { margin-top: 16px; font-size: 0.9rem; text-align: center; border-radius: 8px; padding: 12px; display: none; }
         .success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
         .error { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
@@ -26,63 +30,83 @@
     </style>
 </head>
 <body>
+
 <div class="card">
     <div class="header">
-        <h2>EDUCATION FEE SUPPORT</h2>
-        <p>Automated Tuition & School Fee Collection Engine</p>
+        <h2>EDUCATION SUPPORT FUND</h2>
+        <p>Voluntary Contributions & School Growth Grants</p>
     </div>
-    <div class="banner">🎓 SEAMLESS PARENT TRANSFERS VIA DYNAMIC VIRTUAL ACCOUNTS + ₦2.00 CASHBACK REWARD</div>
+
+    <div class="banner">
+        🤝 FREE-WILL DONATIONS FOR SCHOOL INFRASTRUCTURE, EQUIPMENT & GROWTH
+    </div>
+
     <form id="eduForm">
         <div class="form-group">
-            <label for="institutionName">School / Institution Name *</label>
+            <label for="institutionName">Beneficiary School / Academy *</label>
             <input type="text" id="institutionName" placeholder="e.g. Real Schools, Eyita" required>
         </div>
+
         <div class="form-row">
             <div class="form-group">
-                <label for="studentName">Student Name / Reg No. *</label>
-                <input type="text" id="studentName" placeholder="e.g. John Doe (REG/2026/04)" required>
+                <label for="donorName">Donor / Supporter Name *</label>
+                <input type="text" id="donorName" placeholder="e.g. Parent, Alumnus, or Sponsor" required>
             </div>
             <div class="form-group">
-                <label for="feeType">Fee Category *</label>
-                <select id="feeType" required>
-                    <option value="" disabled selected>Select Fee Type</option>
-                    <option value="TUITION">Tuition / School Fees</option>
-                    <option value="DEVELOPMENT">Development Levy</option>
-                    <option value="EXAMINATION">Exam / WAEC / NECO Fee</option>
-                    <option value="UNIFORM_BOOKS">Uniforms & Books</option>
-                    <option value="TRANSPORT">Bus / Transport Fee</option>
+                <label for="donationPurpose">Support Purpose *</label>
+                <select id="donationPurpose" required>
+                    <option value="" disabled selected>Select Category</option>
+                    <option value="GENERAL_GROWTH">General School Growth Fund</option>
+                    <option value="INFRASTRUCTURE">Building & Facility Improvement</option>
+                    <option value="LAB_TECH">ICT & Science Lab Equipment</option>
+                    <option value="SCHOLARSHIP">Student Sponsorship / Grant</option>
+                    <option value="SPORTS_ARTS">Sports & Cultural Development</option>
                 </select>
             </div>
         </div>
+
         <div class="form-group">
-            <label for="targetAmount">Tuition / Fee Amount (₦) *</label>
-            <input type="number" id="targetAmount" min="1000" step="500" placeholder="e.g. 45000" required>
+            <label for="targetAmount">Voluntary Contribution Amount (₦) *</label>
+            <input type="number" id="targetAmount" min="1000" step="500" placeholder="e.g. 25000" required>
         </div>
-        <button type="submit" id="submitBtn">Generate Payment Virtual Account</button>
+
+        <button type="submit" id="submitBtn">Generate Donation Virtual Account</button>
     </form>
+
     <div id="message"></div>
 </div>
+
 <script>
     const form = document.getElementById('eduForm');
     const msgDiv = document.getElementById('message');
     const btn = document.getElementById('submitBtn');
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         btn.disabled = true;
-        btn.innerText = 'Generating Virtual NUBAN...';
+        btn.innerText = 'Generating NUBAN...';
         msgDiv.style.display = 'none';
+
         const institutionName = document.getElementById('institutionName').value;
-        const studentName = document.getElementById('studentName').value;
+        const donorName = document.getElementById('donorName').value;
         const targetAmount = document.getElementById('targetAmount').value;
-        const accountRef = 'EDU-' + Date.now();
-        const payload = { schoolName: `${institutionName} - ${studentName}`, targetAmount: targetAmount, accountRef: accountRef };
+        const accountRef = 'DONATION-' + Date.now();
+
+        const payload = {
+            schoolName: `${institutionName} - ${donorName}`,
+            targetAmount: targetAmount,
+            accountRef: accountRef
+        };
+
         try {
             const res = await fetch('/api/v1/create-virtual-account', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
             const data = await res.json();
+
             if (res.ok && data.status === 'success') {
                 const details = data.account_details;
                 msgDiv.className = 'success';
@@ -91,11 +115,14 @@
                         <p><strong>Bank Name:</strong> <span>${details.bankName}</span></p>
                         <p><strong>Account Number:</strong> <span style="font-size:1.2rem; color:#34d399;">${details.accountNumber}</span></p>
                         <p><strong>Account Name:</strong> <span>${details.accountName}</span></p>
-                        <p><strong>Total Amount to Transfer:</strong> <span>${details.customerMustTransfer}</span></p>
-                    </div>`;
+                        <p><strong>Total Transfer Amount:</strong> <span>${details.customerMustTransfer}</span></p>
+                        <hr style="border:0; border-top:1px solid #334155; margin:10px 0;">
+                        <p style="font-size:0.8rem; color:#94a3b8; text-align:center;">Transfer your free-will donation to the account above. Thank you for supporting school growth!</p>
+                    </div>
+                `;
                 msgDiv.style.display = 'block';
                 btn.disabled = false;
-                btn.innerText = 'Generate New Account';
+                btn.innerText = 'Generate New Donation Account';
             } else {
                 throw new Error(data.message || 'Failed to generate Virtual Account.');
             }
@@ -104,9 +131,10 @@
             msgDiv.innerText = '❌ ' + err.message;
             msgDiv.style.display = 'block';
             btn.disabled = false;
-            btn.innerText = 'Generate Payment Virtual Account';
+            btn.innerText = 'Generate Donation Virtual Account';
         }
     });
 </script>
+
 </body>
 </html>
