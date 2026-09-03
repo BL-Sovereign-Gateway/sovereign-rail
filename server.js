@@ -94,7 +94,7 @@ app.get('/', (req, res) => {
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'register.html'), (err) => {
         if (err) {
-            res.status(404).send("<h2>@BL Gateway: register.html not found inside 'public' folder on GitHub.</h2>");
+            res.status(404).send("<h2>@BL Gateway: register.html not found inside 'public' folder.</h2>");
         }
     });
 });
@@ -103,7 +103,25 @@ app.get('/register', (req, res) => {
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'), (err) => {
         if (err) {
-            res.status(404).send("<h2>@BL Gateway: dashboard.html not found inside 'public' folder on GitHub.</h2>");
+            res.status(404).send("<h2>@BL Gateway: dashboard.html not found inside 'public' folder.</h2>");
+        }
+    });
+});
+
+// Education Support Route
+app.get('/education-support', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'education-support.html'), (err) => {
+        if (err) {
+            res.status(404).send("<h2>@BL Gateway: education-support.html not found inside 'public' folder.</h2>");
+        }
+    });
+});
+
+// Sail Credit Support Route
+app.get('/credit-support', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'credit-support.html'), (err) => {
+        if (err) {
+            res.status(404).send("<h2>@BL Gateway: credit-support.html not found inside 'public' folder.</h2>");
         }
     });
 });
@@ -113,7 +131,6 @@ app.get('/dashboard', (req, res) => {
 // =========================================================================
 app.post('/api/v1/auth/register-merchant', async (req, res) => {
     try {
-        // Updated payload extraction: businessName maps to Merchant/School Name, bankCode supports select dropdown
         const { businessName, ownerName, email, phone, password, bankCode, settlementBankCode, settlementAccountNumber, cacNumber } = req.body;
 
         const effectiveBankCode = bankCode || settlementBankCode;
@@ -173,7 +190,6 @@ app.post('/api/v1/auth/register-merchant', async (req, res) => {
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
-        // Accepts merchantName or schoolName interchangeably
         const { merchantName, schoolName, targetAmount, accountRef } = req.body;
         const activeMerchantName = merchantName || schoolName;
 
@@ -231,7 +247,47 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
 });
 
 // =========================================================================
-// 🔔 5. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
+// 💳 5. SAIL CREDIT SUPPORT APPLICATION ENDPOINT
+// =========================================================================
+app.post('/api/v1/credit/apply', async (req, res) => {
+    try {
+        const { merchantRef, requestedAmount, repaymentTenor, monthlyTurnover, purpose } = req.body;
+
+        if (!merchantRef || !requestedAmount || !repaymentTenor || !monthlyTurnover) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'All fields (Merchant Ref, Requested Amount, Tenor, and Turnover) are required.'
+            });
+        }
+
+        const amount = parseFloat(requestedAmount);
+        const turnover = parseFloat(monthlyTurnover);
+        const maxEligibleCredit = turnover * 0.50;
+
+        if (amount > maxEligibleCredit) {
+            return res.status(400).json({
+                status: 'error',
+                message: `Credit request exceeds eligibility limit. Maximum eligible credit line: ₦${maxEligibleCredit.toLocaleString()}.`
+            });
+        }
+
+        const creditAppRef = `SAIL-CRD-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        console.log(`💳 Sail Credit Application: ${merchantRef} | Amount: ₦${amount} | Ref: ${creditAppRef}`);
+
+        return res.status(200).json({
+            status: 'success',
+            message: `Credit application ${creditAppRef} received! An officer will contact you within 24 hours.`,
+            data: { creditAppRef, merchantRef, approvedAmount: amount, tenor: repaymentTenor }
+        });
+    } catch (error) {
+        console.error('❌ Sail Credit Processing Error:', error.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing credit application.' });
+    }
+});
+
+// =========================================================================
+// 🔔 6. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
 // =========================================================================
 app.post('/api/v1/nomba-webhook', (req, res) => {
     try {
