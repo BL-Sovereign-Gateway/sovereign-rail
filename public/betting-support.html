@@ -1,0 +1,24 @@
+<script>
+    // Fetch and populate bookmakers dynamically on load
+    async function loadBookmakers() {
+        const select = document.getElementById('bookmakerSelect');
+        try {
+            const res = await fetch('/api/v1/betting/providers');
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                select.innerHTML = '<option value="" disabled selected>Select Bookmaker / App</option>';
+                data.data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    select.appendChild(opt);
+                });
+            }
+        } catch (err) {
+            console.error('Error loading bookmaker list', err);
+        }
+    }
+
+    window.onload = loadBookmakers;
+</script>
