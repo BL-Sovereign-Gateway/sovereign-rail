@@ -1,7 +1,7 @@
 /**
  * ============================================================================
- * @BL SOVEREIGN GATEWAY - ALL-IN-ONE MASTER PRODUCTION ENGINE
- * Ecosystem: Nomba API + Pass-Through Billing + ₦2.00 Cashback + Merchant Auth
+ * @BL SOVEREIGN GATEWAY - MASTER SWITCH & VERIFICATION ENGINE
+ * Ecosystem: Nomba API + Real-Time Verification Ledger + Pass-Through Fees
  * Engine: Node.js (Express) Deployed on Railway
  * ============================================================================
  */
@@ -17,10 +17,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Explicitly Serve Static Public Assets (HTML, CSS, JS, Images)
+// Serve Static Public Assets
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables from Railway
+// Environment Variables
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
@@ -33,31 +33,28 @@ const getAuthHeader = () => {
         : `Bearer ${NOMBA_ACCESS_TOKEN.trim()}`;
 };
 
-// In-Memory Database Fallback (Prevents Server Crashes Prior to Database Hookup)
+// In-Memory Database & Live Payment Verification Ledger
 const tempMerchantStore = [];
+const transactionLedger = {}; 
 
 // =========================================================================
-// 💡 1. PASS-THROUGH CONVENIENCE FEE & ₦2.00 CASHBACK ENGINE
+// 💡 1. PASS-THROUGH CONVENIENCE FEE & CASHBACK CALCULATOR
 // =========================================================================
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
 
-    // Platform Tiered Markup (1k–20k: ₦20 | 21k–50k: ₦25 | 51k+: ₦30)
     let grossPlatformFee = 20.00;
     if (target > 20000 && target <= 50000) grossPlatformFee = 25.00;
     if (target > 50000) grossPlatformFee = 30.00;
 
-    // Nomba Negotiated Flat Charge (₦30.00) + 7.5% VAT (₦2.25) = ₦32.25
     const nombaBaseFee = 30.00;
     const nombaVat = nombaBaseFee * 0.075;
     const totalNombaDeduction = nombaBaseFee + nombaVat;
 
-    // ₦2.00 Merchant Cashback Reward
     const CASHBACK_AMOUNT = 2.00;
     const netGatewayProfit = grossPlatformFee - CASHBACK_AMOUNT;
     const totalMerchantPayout = target + CASHBACK_AMOUNT;
 
-    // Total Amount Customer Transfers to Nomba Virtual NUBAN
     const totalCustomerPayment = Math.ceil(target + totalNombaDeduction + grossPlatformFee);
 
     return {
@@ -72,13 +69,11 @@ function calculateInvoiceSplit(targetAmount) {
 }
 
 // =========================================================================
-// 🌐 2. FRONT-END ROUTING & PAGES (SERVED FROM /public)
+// 🌐 2. FRONT-END ROUTING & PAGES
 // =========================================================================
 
-// Home / Healthcheck Page
 app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'public', 'index.html');
-    res.sendFile(indexPath, (err) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
         if (err) {
             res.status(200).json({
                 system: "@BL SOVEREIGN GATEWAY",
@@ -90,55 +85,55 @@ app.get('/', (req, res) => {
     });
 });
 
-// Self-Registration Page Route
 app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'register.html'), (err) => {
-        if (err) {
-            res.status(404).send("<h2>@BL Gateway: register.html not found inside 'public' folder.</h2>");
-        }
-    });
+    res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
-// Merchant Portal / Dashboard Route
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'), (err) => {
-        if (err) {
-            res.status(404).send("<h2>@BL Gateway: dashboard.html not found inside 'public' folder.</h2>");
-        }
-    });
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Education Support Route
 app.get('/education-support', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'education-support.html'), (err) => {
-        if (err) {
-            res.status(404).send("<h2>@BL Gateway: education-support.html not found inside 'public' folder.</h2>");
-        }
-    });
+    res.sendFile(path.join(__dirname, 'public', 'education-support.html'));
 });
 
-// Sail Credit Support Route
 app.get('/credit-support', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'credit-support.html'), (err) => {
-        if (err) {
-            res.status(404).send("<h2>@BL Gateway: credit-support.html not found inside 'public' folder.</h2>");
-        }
+    res.sendFile(path.join(__dirname, 'public', 'credit-support.html'));
+});
+
+// =========================================================================
+// 🔍 3. REAL-TIME PAYMENT VERIFICATION ENDPOINT
+// =========================================================================
+app.get('/api/v1/verify-payment/:accountRef', (req, res) => {
+    const ref = req.params.accountRef;
+    const record = transactionLedger[ref];
+
+    if (record && record.status === 'PAID') {
+        return res.status(200).json({
+            status: 'PAID',
+            message: 'Payment confirmed live on bank switch!',
+            data: record
+        });
+    }
+
+    return res.status(200).json({
+        status: 'PENDING',
+        message: 'Payment not yet detected by bank switch.'
     });
 });
 
 // =========================================================================
-// 🔐 3. MERCHANT SELF-REGISTRATION ENDPOINT
+// 🔐 4. MERCHANT SELF-REGISTRATION ENDPOINT
 // =========================================================================
 app.post('/api/v1/auth/register-merchant', async (req, res) => {
     try {
         const { businessName, ownerName, email, phone, password, bankCode, settlementBankCode, settlementAccountNumber, cacNumber } = req.body;
-
         const effectiveBankCode = bankCode || settlementBankCode;
 
         if (!businessName || !email || !phone || !password || !settlementAccountNumber || !effectiveBankCode) {
             return res.status(400).json({
                 status: 'error',
-                message: 'All primary fields (Merchant Name, Email, Phone, Password, Settlement Account & Bank) are required.'
+                message: 'All primary fields are required.'
             });
         }
 
@@ -156,37 +151,25 @@ app.post('/api/v1/auth/register-merchant', async (req, res) => {
             settlementBankCode: effectiveBankCode,
             settlementAccountNumber,
             cacNumber: cacNumber || null,
-            tierLevel: 'TIER_1',
             balance: 0.00,
-            totalCashbackEarned: 0.00,
             status: 'ACTIVE',
             createdAt: new Date().toISOString()
         };
 
         tempMerchantStore.push(newMerchant);
 
-        console.log(`🎉 New Merchant Registered: ${businessName} (${merchantRef})`);
-
         return res.status(201).json({
             status: 'success',
             message: 'Merchant account registered successfully!',
-            data: {
-                merchantId: newMerchant.id,
-                merchantRef: newMerchant.merchantRef,
-                businessName: newMerchant.businessName,
-                email: newMerchant.email,
-                cashbackEligible: true,
-                cashbackRate: '₦2.00 per transaction'
-            }
+            data: { merchantRef: newMerchant.merchantRef, businessName: newMerchant.businessName }
         });
     } catch (error) {
-        console.error('❌ Merchant Registration Error:', error.message);
         return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
     }
 });
 
 // =========================================================================
-// ⚡ 4. NOMBA VIRTUAL ACCOUNT CREATION ENDPOINT
+// ⚡ 5. NOMBA VIRTUAL ACCOUNT CREATION ENDPOINT
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
@@ -194,15 +177,30 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
         const activeMerchantName = merchantName || schoolName;
 
         if (!activeMerchantName || !targetAmount || !accountRef) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Missing required parameters: merchantName (or schoolName), targetAmount, accountRef'
-            });
+            return res.status(400).json({ status: 'error', message: 'Missing required parameters.' });
         }
 
         const pricing = calculateInvoiceSplit(targetAmount);
 
-        console.log(`@BL Gateway: Issuing Virtual Account for ${activeMerchantName} | Target: ₦${pricing.cleanTarget} | Transfer Total: ₦${pricing.totalCustomerPayment}`);
+        // Fallback for testing before live Nomba keys are applied
+        if (!NOMBA_ACCESS_TOKEN || NOMBA_ACCESS_TOKEN.includes('placeholder')) {
+            const mockNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
+            
+            // Register reference in ledger
+            transactionLedger[accountRef] = { status: 'PENDING', amount: pricing.totalCustomerPayment };
+
+            return res.status(200).json({
+                status: 'success',
+                message: `Virtual account generated for '${activeMerchantName}'`,
+                account_details: {
+                    accountNumber: mockNuban,
+                    bankName: 'Nomba / MFB',
+                    accountName: activeMerchantName,
+                    customerMustTransfer: `₦${pricing.totalCustomerPayment}`
+                },
+                pricing_breakdown: pricing
+            });
+        }
 
         const nombaPayload = {
             accountRef: accountRef,
@@ -221,6 +219,7 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
         });
 
         const accountData = response.data?.data || response.data;
+        transactionLedger[accountRef] = { status: 'PENDING', amount: pricing.totalCustomerPayment };
 
         return res.status(200).json({
             status: 'success',
@@ -229,92 +228,46 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
                 accountNumber: accountData.accountNumber,
                 bankName: accountData.bankName || 'Nomba / MFB',
                 accountName: activeMerchantName,
-                customerMustTransfer: `₦${pricing.totalCustomerPayment}`,
-                merchantTargetPayout: `₦${pricing.cleanTarget}`,
-                cashbackEarned: `₦${pricing.cashbackAmount}`
+                customerMustTransfer: `₦${pricing.totalCustomerPayment}`
             },
             pricing_breakdown: pricing
         });
 
     } catch (error) {
-        console.error("@BL Virtual Account Generation Error:", error.response ? error.response.data : error.message);
-        return res.status(error.response ? error.response.status : 500).json({
-            status: 'error',
-            message: 'Failed to create virtual account on Nomba',
-            details: error.response ? error.response.data : error.message
-        });
+        return res.status(500).json({ status: 'error', message: 'Failed to create virtual account on Nomba' });
     }
 });
 
 // =========================================================================
-// 💳 5. SAIL CREDIT SUPPORT APPLICATION ENDPOINT
-// =========================================================================
-app.post('/api/v1/credit/apply', async (req, res) => {
-    try {
-        const { merchantRef, requestedAmount, repaymentTenor, monthlyTurnover, purpose } = req.body;
-
-        if (!merchantRef || !requestedAmount || !repaymentTenor || !monthlyTurnover) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'All fields (Merchant Ref, Requested Amount, Tenor, and Turnover) are required.'
-            });
-        }
-
-        const amount = parseFloat(requestedAmount);
-        const turnover = parseFloat(monthlyTurnover);
-        const maxEligibleCredit = turnover * 0.50;
-
-        if (amount > maxEligibleCredit) {
-            return res.status(400).json({
-                status: 'error',
-                message: `Credit request exceeds eligibility limit. Maximum eligible credit line: ₦${maxEligibleCredit.toLocaleString()}.`
-            });
-        }
-
-        const creditAppRef = `SAIL-CRD-${Math.floor(100000 + Math.random() * 900000)}`;
-
-        console.log(`💳 Sail Credit Application: ${merchantRef} | Amount: ₦${amount} | Ref: ${creditAppRef}`);
-
-        return res.status(200).json({
-            status: 'success',
-            message: `Credit application ${creditAppRef} received! An officer will contact you within 24 hours.`,
-            data: { creditAppRef, merchantRef, approvedAmount: amount, tenor: repaymentTenor }
-        });
-    } catch (error) {
-        console.error('❌ Sail Credit Processing Error:', error.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error processing credit application.' });
-    }
-});
-
-// =========================================================================
-// 🔔 6. NOMBA LIVE WEBHOOK CONTROLLER & CASHBACK LEDGER
+// 🔔 6. NOMBA LIVE WEBHOOK CONTROLLER
 // =========================================================================
 app.post('/api/v1/nomba-webhook', (req, res) => {
     try {
         const payload = req.body;
         const eventType = payload.event || payload.type;
 
-        console.log(`@BL Webhook Alert: Incoming event [${eventType}]`);
-
         if (eventType === 'payment_success' || eventType === 'SUCCESSFUL_TRANSACTION') {
             const data = payload.data || payload;
-            const transactionRef = data.orderReference || data.transactionRef;
-            const accountRef = data.accountRef || data.customerIdentifier;
+            const ref = data.orderReference || data.accountRef || data.customerIdentifier;
             const grossPaidAmount = parseFloat(data.amount || 0);
 
-            console.log(`✅ PAYMENT CONFIRMED: Ref: ${transactionRef} | AccountRef: ${accountRef} | Amount Received: ₦${grossPaidAmount}`);
-            console.log(`🎉 ₦2.00 Cashback credited to merchant ledger.`);
+            // Record live successful payment to ledger
+            transactionLedger[ref] = {
+                status: 'PAID',
+                amount: grossPaidAmount,
+                transactionRef: data.transactionRef || `TX-${Date.now()}`,
+                paidAt: new Date().toISOString()
+            };
+
+            console.log(`✅ LIVE PAYMENT CONFIRMED | Ref: ${ref} | Amount: ₦${grossPaidAmount}`);
         }
 
         return res.status(200).json({ status: 'success', message: 'Webhook processed successfully' });
     } catch (error) {
-        console.error("❌ Webhook Handling Error:", error.message);
         return res.status(200).json({ status: 'error', message: error.message });
     }
 });
 
-// =========================================================================
-// PORT CONFIGURATION & SERVER LAUNCH
-// =========================================================================
+// Port Setup
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`@BL Sovereign Gateway Engine LIVE on port ${PORT}`));
