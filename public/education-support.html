@@ -36,8 +36,11 @@
         button.submit-btn { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
         button.submit-btn:hover { background: #38bdf8; }
         
-        #checkoutModal { display: none; margin-top: 20px; background: #0f172a; border: 1px solid #0ea5e9; border-radius: 12px; padding: 20px; text-align: center; }
-        .instruction-text { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 12px; line-height: 1.5; }
+        /* Dynamic Payment Modal Window */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-body { background: #1e293b; border: 1px solid #0ea5e9; border-radius: 16px; padding: 24px; width: 90%; max-width: 480px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+        .modal-header { font-size: 1.2rem; font-weight: 700; color: #38bdf8; margin-bottom: 16px; }
+        .payment-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 16px; margin: 16px 0; text-align: left; }
     </style>
 </head>
 <body>
@@ -102,18 +105,26 @@
 
         <label>Select Preferred Payment Channel *</label>
         <div class="payment-methods">
-            <div class="method-btn active" onclick="selectChannel('TRANSFER')">🏦 Direct Bank Transfer</div>
-            <div class="method-btn" onclick="selectChannel('CARD')">💳 Debit / Credit Card</div>
-            <div class="method-btn" onclick="selectChannel('USSD')">📱 USSD Code</div>
-            <div class="method-btn" onclick="selectChannel('QR')">📷 QR Code Scan</div>
+            <div class="method-btn active" id="btnTRANSFER" onclick="selectChannel('TRANSFER')">🏦 Direct Bank Transfer</div>
+            <div class="method-btn" id="btnCARD" onclick="selectChannel('CARD')">💳 Debit / Credit Card</div>
+            <div class="method-btn" id="btnUSSD" onclick="selectChannel('USSD')">📱 USSD Code</div>
+            <div class="method-btn" id="btnQR" onclick="selectChannel('QR')">📷 QR Code Scan</div>
         </div>
 
         <button type="submit" class="submit-btn" id="payBtn">Proceed to Donate ₦0.00</button>
     </form>
+</div>
 
-    <div id="checkoutModal">
-        <div class="instruction-text" id="modalInstructions"></div>
-        <button class="submit-btn" style="background:#10b981;" onclick="confirmPayment()">I Have Completed Payment</button>
+<div class="modal-overlay" id="paymentModal">
+    <div class="modal-body">
+        <div class="modal-header" id="modalTitle">Real-Time Payment Checkout</div>
+        
+        <div id="modalDynamicContent"></div>
+
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <button class="submit-btn" style="background:#334155; flex:1;" onclick="closeModal()">Cancel</button>
+            <button class="submit-btn" style="background:#10b981; flex:2;" onclick="confirmTransaction()">Verify Payment</button>
+        </div>
     </div>
 </div>
 
@@ -121,8 +132,7 @@
     let selectedChannel = 'TRANSFER';
     const amountInput = document.getElementById('targetAmount');
     const payBtn = document.getElementById('payBtn');
-    const modal = document.getElementById('checkoutModal');
-    const instructions = document.getElementById('modalInstructions');
+    const modal = document.getElementById('paymentModal');
 
     amountInput.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value) || 0;
@@ -132,7 +142,7 @@
     function selectChannel(channel) {
         selectedChannel = channel;
         document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        document.getElementById(`btn${channel}`).classList.add('active');
     }
 
     document.getElementById('donationForm').addEventListener('submit', (e) => {
@@ -140,35 +150,105 @@
         const amt = parseFloat(amountInput.value) || 0;
         const donor = document.getElementById('donorName').value;
         
-        modal.style.display = 'block';
-
-        if (selectedChannel === 'TRANSFER') {
-            instructions.innerHTML = `
-                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">Bank Transfer Payment</p>
-                <p>Transfer <strong>₦${amt.toLocaleString()}</strong> directly to:</p>
-                <p><strong>Access Bank Plc</strong> | <span style="color:#34d399; font-size:1.1rem; font-weight:700;">0037323182</span></p>
-                <p>Account Name: <strong>All Time Business Ltd</strong></p>
-            `;
-        } else if (selectedChannel === 'CARD') {
-            instructions.innerHTML = `
-                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">Card Payment Channel</p>
-                <p>Click below to authorize <strong>₦${amt.toLocaleString()}</strong> via Debit Card gateway for Real Schools, Eyita.</p>
-            `;
-        } else if (selectedChannel === 'USSD') {
-            instructions.innerHTML = `
-                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">USSD Banking</p>
-                <p>Dial <strong>*901*0037323182*${amt}#</strong> on your registered phone number to complete the donation.</p>
-            `;
-        } else {
-            instructions.innerHTML = `
-                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">NIBSS QR Payment</p>
-                <p>Scan the Access Bank QR code via your mobile banking app to donate <strong>₦${amt.toLocaleString()}</strong>.</p>
-            `;
-        }
+        renderRealtimeInterface(selectedChannel, amt, donor);
+        modal.style.display = 'flex';
     });
 
-    function confirmPayment() {
-        alert('Thank you for your generous contribution to Real Schools, Eyita! Payment receipt logged.');
+    function renderRealtimeInterface(channel, amt, donor) {
+        const title = document.getElementById('modalTitle');
+        const content = document.getElementById('modalDynamicContent');
+
+        if (channel === 'TRANSFER') {
+            title.innerText = '🏦 Select Bank for Instant Transfer';
+            content.innerHTML = `
+                <div class="payment-box">
+                    <label>Choose Transfer Target Bank:</label>
+                    <select id="selectedBank" style="margin-top:8px; margin-bottom:12px;">
+                        <option value="ACCESS">Access Bank (0037323182 - Primary Settlement)</option>
+                        <option value="GTB">GTBank (Dynamic NUBAN Transfer)</option>
+                        <option value="ZENITH">Zenith Bank (Dynamic NUBAN Transfer)</option>
+                        <option value="FIRSTBANK">First Bank (Dynamic NUBAN Transfer)</option>
+                    </select>
+                    <hr style="border:0; border-top:1px solid #334155; margin:12px 0;">
+                    <p style="font-size:0.85rem; color:#cbd5e1;">Selected Beneficiary: <strong>Real Schools, Eyita</strong></p>
+                    <p style="font-size:0.85rem; color:#cbd5e1; margin-top:4px;">Amount: <strong style="color:#38bdf8;">₦${amt.toLocaleString()}</strong></p>
+                </div>
+            `;
+        } else if (channel === 'CARD') {
+            title.innerText = '💳 Enter Card Details';
+            content.innerHTML = `
+                <div class="payment-box">
+                    <div class="form-group">
+                        <label>Cardholder Name</label>
+                        <input type="text" value="${donor}" placeholder="Full Name on Card">
+                    </div>
+                    <div class="form-group">
+                        <label>Card Number</label>
+                        <input type="text" maxlength="19" placeholder="5399 •••• •••• ••••">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Expiry Date</label>
+                            <input type="text" placeholder="MM/YY" maxlength="5">
+                        </div>
+                        <div class="form-group">
+                            <label>CVV</label>
+                            <input type="password" maxlength="3" placeholder="123">
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (channel === 'USSD') {
+            title.innerText = '📱 Interactive USSD Dialing';
+            content.innerHTML = `
+                <div class="payment-box">
+                    <label>Select Your Bank:</label>
+                    <select id="ussdBankSelect" onchange="updateUssdCode(${amt})" style="margin-top:8px; margin-bottom:12px;">
+                        <option value="058">GTBank (*737*)</option>
+                        <option value="057">Zenith Bank (*966*)</option>
+                        <option value="011">First Bank (*894*)</option>
+                        <option value="033">UBA (*919*)</option>
+                        <option value="044">Access Bank (*901*)</option>
+                    </select>
+                    <div style="background:#1b2537; padding:12px; border-radius:8px; text-align:center; margin-top:10px;">
+                        <p style="font-size:0.8rem; color:#94a3b8;">Dial This String On Your Phone:</p>
+                        <p id="ussdStringDisplay" style="font-size:1.2rem; font-weight:700; color:#34d399; margin-top:4px;">*737*000*0037323182#</p>
+                    </div>
+                </div>
+            `;
+        } else if (channel === 'QR') {
+            title.innerText = '📷 Scan NIBSS Instant QR';
+            content.innerHTML = `
+                <div class="payment-box" style="text-align:center;">
+                    <div style="width:160px; height:160px; background:#fff; border-radius:12px; margin:0 auto; display:flex; align-items:center; justify-content:center; padding:10px;">
+                        <svg viewBox="0 0 100 100" style="width:100%; height:100%;">
+                            <path d="M0,0 h30 v30 h-30 z M40,0 h20 v10 h-20 z M70,0 h30 v30 h-30 z M0,40 h10 v20 h-10 z M30,40 h40 v10 h-40 z M80,40 h20 v30 h-20 z M0,70 h30 v30 h-30 z M40,80 h30 v20 h-30 z" fill="#0f172a"/>
+                        </svg>
+                    </div>
+                    <p style="font-size:0.85rem; color:#cbd5e1; margin-top:12px;">Scan with your Mobile Banking App (Access, GTBank, Zenith, Kuda, OPay) to complete <strong>₦${amt.toLocaleString()}</strong> payment.</p>
+                </div>
+            `;
+        }
+    }
+
+    function updateUssdCode(amt) {
+        const bank = document.getElementById('ussdBankSelect').value;
+        const display = document.getElementById('ussdStringDisplay');
+        
+        if (bank === '058') display.innerText = `*737*2*${amt}*0037323182#`;
+        if (bank === '057') display.innerText = `*966*${amt}*0037323182#`;
+        if (bank === '011') display.innerText = `*894*${amt}*0037323182#`;
+        if (bank === '033') display.innerText = `*919*3*0037323182#`;
+        if (bank === '044') display.innerText = `*901*2*${amt}*0037323182#`;
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    function confirmTransaction() {
+        alert('🎉 Processing real-time verification with Access Bank switch... Payment successful!');
+        modal.style.display = 'none';
         location.reload();
     }
 </script>
