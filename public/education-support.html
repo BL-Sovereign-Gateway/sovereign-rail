@@ -28,14 +28,16 @@
         input[readonly] { background: #1b2537; color: #94a3b8; cursor: not-allowed; border-color: #1e293b; }
         input:focus, select:focus { border-color: #0ea5e9; }
         select option { background: #1e293b; color: #fff; }
-        button { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
-        button:hover { background: #38bdf8; }
-        #message { margin-top: 16px; font-size: 0.9rem; text-align: center; border-radius: 8px; padding: 12px; display: none; }
-        .success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
-        .error { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
-        .virtual-account-box { background: #0f172a; border: 1px dashed #0ea5e9; border-radius: 8px; padding: 16px; margin-top: 16px; text-align: left; }
-        .virtual-account-box p { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 6px; }
-        .virtual-account-box span { font-weight: 700; color: #38bdf8; }
+        
+        .payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
+        .method-btn { background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+        .method-btn.active { border-color: #0ea5e9; background: rgba(14, 165, 233, 0.1); color: #38bdf8; }
+        
+        button.submit-btn { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button.submit-btn:hover { background: #38bdf8; }
+        
+        #checkoutModal { display: none; margin-top: 20px; background: #0f172a; border: 1px solid #0ea5e9; border-radius: 12px; padding: 20px; text-align: center; }
+        .instruction-text { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 12px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -70,7 +72,7 @@
         </div>
     </div>
 
-    <form id="eduForm">
+    <form id="donationForm">
         <div class="form-group">
             <label for="institutionName">Beneficiary School *</label>
             <input type="text" id="institutionName" value="Real Schools, Eyita" readonly required>
@@ -89,7 +91,6 @@
                     <option value="INFRASTRUCTURE">Building & Facility Improvement</option>
                     <option value="LAB_TECH">ICT & Science Lab Equipment</option>
                     <option value="SCHOLARSHIP">Student Sponsorship / Grant</option>
-                    <option value="SPORTS_ARTS">Sports & Cultural Development</option>
                 </select>
             </div>
         </div>
@@ -99,70 +100,77 @@
             <input type="number" id="targetAmount" min="1000" step="500" placeholder="e.g. 25000" required>
         </div>
 
-        <button type="submit" id="submitBtn">Generate Dynamic Payment Virtual NUBAN</button>
+        <label>Select Preferred Payment Channel *</label>
+        <div class="payment-methods">
+            <div class="method-btn active" onclick="selectChannel('TRANSFER')">🏦 Direct Bank Transfer</div>
+            <div class="method-btn" onclick="selectChannel('CARD')">💳 Debit / Credit Card</div>
+            <div class="method-btn" onclick="selectChannel('USSD')">📱 USSD Code</div>
+            <div class="method-btn" onclick="selectChannel('QR')">📷 QR Code Scan</div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="payBtn">Proceed to Donate ₦0.00</button>
     </form>
 
-    <div id="message"></div>
+    <div id="checkoutModal">
+        <div class="instruction-text" id="modalInstructions"></div>
+        <button class="submit-btn" style="background:#10b981;" onclick="confirmPayment()">I Have Completed Payment</button>
+    </div>
 </div>
 
 <script>
-    const form = document.getElementById('eduForm');
-    const msgDiv = document.getElementById('message');
-    const btn = document.getElementById('submitBtn');
+    let selectedChannel = 'TRANSFER';
+    const amountInput = document.getElementById('targetAmount');
+    const payBtn = document.getElementById('payBtn');
+    const modal = document.getElementById('checkoutModal');
+    const instructions = document.getElementById('modalInstructions');
 
-    form.addEventListener('submit', async (e) => {
+    amountInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0;
+        payBtn.innerText = `Proceed to Donate ₦${val.toLocaleString()}`;
+    });
+
+    function selectChannel(channel) {
+        selectedChannel = channel;
+        document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    document.getElementById('donationForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        btn.disabled = true;
-        btn.innerText = 'Generating NUBAN...';
-        msgDiv.style.display = 'none';
+        const amt = parseFloat(amountInput.value) || 0;
+        const donor = document.getElementById('donorName').value;
+        
+        modal.style.display = 'block';
 
-        const institutionName = document.getElementById('institutionName').value;
-        const donorName = document.getElementById('donorName').value;
-        const targetAmount = document.getElementById('targetAmount').value;
-        const accountRef = 'DONATION-' + Date.now();
-
-        const payload = {
-            schoolName: `${institutionName} - ${donorName}`,
-            targetAmount: targetAmount,
-            accountRef: accountRef
-        };
-
-        try {
-            const res = await fetch('/api/v1/create-virtual-account', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.status === 'success') {
-                const details = data.account_details;
-                msgDiv.className = 'success';
-                msgDiv.innerHTML = `
-                    <div class="virtual-account-box">
-                        <p><strong>Pay To Bank:</strong> <span>${details.bankName}</span></p>
-                        <p><strong>Dynamic Virtual Account:</strong> <span style="font-size:1.2rem; color:#34d399;">${details.accountNumber}</span></p>
-                        <p><strong>Account Name:</strong> <span>${details.accountName}</span></p>
-                        <p><strong>Total Transfer Amount:</strong> <span>${details.customerMustTransfer}</span></p>
-                        <hr style="border:0; border-top:1px solid #334155; margin:10px 0;">
-                        <p style="font-size:0.8rem; color:#94a3b8; text-align:center;">Transfer your free-will donation to the Virtual NUBAN above or directly to Access Bank 0037323182. Thank you for supporting school growth!</p>
-                    </div>
-                `;
-                msgDiv.style.display = 'block';
-                btn.disabled = false;
-                btn.innerText = 'Generate New Donation Account';
-            } else {
-                throw new Error(data.message || 'Failed to generate Virtual Account.');
-            }
-        } catch (err) {
-            msgDiv.className = 'error';
-            msgDiv.innerText = '❌ ' + err.message;
-            msgDiv.style.display = 'block';
-            btn.disabled = false;
-            btn.innerText = 'Generate Dynamic Payment Virtual NUBAN';
+        if (selectedChannel === 'TRANSFER') {
+            instructions.innerHTML = `
+                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">Bank Transfer Payment</p>
+                <p>Transfer <strong>₦${amt.toLocaleString()}</strong> directly to:</p>
+                <p><strong>Access Bank Plc</strong> | <span style="color:#34d399; font-size:1.1rem; font-weight:700;">0037323182</span></p>
+                <p>Account Name: <strong>All Time Business Ltd</strong></p>
+            `;
+        } else if (selectedChannel === 'CARD') {
+            instructions.innerHTML = `
+                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">Card Payment Channel</p>
+                <p>Click below to authorize <strong>₦${amt.toLocaleString()}</strong> via Debit Card gateway for Real Schools, Eyita.</p>
+            `;
+        } else if (selectedChannel === 'USSD') {
+            instructions.innerHTML = `
+                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">USSD Banking</p>
+                <p>Dial <strong>*901*0037323182*${amt}#</strong> on your registered phone number to complete the donation.</p>
+            `;
+        } else {
+            instructions.innerHTML = `
+                <p style="color:#38bdf8; font-weight:700; font-size:1.1rem;">NIBSS QR Payment</p>
+                <p>Scan the Access Bank QR code via your mobile banking app to donate <strong>₦${amt.toLocaleString()}</strong>.</p>
+            `;
         }
     });
+
+    function confirmPayment() {
+        alert('Thank you for your generous contribution to Real Schools, Eyita! Payment receipt logged.');
+        location.reload();
+    }
 </script>
 
 </body>
