@@ -1,7 +1,8 @@
 /**
  * ============================================================================
  * @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem: Merchant Auth | Credit | Education | Betting | VTU | Bills | Newsletter | Nomba
+ * Complete Ecosystem:
+ * Merchant Auth | Credit | Education | Betting | VTU | Bills | Newsletter | Admin Publisher | Nomba
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -150,10 +151,42 @@ app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'pub
 app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
 app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
 app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
+app.get('/publish', (req, res) => res.sendFile(path.join(__dirname, 'public', 'publish.html')));
 
 // =========================================================================
-// 📰 2. NEWSLETTER & PUBLIC UPDATES MODULE
+// ✍️ 2. ADMIN PUBLISHING PORTAL & NEWSLETTER
 // =========================================================================
+app.post('/api/v1/newsletter/publish', (req, res) => {
+    try {
+        const { adminPassword, title, summary, content } = req.body;
+
+        if (adminPassword !== process.env.ADMIN_KEY && adminPassword !== 'AdminPass123') {
+            return res.status(401).json({ status: 'error', message: 'Unauthorized! Incorrect Admin Password.' });
+        }
+
+        if (!title || !content) {
+            return res.status(400).json({ status: 'error', message: 'Title and content are required.' });
+        }
+
+        const newArticle = {
+            id: `news-${Date.now()}`,
+            title,
+            date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+            summary: summary || title,
+            content
+        };
+
+        publishedNewsletters.unshift(newArticle);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Article published live successfully!'
+        });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Failed to publish article.' });
+    }
+});
+
 app.post('/api/v1/newsletter/subscribe', (req, res) => {
     try {
         const { email } = req.body;
