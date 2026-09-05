@@ -1,24 +1,117 @@
-<script>
-    // Fetch and populate bookmakers dynamically on load
-    async function loadBookmakers() {
-        const select = document.getElementById('bookmakerSelect');
-        try {
-            const res = await fetch('/api/v1/betting/providers');
-            const data = await res.json();
-            
-            if (data.status === 'success') {
-                select.innerHTML = '<option value="" disabled selected>Select Bookmaker / App</option>';
-                data.data.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.id;
-                    opt.textContent = item.name;
-                    select.appendChild(opt);
-                });
-            }
-        } catch (err) {
-            console.error('Error loading bookmaker list', err);
-        }
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betting Wallet Top-Up | @BL SOVEREIGN GATEWAY</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { color: #10b981; font-size: 1.5rem; margin-bottom: 6px; }
+        .header p { color: #94a3b8; font-size: 0.85rem; }
+        
+        .promo-banner { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 8px; padding: 10px; text-align: center; color: #10b981; font-weight: 700; font-size: 0.8rem; margin-bottom: 20px; }
+        
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
+        input:focus, select:focus { border-color: #10b981; }
+        button.btn { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        button.btn:hover { background: #059669; }
+    </style>
+</head>
+<body>
 
-    window.onload = loadBookmakers;
+<div class="card">
+    <div class="header">
+        <h2>🎰 INSTANT BETTING TOP-UP</h2>
+        <p>Fund SportyBet, Bet9ja, 1xBet & 20+ Nigerian Bookmakers</p>
+    </div>
+
+    <div class="promo-banner">
+        ⚡ REAL-TIME WALLET CREDITING POWERED BY @BL SOVEREIGN GATEWAY
+    </div>
+
+    <form id="bettingForm">
+        <div class="form-group">
+            <label>Select Bookmaker / Platform *</label>
+            <select id="providerSelect" required>
+                <option value="" disabled selected>Loading Bookmakers...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Betting User ID / Account ID *</label>
+            <input type="text" id="userId" placeholder="e.g. 08012345678 or Bet9ja User ID" required>
+        </div>
+
+        <div class="form-group">
+            <label>Funding Amount (₦) *</label>
+            <input type="number" id="amount" placeholder="1000" min="100" required>
+        </div>
+
+        <button type="submit" class="btn">Proceed to Fund Wallet</button>
+    </form>
+</div>
+
+<script>
+// Fetch bookmakers dynamically on load
+async function loadProviders() {
+    const select = document.getElementById('providerSelect');
+    try {
+        const res = await fetch('/api/v1/betting/providers');
+        const data = await res.json();
+        if (data.status === 'success') {
+            select.innerHTML = '<option value="" disabled selected>Select Bookmaker / App...</option>';
+            data.data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                select.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load bookmakers', err);
+        select.innerHTML = '<option value="">Error loading platforms</option>';
+    }
+}
+
+document.getElementById('bettingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const payload = {
+        providerId: document.getElementById('providerSelect').value,
+        userId: document.getElementById('userId').value,
+        amount: document.getElementById('amount').value
+    };
+
+    try {
+        const response = await fetch('/api/v1/betting/initiate-topup', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json' 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert(`✅ Session Created!\nRef: ${result.accountRef}\nTotal Payable: ₦${result.pricing.totalCustomerPayment}\nProceeding to payment gateway...`);
+        } else {
+            alert(`Error: ${result.message}`);
+        }
+    } catch (err) {
+        console.error('Betting submit error:', err);
+        alert('Failed to connect to betting gateway server.');
+    }
+});
+
+window.onload = loadProviders;
 </script>
+
+</body>
+</html>
