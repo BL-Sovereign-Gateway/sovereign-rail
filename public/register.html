@@ -9,139 +9,101 @@
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
         .header { text-align: center; margin-bottom: 24px; }
-        .header h2 { font-size: 1.6rem; color: #38bdf8; letter-spacing: 0.5px; }
-        .header p { font-size: 0.9rem; color: #94a3b8; margin-top: 4px; }
-        .banner { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399; font-size: 0.85rem; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 600; }
+        .header h2 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 6px; }
+        .header p { color: #94a3b8; font-size: 0.85rem; }
         .form-group { margin-bottom: 16px; }
-        .form-row { display: flex; gap: 12px; }
-        .form-row .form-group { flex: 1; }
-        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; font-weight: 500; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
         input:focus, select:focus { border-color: #38bdf8; }
-        select option { background: #1e293b; color: #fff; }
-        button { width: 100%; padding: 14px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
-        button:hover { background: #7dd3fc; }
-        #message { margin-top: 16px; font-size: 0.9rem; text-align: center; border-radius: 8px; padding: 10px; display: none; }
-        .success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
-        .error { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+        button.btn { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        button.btn:hover { background: #38bdf8; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="header">
-        <h2>@BL SOVEREIGN GATEWAY</h2>
-        <p>Self-Serve Merchant Onboarding</p>
-    </div>
-
-    <div class="banner">
-        💸 EARN ₦2.00 INSTANT CASHBACK ON EVERY TRANSACTION PROCESSED!
+        <h2>🏛️ MERCHANT ONBOARDING</h2>
+        <p>Connect your settlement bank account to @BL Sovereign Gateway</p>
     </div>
 
     <form id="registerForm">
         <div class="form-group">
-            <label for="businessName">Merchant Name *</label>
-            <input type="text" id="businessName" placeholder="Enter business or merchant name" required>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="email">Email Address *</label>
-                <input type="email" id="email" placeholder="name@business.com" required>
-            </div>
-            <div class="form-group">
-                <label for="phone">Phone Number *</label>
-                <input type="tel" id="phone" placeholder="08012345678" required>
-            </div>
+            <label>Business / Merchant Name *</label>
+            <input type="text" id="merchantName" placeholder="e.g. Real Schools / All Time Business" required>
         </div>
 
         <div class="form-group">
-            <label for="password">Password *</label>
+            <label>Business Email Address *</label>
+            <input type="email" id="email" placeholder="leadstrategist@alltimebusiness.com.ng" required>
+        </div>
+
+        <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" id="phone" placeholder="08022552528" required>
+        </div>
+
+        <div class="form-group">
+            <label>Account Password *</label>
             <input type="password" id="password" placeholder="••••••••" required>
         </div>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label for="settlementAccountNumber">Settlement Account No. *</label>
-                <input type="text" id="settlementAccountNumber" maxlength="10" placeholder="10-digit NUBAN" required>
-            </div>
-            <div class="form-group">
-                <label for="bankCode">Bank Name *</label>
-                <select id="bankCode" required>
-                    <option value="" disabled selected>Select Bank</option>
-                    <option value="044">Access Bank</option>
-                    <option value="058">GTBank (GTCO)</option>
-                    <option value="011">First Bank</option>
-                    <option value="033">UBA</option>
-                    <option value="057">Zenith Bank</option>
-                    <option value="232">Sterling Bank</option>
-                    <option value="035">Wema Bank</option>
-                    <option value="070">Fidelity Bank</option>
-                    <option value="214">FCMB</option>
-                    <option value="101">Providus Bank</option>
-                    <option value="050">Ecobank</option>
-                    <option value="082">Keystone Bank</option>
-                    <option value="221">Stanbic IBTC</option>
-                    <option value="215">Unity Bank</option>
-                    <option value="999992">OPay</option>
-                    <option value="999991">Palmpay</option>
-                    <option value="50515">Moniepoint MFB</option>
-                    <option value="50211">Kuda Bank</option>
-                </select>
-            </div>
+        <div class="form-group">
+            <label>Settlement Bank Name *</label>
+            <select id="bankName" required>
+                <option value="Access Bank Plc">Access Bank Plc</option>
+                <option value="Zenith Bank">Zenith Bank</option>
+                <option value="GTBank">GTBank</option>
+                <option value="First Bank">First Bank</option>
+                <option value="UBA">UBA</option>
+            </select>
         </div>
 
-        <button type="submit" id="submitBtn">Create Merchant Account</button>
-    </form>
+        <div class="form-group">
+            <label>Settlement Account Number (NUBAN) *</label>
+            <input type="text" id="settlementAccount" placeholder="0037323182" maxlength="10" required>
+        </div>
 
-    <div id="message"></div>
+        <button type="submit" class="btn">Register Merchant Account</button>
+    </form>
 </div>
 
 <script>
-    const form = document.getElementById('registerForm');
-    const msgDiv = document.getElementById('message');
-    const btn = document.getElementById('submitBtn');
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        btn.disabled = true;
-        btn.innerText = 'Creating Account...';
-        msgDiv.style.display = 'none';
+    const payload = {
+        merchantName: document.getElementById('merchantName').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        password: document.getElementById('password').value,
+        settlementAccount: document.getElementById('settlementAccount').value,
+        bankName: document.getElementById('bankName').value
+    };
 
-        const payload = {
-            businessName: document.getElementById('businessName').value,
-            email: document.getElementById('email').value,
-            phone: document.getElementById('phone').value,
-            password: document.getElementById('password').value,
-            settlementAccountNumber: document.getElementById('settlementAccountNumber').value,
-            bankCode: document.getElementById('bankCode').value
-        };
+    try {
+        const response = await fetch('/api/v1/register', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json' 
+            },
+            body: JSON.stringify(payload)
+        });
 
-        try {
-            const res = await fetch('/api/v1/auth/register-merchant', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+        const result = await response.json();
 
-            const data = await res.json();
-
-            if (res.ok && data.status === 'success') {
-                msgDiv.className = 'success';
-                msgDiv.innerText = '🎉 ' + data.message + ' Redirecting...';
-                msgDiv.style.display = 'block';
-                setTimeout(() => { window.location.href = '/dashboard'; }, 2000);
-            } else {
-                throw new Error(data.message || 'Registration failed.');
-            }
-        } catch (err) {
-            msgDiv.className = 'error';
-            msgDiv.innerText = '❌ ' + err.message;
-            msgDiv.style.display = 'block';
-            btn.disabled = false;
-            btn.innerText = 'Create Merchant Account';
+        if (result.status === 'success') {
+            alert('Account created! Redirecting to dashboard...');
+            window.location.href = '/dashboard';
+        } else {
+            alert(`Error: ${result.message}`);
         }
-    });
+    } catch (err) {
+        console.error('Registration submit error:', err);
+        alert('Failed to connect to registration server.');
+    }
+});
 </script>
 
 </body>
