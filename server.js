@@ -1,7 +1,7 @@
 /**
  * ============================================================================
- * @BL SOVEREIGN GATEWAY - ALL-IN-ONE MASTER SWITCH
- * Serves: Education | Credit | Betting Top-Up | Airtime & Data (VTU)
+ * @BL SOVEREIGN GATEWAY - MASTER SERVER SWITCH
+ * Features: Merchant Auth | Education | Credit | Betting | VTU | Nomba Engine
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -13,12 +13,12 @@ const bcrypt = require('bcryptjs');
 
 const app = express();
 
-// Body Parser & Static Middleware
+// Body Parser & Static File Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables
+// Environment Credentials
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
@@ -31,7 +31,7 @@ const getAuthHeader = () => {
         : `Bearer ${NOMBA_ACCESS_TOKEN.trim()}`;
 };
 
-// In-Memory Database Stores
+// In-Memory Data Stores
 const tempMerchantStore = [];
 const transactionLedger = {}; 
 
@@ -63,7 +63,7 @@ const SUPPORTED_BOOKMAKERS = [
     { id: 'GAMES4WIN', name: 'Winners Golden Bet' }
 ];
 
-// Network Operators & Data Plans
+// Network Operators & Data Bundles
 const NETWORK_PROVIDERS = [
     { id: 'MTN', name: 'MTN Nigeria' },
     { id: 'AIRTEL', name: 'Airtel Nigeria' },
@@ -92,7 +92,7 @@ const DATA_PLANS = {
     ]
 };
 
-// Dynamic Pass-Through Fee Calculator
+// Dynamic Pass-Through Fee Engine
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
     let grossPlatformFee = 20.00;
@@ -127,7 +127,52 @@ app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'pub
 app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
 
 // =========================================================================
-// 🔍 2. UNIVERSAL REAL-TIME PAYMENT VERIFICATION
+// 📝 2. MERCHANT ONBOARDING ENDPOINT (API JSON ROUTE)
+// =========================================================================
+app.post('/api/v1/register', async (req, res) => {
+    try {
+        const { merchantName, email, phone, password, settlementAccount, bankName } = req.body;
+
+        if (!merchantName || !email || !settlementAccount) {
+            return res.status(400).json({ 
+                status: 'error', 
+                message: 'All required fields must be completed.' 
+            });
+        }
+
+        // Hash password securely
+        const hashedPassword = await bcrypt.hash(password || 'DefaultPass123', 10);
+
+        // Save merchant data
+        const newMerchant = {
+            id: `MCH-${Date.now()}`,
+            merchantName,
+            email,
+            phone,
+            password: hashedPassword,
+            settlementAccount,
+            bankName: bankName || 'Zenith Bank',
+            createdAt: new Date().toISOString()
+        };
+
+        tempMerchantStore.push(newMerchant);
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Merchant account created successfully!',
+            merchantId: newMerchant.id
+        });
+
+    } catch (error) {
+        return res.status(500).json({ 
+            status: 'error', 
+            message: 'Server error during merchant registration.' 
+        });
+    }
+});
+
+// =========================================================================
+// 🔍 3. UNIVERSAL REAL-TIME PAYMENT VERIFICATION
 // =========================================================================
 app.get('/api/v1/verify-payment/:accountRef', (req, res) => {
     const ref = req.params.accountRef;
@@ -148,7 +193,7 @@ app.get('/api/v1/verify-payment/:accountRef', (req, res) => {
 });
 
 // =========================================================================
-// 🎰 3. BETTING SERVICES ENDPOINTS
+// 🎰 4. BETTING SERVICES ENDPOINTS
 // =========================================================================
 app.get('/api/v1/betting/providers', (req, res) => {
     return res.status(200).json({ status: 'success', data: SUPPORTED_BOOKMAKERS });
@@ -179,7 +224,7 @@ app.post('/api/v1/betting/initiate-topup', (req, res) => {
 });
 
 // =========================================================================
-// 📱 4. AIRTIME & DATA (VTU) ENDPOINTS
+// 📱 5. AIRTIME & DATA (VTU) ENDPOINTS
 // =========================================================================
 app.get('/api/v1/vtu/providers', (req, res) => {
     return res.status(200).json({ status: 'success', providers: NETWORK_PROVIDERS, plans: DATA_PLANS });
@@ -188,7 +233,7 @@ app.get('/api/v1/vtu/providers', (req, res) => {
 app.post('/api/v1/vtu/initiate', (req, res) => {
     const { type, network, phone, planId, amount } = req.body;
     if (!network || !phone || !amount) {
-        return res.status(400).json({ status: 'error', message: 'Missing required details.' });
+        return res.status(400).json({ status: 'error', message: 'Missing required top-up details.' });
     }
 
     const accountRef = `VTU-${Date.now()}`;
@@ -211,14 +256,14 @@ app.post('/api/v1/vtu/initiate', (req, res) => {
 });
 
 // =========================================================================
-// ⚡ 5. NOMBA VIRTUAL ACCOUNT CREATOR
+// ⚡ 6. NOMBA VIRTUAL ACCOUNT GENERATOR
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
         const { merchantName, targetAmount, accountRef } = req.body;
         const pricing = calculateInvoiceSplit(targetAmount);
 
-        // Test fallback if Nomba keys are not set
+        // Fallback for staging/testing before live keys are applied
         if (!NOMBA_ACCESS_TOKEN || NOMBA_ACCESS_TOKEN.includes('placeholder')) {
             const mockNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
             transactionLedger[accountRef] = { status: 'PENDING', amount: pricing.totalCustomerPayment };
@@ -268,7 +313,7 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
 });
 
 // =========================================================================
-// 🔔 6. LIVE NOMBA WEBHOOK RECEIVER
+// 🔔 7. LIVE NOMBA WEBHOOK RECEIVER
 // =========================================================================
 app.post('/api/v1/nomba-webhook', (req, res) => {
     try {
@@ -295,4 +340,4 @@ app.post('/api/v1/nomba-webhook', (req, res) => {
 
 // Start Master Server
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log(`@BL Sovereign Gateway Master Engine LIVE on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`@BL Sovereign Gateway Engine running on port ${PORT}`));
