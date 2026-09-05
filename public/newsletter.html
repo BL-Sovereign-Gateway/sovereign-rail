@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newsletter & Updates | @BL SOVEREIGN GATEWAY</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        /* Subscription Banner */
+        .sub-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 40px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
+        .sub-card h2 { color: #38bdf8; font-size: 1.6rem; margin-bottom: 8px; }
+        .sub-card p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+        .sub-form { display: flex; gap: 10px; max-width: 500px; margin: 0 auto; }
+        .sub-form input { flex: 1; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; outline: none; }
+        .sub-form button { padding: 12px 24px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .sub-form button:hover { background: #38bdf8; }
+
+        /* Articles Feed */
+        .feed-title { font-size: 1.25rem; color: #f8fafc; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .article-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .article-date { font-size: 0.75rem; color: #38bdf8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+        .article-title { font-size: 1.2rem; color: #fff; margin-bottom: 10px; }
+        .article-content { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Subscribe Box -->
+    <div class="sub-card">
+        <h2>📰 Subscribe to Gateway Updates</h2>
+        <p>Get market insights, regulatory updates, and platform features delivered directly to your inbox.</p>
+        <form class="sub-form" id="subscribeForm">
+            <input type="email" id="subscriberEmail" placeholder="Enter your business email..." required>
+            <button type="submit">Subscribe</button>
+        </form>
+    </div>
+
+    <!-- Published Articles Reader -->
+    <h3 class="feed-title">Latest Published Articles</h3>
+    <div id="articlesFeed">
+        <p style="color:#64748b;">Loading publications...</p>
+    </div>
+
+</div>
+
+<script>
+// Handle Subscription
+document.getElementById('subscribeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('subscriberEmail').value;
+
+    try {
+        const res = await fetch('/api/v1/newsletter/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        alert(data.message);
+        if (data.status === 'success') document.getElementById('subscriberEmail').value = '';
+    } catch (err) {
+        alert('Subscription failed. Please check your connection.');
+    }
+});
+
+// Load Articles
+async function fetchArticles() {
+    const feed = document.getElementById('articlesFeed');
+    try {
+        const res = await fetch('/api/v1/newsletter/articles');
+        const data = await res.json();
+
+        if (data.status === 'success' && data.articles.length > 0) {
+            feed.innerHTML = '';
+            data.articles.forEach(article => {
+                feed.innerHTML += `
+                    <div class="article-card">
+                        <div class="article-date">${article.date}</div>
+                        <h4 class="article-title">${article.title}</h4>
+                        <div class="article-content">${article.content}</div>
+                    </div>
+                `;
+            });
+        } else {
+            feed.innerHTML = '<p style="color:#64748b;">No articles published yet.</p>';
+        }
+    } catch (err) {
+        feed.innerHTML = '<p style="color:#ef4444;">Failed to load published articles.</p>';
+    }
+}
+
+window.onload = fetchArticles;
+</script>
+
+</body>
+</html>
