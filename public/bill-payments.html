@@ -73,6 +73,7 @@ async function loadProviders() {
         }
     } catch (err) {
         console.error('Failed to load bill providers', err);
+        select.innerHTML = '<option value="">Error loading providers</option>';
     }
 }
 
