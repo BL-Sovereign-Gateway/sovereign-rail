@@ -8,9 +8,13 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
-        .header { text-align: center; margin-bottom: 24px; }
+        .header { text-align: center; margin-bottom: 20px; }
         .header h2 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 6px; }
         .header p { color: #94a3b8; font-size: 0.85rem; }
+        
+        /* 💸 CASHBACK BANNER */
+        .cashback-banner { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 8px; padding: 10px; text-align: center; color: #10b981; font-weight: 700; font-size: 0.85rem; margin-bottom: 20px; }
+        
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
@@ -25,6 +29,11 @@
     <div class="header">
         <h2>🏛️ MERCHANT ONBOARDING</h2>
         <p>Connect your settlement bank account to @BL Sovereign Gateway</p>
+    </div>
+
+    <!-- 💸 CASHBACK PROMO -->
+    <div class="cashback-banner">
+        💸 EARN ₦2.00 INSTANT CASHBACK ON EVERY TRANSACTION PROCESSED!
     </div>
 
     <form id="registerForm">
@@ -51,11 +60,38 @@
         <div class="form-group">
             <label>Settlement Bank Name *</label>
             <select id="bankName" required>
+                <option value="" disabled selected>Select Settlement Bank...</option>
+                <!-- Major Commercial Banks -->
                 <option value="Access Bank Plc">Access Bank Plc</option>
                 <option value="Zenith Bank">Zenith Bank</option>
-                <option value="GTBank">GTBank</option>
-                <option value="First Bank">First Bank</option>
-                <option value="UBA">UBA</option>
+                <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
+                <option value="First Bank of Nigeria">First Bank of Nigeria</option>
+                <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
+                <option value="Fidelity Bank">Fidelity Bank</option>
+                <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
+                <option value="Sterling Bank">Sterling Bank</option>
+                <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
+                <option value="Wema Bank">Wema Bank</option>
+                <option value="Ecobank Nigeria">Ecobank Nigeria</option>
+                <option value="FCMB (First City Monument Bank)">FCMB (First City Monument Bank)</option>
+                <option value="Heritage Bank">Heritage Bank</option>
+                <option value="Keystone Bank">Keystone Bank</option>
+                <option value="Polaris Bank">Polaris Bank</option>
+                <option value="Titan Trust Bank">Titan Trust Bank</option>
+                <option value="Unity Bank">Unity Bank</option>
+                <option value="Jaiz Bank">Jaiz Bank</option>
+                <option value="TAJBank">TAJBank</option>
+                <option value="Lotus Bank">Lotus Bank</option>
+                
+                <!-- Digital Banks, Fintechs & MFBs -->
+                <option value="OPay Digital Services">OPay Digital Services</option>
+                <option value="PalmPay">PalmPay</option>
+                <option value="Moniepoint Microfinance Bank">Moniepoint Microfinance Bank</option>
+                <option value="Kuda Bank">Kuda Bank</option>
+                <option value="Nomba / MFB">Nomba / MFB</option>
+                <option value="FairMoney Microfinance Bank">FairMoney Microfinance Bank</option>
+                <option value="VFD Microfinance Bank">VFD Microfinance Bank</option>
+                <option value="Rubies Bank">Rubies Bank</option>
             </select>
         </div>
 
