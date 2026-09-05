@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Complete API Coverage: Merchant | Credit | Education | Betting | VTU | Nomba
+ * Full Ecosystem: Merchant Auth | Credit | Education | Betting | VTU | Bills | Newsletter | Nomba
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -35,9 +35,20 @@ const getAuthHeader = () => {
 const tempMerchantStore = [];
 const transactionLedger = {}; 
 const creditApplications = [];
-const educationDonations = [];
+const newsletterSubscribers = [];
 
-// Full List of Supported Betting Platforms
+// Default Newsletter Publications
+const publishedNewsletters = [
+    {
+        id: "news-001",
+        title: "Welcome to @BL Sovereign Gateway: The Future of Digital Settlement",
+        date: "September 5, 2026",
+        summary: "Introducing our core infrastructure—SoftPOS, Dynamic QR, and Instant Virtual NUBAN accounts.",
+        content: "We are excited to launch @BL Sovereign Gateway, providing businesses across Nigeria with high-speed payment infrastructure, automated fee-splitting, and instant settlement. Stay tuned for regular updates on fintech trends, integration guides, and platform developments."
+    }
+];
+
+// Supported Betting Platforms
 const SUPPORTED_BOOKMAKERS = [
     { id: 'SPORTYBET', name: 'SportyBet' },
     { id: 'BET9JA', name: 'Bet9ja' },
@@ -94,7 +105,17 @@ const DATA_PLANS = {
     ]
 };
 
-// Fee Calculator
+// Bill Payment Providers
+const BILL_PROVIDERS = [
+    { id: 'IKEDC', name: 'Ikeja Electric (IKEDC)', type: 'UTILITY' },
+    { id: 'EKEDC', name: 'Eko Electric (EKEDC)', type: 'UTILITY' },
+    { id: 'IBEDC', name: 'Ibadan Electric (IBEDC)', type: 'UTILITY' },
+    { id: 'DSTV', name: 'DSTV Subscription', type: 'CABLE' },
+    { id: 'GOTV', name: 'GOTV Subscription', type: 'CABLE' },
+    { id: 'STARTIMES', name: 'Startimes', type: 'CABLE' }
+];
+
+// Pass-Through Revenue Engine
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
     let grossPlatformFee = 20.00;
@@ -127,9 +148,38 @@ app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'p
 app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
 app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'betting-support.html')));
 app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
+app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
+app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
 
 // =========================================================================
-// 📝 2. MERCHANT REGISTRATION ENDPOINT
+// 📰 2. NEWSLETTER & PUBLIC UPDATES MODULE
+// =========================================================================
+app.post('/api/v1/newsletter/subscribe', (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ status: 'error', message: 'Please provide a valid email address.' });
+        }
+
+        if (!newsletterSubscribers.includes(email)) {
+            newsletterSubscribers.push(email);
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Subscribed successfully! You will receive our latest publications directly in your inbox.'
+        });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Failed to process newsletter subscription.' });
+    }
+});
+
+app.get('/api/v1/newsletter/articles', (req, res) => {
+    return res.status(200).json({ status: 'success', articles: publishedNewsletters });
+});
+
+// =========================================================================
+// 📝 3. MERCHANT ONBOARDING
 // =========================================================================
 app.post('/api/v1/register', async (req, res) => {
     try {
@@ -164,7 +214,7 @@ app.post('/api/v1/register', async (req, res) => {
 });
 
 // =========================================================================
-// 💳 3. SAIL CREDIT SUPPORT ENDPOINT
+// 💳 4. SAIL CREDIT SUPPORT
 // =========================================================================
 app.post('/api/v1/credit/apply', (req, res) => {
     try {
@@ -196,7 +246,7 @@ app.post('/api/v1/credit/apply', (req, res) => {
 });
 
 // =========================================================================
-// 🎓 4. EDUCATION SUPPORT FUND ENDPOINT
+// 🎓 5. EDUCATION SUPPORT FUND
 // =========================================================================
 app.post('/api/v1/education/donate', (req, res) => {
     try {
@@ -229,7 +279,7 @@ app.post('/api/v1/education/donate', (req, res) => {
 });
 
 // =========================================================================
-// 🎰 5. BETTING SERVICES ENDPOINTS
+// 🎰 6. BETTING SERVICES
 // =========================================================================
 app.get('/api/v1/betting/providers', (req, res) => {
     return res.status(200).json({ status: 'success', data: SUPPORTED_BOOKMAKERS });
@@ -264,7 +314,7 @@ app.post('/api/v1/betting/initiate-topup', (req, res) => {
 });
 
 // =========================================================================
-// 📱 6. AIRTIME & DATA (VTU) ENDPOINTS
+// 📱 7. AIRTIME & DATA (VTU)
 // =========================================================================
 app.get('/api/v1/vtu/providers', (req, res) => {
     return res.status(200).json({ status: 'success', providers: NETWORK_PROVIDERS, plans: DATA_PLANS });
@@ -300,7 +350,42 @@ app.post('/api/v1/vtu/initiate', (req, res) => {
 });
 
 // =========================================================================
-// 🔍 7. UNIVERSAL PAYMENT VERIFICATION
+// ⚡ 8. BILL PAYMENTS (Utilities, Cable TV, Levies)
+// =========================================================================
+app.get('/api/v1/bills/providers', (req, res) => {
+    return res.status(200).json({ status: 'success', data: BILL_PROVIDERS });
+});
+
+app.post('/api/v1/bills/pay', (req, res) => {
+    try {
+        const { providerId, customerIdentifier, amount } = req.body;
+        if (!providerId || !customerIdentifier || !amount) {
+            return res.status(400).json({ status: 'error', message: 'All bill payment details are required.' });
+        }
+
+        const accountRef = `BILL-${Date.now()}`;
+        const pricing = calculateInvoiceSplit(amount);
+
+        transactionLedger[accountRef] = {
+            status: 'PENDING',
+            type: 'BILL_PAYMENT',
+            providerId,
+            customerIdentifier,
+            amount: pricing.totalCustomerPayment
+        };
+
+        return res.status(200).json({
+            status: 'success',
+            accountRef: accountRef,
+            pricing: pricing
+        });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Server error processing bill payment.' });
+    }
+});
+
+// =========================================================================
+// 🔍 9. UNIVERSAL PAYMENT VERIFICATION
 // =========================================================================
 app.get('/api/v1/verify-payment/:accountRef', (req, res) => {
     const ref = req.params.accountRef;
@@ -321,7 +406,7 @@ app.get('/api/v1/verify-payment/:accountRef', (req, res) => {
 });
 
 // =========================================================================
-// ⚡ 8. NOMBA VIRTUAL ACCOUNT GENERATOR
+// 🏦 10. NOMBA VIRTUAL ACCOUNT GENERATOR
 // =========================================================================
 app.post('/api/v1/create-virtual-account', async (req, res) => {
     try {
@@ -377,7 +462,7 @@ app.post('/api/v1/create-virtual-account', async (req, res) => {
 });
 
 // =========================================================================
-// 🔔 9. LIVE NOMBA WEBHOOK RECEIVER
+// 🔔 11. LIVE NOMBA WEBHOOK RECEIVER
 // =========================================================================
 app.post('/api/v1/nomba-webhook', (req, res) => {
     try {
