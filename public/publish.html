@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publisher Portal | @BL SOVEREIGN GATEWAY</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 650px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 6px; }
+        .header p { color: #94a3b8; font-size: 0.85rem; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        input, textarea { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
+        textarea { height: 160px; resize: vertical; }
+        input:focus, textarea:focus { border-color: #38bdf8; }
+        button.btn { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        button.btn:hover { background: #38bdf8; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <h2>✍️ PUBLISH GATEWAY NEWSLETTER</h2>
+        <p>Post updates directly to your public reader feed</p>
+    </div>
+
+    <form id="publishForm">
+        <div class="form-group">
+            <label>Admin Security Password *</label>
+            <input type="password" id="adminPassword" placeholder="Enter Admin Password" required>
+        </div>
+
+        <div class="form-group">
+            <label>Article Title *</label>
+            <input type="text" id="title" placeholder="e.g. Q3 Fintech Growth & Automated Settlement Updates" required>
+        </div>
+
+        <div class="form-group">
+            <label>Short Summary</label>
+            <input type="text" id="summary" placeholder="Brief 1-sentence recap for mobile preview">
+        </div>
+
+        <div class="form-group">
+            <label>Full Publication Content *</label>
+            <textarea id="content" placeholder="Type or paste your complete article text here..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn">Publish Live Now</button>
+    </form>
+</div>
+
+<script>
+document.getElementById('publishForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const payload = {
+        adminPassword: document.getElementById('adminPassword').value,
+        title: document.getElementById('title').value,
+        summary: document.getElementById('summary').value,
+        content: document.getElementById('content').value
+    };
+
+    try {
+        const response = await fetch('/api/v1/newsletter/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert('🎉 Success! Your article is now live on the public newsletter feed.');
+            window.location.href = '/newsletter';
+        } else {
+            alert(`Error: ${result.message}`);
+        }
+    } catch (err) {
+        alert('Failed to connect to publishing server.');
+    }
+});
+</script>
+
+</body>
+</html>
