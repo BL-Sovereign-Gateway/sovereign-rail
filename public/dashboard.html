@@ -16,11 +16,16 @@
         .ticker { background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 10px; border-radius: 8px; margin: 20px 0; overflow: hidden; white-space: nowrap; font-size: 0.85rem; color: #38bdf8; font-weight: 600; }
         .ticker marquee { vertical-align: middle; }
 
+        /* Wallet & Onboarding Suite Card */
         .balance-card { background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 30px; box-shadow: 0 15px 25px rgba(0,0,0,0.4); }
         .balance-label { font-size: 0.85rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
         .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 10px 0; color: #fff; }
-        .nuban-box { background: rgba(0,0,0,0.3); border: 1px dashed #38bdf8; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem; color: #38bdf8; }
+        
+        .onboarding-suite { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 15px; }
+        .suite-box { background: rgba(0,0,0,0.3); border: 1px dashed #38bdf8; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #38bdf8; }
+        .suite-box strong { color: #fff; display: block; margin-bottom: 4px; }
 
+        /* Action Columns */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .action-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 24px; }
         .action-card h3 { color: #f8fafc; font-size: 1.1rem; margin-bottom: 14px; }
@@ -30,6 +35,12 @@
         .btn-action { width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 6px; }
         .btn-action.withdraw { background: #f59e0b; color: #000; }
 
+        /* Restored 5 Core Product Lines Bar */
+        .services-bar { background: #1e293b; border-radius: 14px; padding: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; text-align: center; }
+        .service-btn { background: #0f172a; border: 1px solid #334155; padding: 12px 20px; border-radius: 8px; color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+        .service-btn:hover { border-color: #38bdf8; background: #1e293b; }
+
+        /* Custom Branded Modal Box */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
         .modal-header { font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
@@ -46,22 +57,38 @@
         <div class="user-badge" id="merchantDisplay">Loading Merchant...</div>
     </div>
 
+    <!-- Ticker Bar -->
     <div class="ticker">
         <marquee scrollamount="5">
-            💱 FOREX: USD/NGN ₦1,510.50 | EUR/NGN ₦1,642.10  ||  📈 NGX/NSE: GTCO ₦46.20 | ACCESS ₦19.80  ||  ⚡ Dedicated Collection NUBAN Provisioned
+            💱 FOREX: USD/NGN ₦1,510.50 | EUR/NGN ₦1,642.10  ||  📈 NGX/NSE: GTCO ₦46.20 | ACCESS ₦19.80  ||  ⚡ Onboarding Complete: Dedicated NUBAN, SoftPOS & Dynamic QR Active
         </marquee>
     </div>
 
+    <!-- Wallet & Merchant Onboarding Suite -->
     <div class="balance-card">
         <div class="balance-label">Available Gateway Wallet Balance</div>
         <div class="balance-amount" id="walletBalance">₦0.00</div>
         
-        <div class="nuban-box">
-            🏦 <strong>Dedicated Collection Account:</strong> <span id="merchantNuban">Generating...</span> (<span id="merchantBank">Nomba / MFB</span>)
-            <br><small style="color:#cbd5e1;">Transfer funds to this account to top up your wallet for payouts and bill settlements.</small>
+        <div class="onboarding-suite">
+            <div class="suite-box">
+                <strong>🏦 Virtual NUBAN Account</strong>
+                Account No: <span id="merchantNuban">9957740181</span><br>
+                Bank: <span id="merchantBank">Nomba / MFB</span>
+            </div>
+            <div class="suite-box">
+                <strong>📲 SoftPOS Terminal ID</strong>
+                Status: <span style="color:#10b981; font-weight:700;">ACTIVE (Tap-on-Phone)</span><br>
+                Terminal: POS-MCH-<span id="posId">9901</span>
+            </div>
+            <div class="suite-box">
+                <strong>📷 Scan & Pay QR Code</strong>
+                Dynamic QR Gateway: <span style="color:#10b981; font-weight:700;">ENABLED</span><br>
+                Routing: Auto-Settlement Active
+            </div>
         </div>
     </div>
 
+    <!-- Action Columns -->
     <div class="grid">
         
         <!-- Withdrawal Column -->
@@ -92,8 +119,8 @@
                     <label>Recipient Bank</label>
                     <select id="targetBank" required>
                         <option value="Access Bank Plc">Access Bank Plc</option>
-                        <option value="GTBank">Guaranty Trust Bank</option>
-                        <option value="Zenith Bank">Zenith Bank Plc</option>
+                        <option value="Guaranty Trust Bank">Guaranty Trust Bank</option>
+                        <option value="Zenith Bank Plc">Zenith Bank Plc</option>
                         <option value="First Bank">First Bank Nigeria</option>
                         <option value="UBA">United Bank for Africa</option>
                         <option value="OPay">OPay Digital</option>
@@ -114,8 +141,19 @@
 
     </div>
 
+    <!-- Restored 5 Core Product Lines -->
+    <h4 style="margin-bottom:12px; color:#cbd5e1;">Quick Financial Portals</h4>
+    <div class="services-bar">
+        <a href="/vtu-support" class="service-btn">📱 VTU Airtime & Data</a>
+        <a href="/betting-support" class="service-btn">🎰 Betting Top-Up</a>
+        <a href="/bill-payments" class="service-btn">⚡ Pay Utilities</a>
+        <a href="/credit-support" class="service-btn">📈 SAIL Credit Line</a>
+        <a href="/education-support" class="service-btn">🎓 Education Fund</a>
+    </div>
+
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <div class="modal-header">@BL SOVEREIGN GATEWAY</div>
@@ -141,25 +179,26 @@ if (!merchant.merchantName) {
 } else {
     document.getElementById('merchantDisplay').textContent = `👤 ${merchant.merchantName} (${merchant.phone})`;
     document.getElementById('walletBalance').textContent = `₦${(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-    document.getElementById('merchantNuban').textContent = merchant.virtualNuban || '9903182412';
+    document.getElementById('merchantNuban').textContent = merchant.virtualNuban || '9957740181';
     document.getElementById('merchantBank').textContent = merchant.virtualBank || 'Nomba / MFB';
+    document.getElementById('posId').textContent = (merchant.phone || '0000').slice(-4);
     
     if (merchant.settlementAccount) document.getElementById('settlementAccount').value = merchant.settlementAccount;
     if (merchant.bankName) document.getElementById('settlementBank').value = merchant.bankName;
 }
 
-// Balance Validation Guard
+// Form Handlers
 document.getElementById('withdrawForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const amount = parseFloat(document.getElementById('withdrawAmount').value);
     const balance = merchant.balance || 0;
 
     if (balance < amount) {
-        showModal(`❌ Insufficient Wallet Balance!\n\nYour current wallet balance is ₦${balance.toFixed(2)}.\n\nPlease fund your wallet by transferring to your dedicated collection account (${document.getElementById('merchantNuban').textContent}) to proceed with withdrawals.`);
+        showModal(`❌ Insufficient Wallet Balance!\n\nYour current wallet balance is ₦${balance.toFixed(2)}.\n\nPlease fund your wallet by transferring to your dedicated Virtual NUBAN account (${document.getElementById('merchantNuban').textContent}) to proceed with withdrawals.`);
         return;
     }
 
-    showModal(`✅ Withdrawal Submitted!\n\nAmount: ₦${amount}\nDestination: ${document.getElementById('settlementAccount').value} (${document.getElementById('settlementBank').value})\n\nStatus: Processing settlement...`);
+    showModal(`✅ Withdrawal Submitted!\n\nAmount: ₦${amount}\nDestination: ${document.getElementById('settlementAccount').value} (${document.getElementById('settlementBank').value})\n\nStatus: Processing automated settlement...`);
 });
 
 document.getElementById('transferForm').addEventListener('submit', (e) => {
@@ -168,7 +207,7 @@ document.getElementById('transferForm').addEventListener('submit', (e) => {
     const balance = merchant.balance || 0;
 
     if (balance < amount) {
-        showModal(`❌ Insufficient Wallet Balance!\n\nYour current wallet balance is ₦${balance.toFixed(2)}.\n\nPlease fund your wallet by transferring to your dedicated collection account (${document.getElementById('merchantNuban').textContent}) before initiating interbank transfers.`);
+        showModal(`❌ Insufficient Wallet Balance!\n\nYour current wallet balance is ₦${balance.toFixed(2)}.\n\nPlease fund your wallet by transferring to your dedicated Virtual NUBAN account (${document.getElementById('merchantNuban').textContent}) before initiating interbank transfers.`);
         return;
     }
 
