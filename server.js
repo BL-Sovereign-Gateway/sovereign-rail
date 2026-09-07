@@ -2,7 +2,7 @@
  * ============================================================================
  * @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Full Ecosystem:
- * Auth & Portal | Credit | Education | Betting | VTU | Bills | Newsletter | Admin Publisher | Nomba
+ * Onboarded Auth & Portal | Credit | Education | Betting | VTU | Bills | Newsletter | Admin Publisher | Nomba
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -155,23 +155,26 @@ app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.get('/publish', (req, res) => res.sendFile(path.join(__dirname, 'public', 'publish.html')));
 
 // =========================================================================
-// 🔐 2. MERCHANT AUTHENTICATION & PORTAL MODULE
+// 🔐 2. MERCHANT AUTHENTICATION & AUTOMATED ONBOARDING MODULE
 // =========================================================================
 
-// Merchant Sign Up
+// Upgraded Merchant Sign Up with Automated Onboarding
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         const { merchantName, phone, email, password, settlementAccount, bankName } = req.body;
 
         if (!merchantName || !phone || !password) {
-            return res.status(400).json({ status: 'error', message: 'Name, phone number, and password are required.' });
+            return res.status(400).json({ status: 'error', message: 'Business name, phone number, and password are required.' });
         }
 
         if (merchantAccounts[phone]) {
             return res.status(400).json({ status: 'error', message: 'An account with this phone number already exists.' });
         }
 
+        // Generate Dedicated Merchant Virtual NUBAN Account
+        const generatedNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
         const hashedPassword = await bcrypt.hash(password, 10);
+
         merchantAccounts[phone] = {
             id: `MCH-${Date.now()}`,
             merchantName,
@@ -180,16 +183,19 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             password: hashedPassword,
             settlementAccount: settlementAccount || '0037323182',
             bankName: bankName || 'Access Bank Plc',
+            virtualNuban: generatedNuban,
+            virtualBank: 'Nomba / MFB',
             balance: 0.00,
-            ledger: []
+            ledger: [],
+            isOnboarded: true
         };
 
         return res.status(201).json({
             status: 'success',
-            message: '🎉 Registration successful! Welcome to @BL SOVEREIGN GATEWAY. Kindly check your email for onboarding details and sign in to access your merchant dashboard.'
+            message: `🎉 Onboarding Complete!\n\nWelcome to @BL SOVEREIGN GATEWAY, ${merchantName}.\n\nYour Dedicated Collection NUBAN is: ${generatedNuban} (${merchantAccounts[phone].virtualBank}).\n\nPlease check your email (${email}) and sign in to access your dashboard.`
         });
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to complete registration.' });
+        return res.status(500).json({ status: 'error', message: 'Failed to complete merchant onboarding.' });
     }
 });
 
@@ -217,6 +223,8 @@ app.post('/api/v1/auth/signin', async (req, res) => {
                 phone: account.phone,
                 settlementAccount: account.settlementAccount,
                 bankName: account.bankName,
+                virtualNuban: account.virtualNuban,
+                virtualBank: account.virtualBank,
                 balance: account.balance
             }
         });
