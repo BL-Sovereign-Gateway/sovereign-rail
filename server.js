@@ -1,8 +1,8 @@
 /**
  * ============================================================================
  * @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Complete Ecosystem:
- * Merchant Auth | Credit | Education | Betting | VTU | Bills | Newsletter | Admin Publisher | Nomba
+ * Full Ecosystem:
+ * Auth & Portal | Credit | Education | Betting | VTU | Bills | Newsletter | Admin Publisher | Nomba
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -33,7 +33,7 @@ const getAuthHeader = () => {
 };
 
 // In-Memory Database Stores
-const tempMerchantStore = [];
+const merchantAccounts = {}; // Keyed by Phone Number (Username)
 const transactionLedger = {}; 
 const creditApplications = [];
 const newsletterSubscribers = [];
@@ -143,7 +143,8 @@ function calculateInvoiceSplit(targetAmount) {
 // 🌐 1. FRONTEND PAGE ROUTING
 // =========================================================================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
 app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
@@ -154,7 +155,92 @@ app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.get('/publish', (req, res) => res.sendFile(path.join(__dirname, 'public', 'publish.html')));
 
 // =========================================================================
-// ✍️ 2. ADMIN PUBLISHING PORTAL & NEWSLETTER
+// 🔐 2. MERCHANT AUTHENTICATION & PORTAL MODULE
+// =========================================================================
+
+// Merchant Sign Up
+app.post('/api/v1/auth/signup', async (req, res) => {
+    try {
+        const { merchantName, phone, email, password, settlementAccount, bankName } = req.body;
+
+        if (!merchantName || !phone || !password) {
+            return res.status(400).json({ status: 'error', message: 'Name, phone number, and password are required.' });
+        }
+
+        if (merchantAccounts[phone]) {
+            return res.status(400).json({ status: 'error', message: 'An account with this phone number already exists.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        merchantAccounts[phone] = {
+            id: `MCH-${Date.now()}`,
+            merchantName,
+            phone,
+            email: email || '',
+            password: hashedPassword,
+            settlementAccount: settlementAccount || '0037323182',
+            bankName: bankName || 'Access Bank Plc',
+            balance: 0.00,
+            ledger: []
+        };
+
+        return res.status(201).json({ status: 'success', message: 'Registration successful! Please sign in.' });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to complete registration.' });
+    }
+});
+
+// Merchant Sign In
+app.post('/api/v1/auth/signin', async (req, res) => {
+    try {
+        const { phone, password } = req.body;
+        const account = merchantAccounts[phone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please sign up first.' });
+        }
+
+        const isMatch = await bcrypt.compare(password, account.password);
+        if (!isMatch) {
+            return res.status(401).json({ status: 'error', message: 'Invalid password.' });
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Signed in successfully!',
+            merchant: {
+                id: account.id,
+                merchantName: account.merchantName,
+                phone: account.phone,
+                settlementAccount: account.settlementAccount,
+                bankName: account.bankName,
+                balance: account.balance
+            }
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Sign in failed.' });
+    }
+});
+
+// Password Reset
+app.post('/api/v1/auth/reset-password', async (req, res) => {
+    try {
+        const { phone, newPassword } = req.body;
+        const account = merchantAccounts[phone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Phone number not registered.' });
+        }
+
+        account.password = await bcrypt.hash(newPassword, 10);
+        return res.status(200).json({ status: 'success', message: 'Password reset successfully! You can now sign in.' });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Password reset failed.' });
+    }
+});
+
+// =========================================================================
+// ✍️ 3. ADMIN PUBLISHING PORTAL & NEWSLETTER
 // =========================================================================
 app.post('/api/v1/newsletter/publish', (req, res) => {
     try {
@@ -209,41 +295,6 @@ app.post('/api/v1/newsletter/subscribe', (req, res) => {
 
 app.get('/api/v1/newsletter/articles', (req, res) => {
     return res.status(200).json({ status: 'success', articles: publishedNewsletters });
-});
-
-// =========================================================================
-// 📝 3. MERCHANT ONBOARDING
-// =========================================================================
-app.post('/api/v1/register', async (req, res) => {
-    try {
-        const { merchantName, email, phone, password, settlementAccount, bankName } = req.body;
-
-        if (!merchantName || !email || !settlementAccount) {
-            return res.status(400).json({ status: 'error', message: 'All required fields must be completed.' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password || 'DefaultPass123', 10);
-        const newMerchant = {
-            id: `MCH-${Date.now()}`,
-            merchantName,
-            email,
-            phone,
-            password: hashedPassword,
-            settlementAccount,
-            bankName: bankName || 'Access Bank Plc',
-            createdAt: new Date().toISOString()
-        };
-
-        tempMerchantStore.push(newMerchant);
-
-        return res.status(201).json({
-            status: 'success',
-            message: 'Merchant account created successfully!',
-            merchantId: newMerchant.id
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Server error during merchant registration.' });
-    }
 });
 
 // =========================================================================
