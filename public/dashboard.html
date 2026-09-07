@@ -3,77 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merchant Dashboard | @BL SOVEREIGN GATEWAY</title>
+    <title>Merchant Portal | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #334155; margin-bottom: 30px; }
-        .nav h1 { font-size: 1.25rem; color: #38bdf8; }
-        .badge { background: #10b981; color: #000; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; }
-        
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; }
-        .card p { font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; }
-        .card h3 { font-size: 1.5rem; color: #38bdf8; }
+        .container { max-width: 1100px; margin: 0 auto; }
 
-        .table-container { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; overflow-x: auto; }
-        .table-container h2 { font-size: 1rem; margin-bottom: 15px; color: #f8fafc; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
-        th, td { padding: 12px; border-bottom: 1px solid #334155; }
-        th { color: #94a3b8; font-weight: 600; }
-        .status-paid { color: #10b981; font-weight: 700; }
+        /* Top Header & Ticker */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #334155; }
+        .logo { font-size: 1.4rem; font-weight: 800; color: #38bdf8; }
+        .user-badge { background: #1e293b; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); }
+
+        .ticker { background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 10px; border-radius: 8px; margin: 20px 0; overflow: hidden; white-space: nowrap; font-size: 0.85rem; color: #38bdf8; font-weight: 600; }
+        .ticker marquee { vertical-align: middle; }
+
+        /* Balance Card */
+        .balance-card { background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 30px; box-shadow: 0 15px 25px rgba(0,0,0,0.4); }
+        .balance-label { font-size: 0.85rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 10px 0; color: #fff; }
+        .perk-pill { display: inline-block; background: #f59e0b; color: #000; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; }
+
+        /* Action Columns Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .action-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 24px; }
+        .action-card h3 { color: #f8fafc; font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 10px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
+        .btn-action { width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 6px; }
+        .btn-action.withdraw { background: #f59e0b; color: #000; }
+
+        /* Services Bar */
+        .services-bar { background: #1e293b; border-radius: 14px; padding: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; text-align: center; }
+        .service-btn { background: #0f172a; border: 1px solid #334155; padding: 12px 20px; border-radius: 8px; color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+        .service-btn:hover { border-color: #38bdf8; background: #1e293b; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="nav">
-        <h1>🏛️ @BL SOVEREIGN GATEWAY</h1>
-        <span class="badge">LIVE ENGINE ACTIVE</span>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">@BL SOVEREIGN GATEWAY</div>
+        <div class="user-badge" id="merchantDisplay">Loading Merchant...</div>
     </div>
 
+    <!-- Live Scrolling Ticker -->
+    <div class="ticker">
+        <marquee scrollamount="5">
+            ⚡ Welcome to your Sovereign Gateway Dashboard | 🎁 Instant ₦2.00 Cashback on every transfer | 🏦 Nomba Virtual Accounts Settlement Active | 🚀 Access Bank Settlement Account Linked
+        </marquee>
+    </div>
+
+    <!-- Main Balance Card -->
+    <div class="balance-card">
+        <div class="balance-label">Available Gateway Wallet Balance</div>
+        <div class="balance-amount" id="walletBalance">₦0.00</div>
+        <div class="perk-pill">⚡ Live Settlement Active</div>
+    </div>
+
+    <!-- Action Columns Grid -->
     <div class="grid">
-        <div class="card">
-            <p>Settlement Balance</p>
-            <h3>₦0.00</h3>
+        
+        <!-- Withdrawal Column -->
+        <div class="action-card">
+            <h3>🏧 Instant Withdrawal</h3>
+            <form id="withdrawForm">
+                <div class="form-group">
+                    <label>Destination Bank</label>
+                    <input type="text" value="Access Bank Plc (Default)" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" id="settlementAccount" value="0037323182" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Withdrawal Amount (₦)</label>
+                    <input type="number" id="withdrawAmount" placeholder="1000" required>
+                </div>
+                <button type="submit" class="btn-action withdraw">Withdraw to Bank</button>
+            </form>
         </div>
-        <div class="card">
-            <p>Cashback Earned (₦2/tx)</p>
-            <h3 style="color:#10b981;">₦0.00</h3>
+
+        <!-- Transfer to Other Banks Column -->
+        <div class="action-card">
+            <h3>🏦 Bank Transfer</h3>
+            <form id="transferForm">
+                <div class="form-group">
+                    <label>Select Recipient Bank</label>
+                    <select id="targetBank" required>
+                        <option value="Access Bank">Access Bank Plc</option>
+                        <option value="GTBank">Guaranty Trust Bank</option>
+                        <option value="Zenith Bank">Zenith Bank Plc</option>
+                        <option value="First Bank">First Bank Nigeria</option>
+                        <option value="UBA">United Bank for Africa</option>
+                        <option value="Kuda">Kuda Bank</option>
+                        <option value="Opay">OPay Digital</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>10-Digit Account Number</label>
+                    <input type="text" id="targetAccount" placeholder="e.g. 0123456789" maxlength="10" required>
+                </div>
+                <div class="form-group">
+                    <label>Transfer Amount (₦)</label>
+                    <input type="number" id="transferAmount" placeholder="5000" required>
+                </div>
+                <button type="submit" class="btn-action">Initiate Transfer</button>
+            </form>
         </div>
-        <div class="card">
-            <p>Today's Transactions</p>
-            <h3>0</h3>
-        </div>
-        <div class="card">
-            <p>Active Portals</p>
-            <h3 style="color:#a855f7;">4 Live</h3>
-        </div>
+
     </div>
 
-    <div class="table-container">
-        <h2>Live Transaction Ledger</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Reference</th>
-                    <th>Type</th>
-                    <th>Gross Amount</th>
-                    <th>Net Settlement</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="ledgerBody">
-                <tr>
-                    <td colspan="5" style="text-align:center; color:#64748b; padding:20px;">
-                        Listening for incoming Nomba bank transfers...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- Quick Shortcuts Bar -->
+    <h4 style="margin-bottom:12px; color:#cbd5e1;">Quick Financial Portals</h4>
+    <div class="services-bar">
+        <a href="/vtu-support" class="service-btn">📱 VTU Airtime & Data</a>
+        <a href="/betting-support" class="service-btn">🎰 Betting Top-Up</a>
+        <a href="/bill-payments" class="service-btn">⚡ Pay Utilities</a>
+        <a href="/credit-support" class="service-btn">📈 SAIL Credit Line</a>
+        <a href="/education-support" class="service-btn">🎓 Education Fund</a>
     </div>
+
 </div>
+
+<script>
+const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
+
+if (!merchant.merchantName) {
+    alert('Session expired. Please sign in.');
+    window.location.href = '/login';
+} else {
+    document.getElementById('merchantDisplay').textContent = `👤 ${merchant.merchantName} (${merchant.phone})`;
+    document.getElementById('walletBalance').textContent = `₦${(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+}
+
+// Handle Withdrawal
+document.getElementById('withdrawForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const amount = document.getElementById('withdrawAmount').value;
+    alert(`✅ Withdrawal Request Submitted!\nAmount: ₦${amount}\nDestination: Access Bank (0037323182)\nStatus: Processing settlement...`);
+});
+
+// Handle Bank Transfer
+document.getElementById('transferForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const bank = document.getElementById('targetBank').value;
+    const account = document.getElementById('targetAccount').value;
+    const amount = document.getElementById('transferAmount').value;
+    alert(`✅ Bank Transfer Initiated!\nRecipient: ${account} (${bank})\nAmount: ₦${amount}\nStatus: Routing via bank switch...`);
+});
+</script>
 
 </body>
 </html>
