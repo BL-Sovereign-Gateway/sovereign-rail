@@ -13,30 +13,25 @@
         .logo { font-size: 1.4rem; font-weight: 800; color: #38bdf8; }
         .user-badge { background: #1e293b; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); }
 
-        /* Forex & Market Ticker Bar */
         .ticker { background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 10px; border-radius: 8px; margin: 20px 0; overflow: hidden; white-space: nowrap; font-size: 0.85rem; color: #38bdf8; font-weight: 600; }
         .ticker marquee { vertical-align: middle; }
 
         .balance-card { background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 30px; box-shadow: 0 15px 25px rgba(0,0,0,0.4); }
         .balance-label { font-size: 0.85rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
         .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 10px 0; color: #fff; }
-        .perk-pill { display: inline-block; background: #f59e0b; color: #000; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; }
+        .nuban-box { background: rgba(0,0,0,0.3); border: 1px dashed #38bdf8; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem; color: #38bdf8; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .action-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 24px; }
-        .action-card h3 { color: #f8fafc; font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .action-card h3 { color: #f8fafc; font-size: 1.1rem; margin-bottom: 14px; }
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
         input, select { width: 100%; padding: 10px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
         .btn-action { width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 6px; }
         .btn-action.withdraw { background: #f59e0b; color: #000; }
 
-        .services-bar { background: #1e293b; border-radius: 14px; padding: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; text-align: center; }
-        .service-btn { background: #0f172a; border: 1px solid #334155; padding: 12px 20px; border-radius: 8px; color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 0.85rem; }
-
-        /* Branded Modal Overlay */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 25px rgba(0,0,0,0.8); }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
         .modal-header { font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
         .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px; white-space: pre-line; }
         .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; }
@@ -51,113 +46,76 @@
         <div class="user-badge" id="merchantDisplay">Loading Merchant...</div>
     </div>
 
-    <!-- Live Forex & Nigerian Stock Exchange Ticker Bar -->
     <div class="ticker">
         <marquee scrollamount="5">
-            💱 FOREX: USD/NGN ₦1,510.50 | EUR/NGN ₦1,642.10 | GBP/NGN ₦1,925.00  ||  📈 NGX/NSE ASI: 98,420.15 (+0.42%) | GTCO ₦46.20 | ACCESS ₦19.80 | ZENITH ₦36.50  ||  ⚡ @BL SOVEREIGN GATEWAY: Instant ₦2.00 Cashback Active
+            💱 FOREX: USD/NGN ₦1,510.50 | EUR/NGN ₦1,642.10  ||  📈 NGX/NSE: GTCO ₦46.20 | ACCESS ₦19.80  ||  ⚡ Dedicated Collection NUBAN Provisioned
         </marquee>
     </div>
 
     <div class="balance-card">
         <div class="balance-label">Available Gateway Wallet Balance</div>
         <div class="balance-amount" id="walletBalance">₦0.00</div>
-        <div class="perk-pill">⚡ Live Settlement Active</div>
+        
+        <div class="nuban-box">
+            🏦 <strong>Dedicated Collection Account:</strong> <span id="merchantNuban">Generating...</span> (<span id="merchantBank">Nomba / MFB</span>)
+            <br><small style="color:#cbd5e1;">Transfer funds to this account to top up your wallet for payouts and bill settlements.</small>
+        </div>
     </div>
 
     <div class="grid">
         
         <!-- Withdrawal Column -->
         <div class="action-card">
-            <h3>🏧 Instant Withdrawal</h3>
+            <h3>🏧 Instant Settlement Withdrawal</h3>
             <form id="withdrawForm">
                 <div class="form-group">
-                    <label>Destination Bank</label>
-                    <select id="withdrawBank" required>
-                        <option value="Access Bank Plc" selected>Access Bank Plc (Default Settlement)</option>
-                        <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
-                        <option value="Zenith Bank Plc">Zenith Bank Plc</option>
-                        <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
-                        <option value="First Bank of Nigeria">First Bank of Nigeria</option>
-                        <option value="Fidelity Bank">Fidelity Bank</option>
-                        <option value="First City Monument Bank (FCMB)">First City Monument Bank (FCMB)</option>
-                        <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
-                        <option value="Wema Bank (ALAT)">Wema Bank (ALAT)</option>
-                        <option value="Sterling Bank">Sterling Bank</option>
-                        <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
-                        <option value="Ecobank Nigeria">Ecobank Nigeria</option>
-                        <option value="Polaris Bank">Polaris Bank</option>
-                        <option value="Keystone Bank">Keystone Bank</option>
-                        <option value="OPay Digital Services">OPay Digital Services</option>
-                        <option value="Palmpay">Palmpay</option>
-                        <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
-                        <option value="Moniepoint MFB">Moniepoint MFB</option>
-                    </select>
+                    <label>Registered Settlement Bank</label>
+                    <input type="text" id="settlementBank" value="Access Bank Plc" readonly>
                 </div>
                 <div class="form-group">
                     <label>Account Number</label>
-                    <input type="text" id="settlementAccount" value="0037323182" required>
+                    <input type="text" id="settlementAccount" value="0037323182" readonly>
                 </div>
                 <div class="form-group">
                     <label>Withdrawal Amount (₦)</label>
-                    <input type="number" id="withdrawAmount" placeholder="1000" required>
+                    <input type="number" id="withdrawAmount" placeholder="1000" min="100" required>
                 </div>
-                <button type="submit" class="btn-action withdraw">Withdraw Funds</button>
+                <button type="submit" class="btn-action withdraw">Withdraw to Bank Account</button>
             </form>
         </div>
 
-        <!-- Transfer to Other Banks Column -->
+        <!-- Bank Transfer Column -->
         <div class="action-card">
-            <h3>🏦 Bank Transfer</h3>
+            <h3>🏦 Interbank Transfer</h3>
             <form id="transferForm">
                 <div class="form-group">
-                    <label>Select Recipient Bank</label>
+                    <label>Recipient Bank</label>
                     <select id="targetBank" required>
                         <option value="Access Bank Plc">Access Bank Plc</option>
-                        <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
-                        <option value="Zenith Bank Plc">Zenith Bank Plc</option>
-                        <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
-                        <option value="First Bank of Nigeria">First Bank of Nigeria</option>
-                        <option value="Fidelity Bank">Fidelity Bank</option>
-                        <option value="First City Monument Bank (FCMB)">First City Monument Bank (FCMB)</option>
-                        <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
-                        <option value="Wema Bank (ALAT)">Wema Bank (ALAT)</option>
-                        <option value="Sterling Bank">Sterling Bank</option>
-                        <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
-                        <option value="Ecobank Nigeria">Ecobank Nigeria</option>
-                        <option value="Polaris Bank">Polaris Bank</option>
-                        <option value="Keystone Bank">Keystone Bank</option>
-                        <option value="OPay Digital Services">OPay Digital Services</option>
-                        <option value="Palmpay">Palmpay</option>
-                        <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
-                        <option value="Moniepoint MFB">Moniepoint MFB</option>
+                        <option value="GTBank">Guaranty Trust Bank</option>
+                        <option value="Zenith Bank">Zenith Bank Plc</option>
+                        <option value="First Bank">First Bank Nigeria</option>
+                        <option value="UBA">United Bank for Africa</option>
+                        <option value="OPay">OPay Digital</option>
+                        <option value="Kuda">Kuda Bank</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>10-Digit Account Number</label>
-                    <input type="text" id="targetAccount" placeholder="e.g. 0123456789" maxlength="10" required>
+                    <input type="text" id="targetAccount" placeholder="0123456789" maxlength="10" required>
                 </div>
                 <div class="form-group">
                     <label>Transfer Amount (₦)</label>
-                    <input type="number" id="transferAmount" placeholder="5000" required>
+                    <input type="number" id="transferAmount" placeholder="5000" min="100" required>
                 </div>
-                <button type="submit" class="btn-action">Initiate Transfer</button>
+                <button type="submit" class="btn-action">Initiate Bank Transfer</button>
             </form>
         </div>
 
     </div>
 
-    <h4 style="margin-bottom:12px; color:#cbd5e1;">Quick Financial Portals</h4>
-    <div class="services-bar">
-        <a href="/vtu-support" class="service-btn">📱 VTU Airtime & Data</a>
-        <a href="/betting-support" class="service-btn">🎰 Betting Top-Up</a>
-        <a href="/bill-payments" class="service-btn">⚡ Pay Utilities</a>
-        <a href="/credit-support" class="service-btn">📈 SAIL Credit Line</a>
-        <a href="/education-support" class="service-btn">🎓 Education Fund</a>
-    </div>
-
 </div>
 
-<!-- CUSTOM BRANDED MODAL -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <div class="modal-header">@BL SOVEREIGN GATEWAY</div>
@@ -183,24 +141,38 @@ if (!merchant.merchantName) {
 } else {
     document.getElementById('merchantDisplay').textContent = `👤 ${merchant.merchantName} (${merchant.phone})`;
     document.getElementById('walletBalance').textContent = `₦${(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+    document.getElementById('merchantNuban').textContent = merchant.virtualNuban || '9903182412';
+    document.getElementById('merchantBank').textContent = merchant.virtualBank || 'Nomba / MFB';
+    
+    if (merchant.settlementAccount) document.getElementById('settlementAccount').value = merchant.settlementAccount;
+    if (merchant.bankName) document.getElementById('settlementBank').value = merchant.bankName;
 }
 
-// Handle Withdrawal
+// Balance Validation Guard
 document.getElementById('withdrawForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const bank = document.getElementById('withdrawBank').value;
-    const account = document.getElementById('settlementAccount').value;
-    const amount = document.getElementById('withdrawAmount').value;
-    showModal(`✅ Withdrawal Request Submitted!\n\nAmount: ₦${amount}\nDestination: ${account} (${bank})\n\nStatus: Processing automated settlement...`);
+    const amount = parseFloat(document.getElementById('withdrawAmount').value);
+    const balance = merchant.balance || 0;
+
+    if (balance < amount) {
+        showModal(`❌ Insufficient Wallet Balance!\n\nYour current wallet balance is ₦${balance.toFixed(2)}.\n\nPlease fund your wallet by transferring to your dedicated collection account (${document.getElementById('merchantNuban').textContent}) to proceed with withdrawals.`);
+        return;
+    }
+
+    showModal(`✅ Withdrawal Submitted!\n\nAmount: ₦${amount}\nDestination: ${document.getElementById('settlementAccount').value} (${document.getElementById('settlementBank').value})\n\nStatus: Processing settlement...`);
 });
 
-// Handle Bank Transfer
 document.getElementById('transferForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const bank = document.getElementById('targetBank').value;
-    const account = document.getElementById('targetAccount').value;
-    const amount = document.getElementById('transferAmount').value;
-    showModal(`✅ Bank Transfer Initiated!\n\nRecipient: ${account} (${bank})\nAmount: ₦${amount}\n\nStatus: Routing via bank switch...`);
+    const amount = parseFloat(document.getElementById('transferAmount').value);
+    const balance = merchant.balance || 0;
+
+    if (balance < amount) {
+        showModal(`❌ Insufficient Wallet Balance!\n\nYour current wallet balance is ₦${balance.toFixed(2)}.\n\nPlease fund your wallet by transferring to your dedicated collection account (${document.getElementById('merchantNuban').textContent}) before initiating interbank transfers.`);
+        return;
+    }
+
+    showModal(`✅ Transfer Initiated!\n\nAmount: ₦${amount}\nRecipient: ${document.getElementById('targetAccount').value} (${document.getElementById('targetBank').value})\n\nStatus: Routing via bank switch...`);
 });
 </script>
 
