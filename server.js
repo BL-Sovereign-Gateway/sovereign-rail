@@ -184,7 +184,10 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             ledger: []
         };
 
-        return res.status(201).json({ status: 'success', message: 'Registration successful! Please sign in.' });
+        return res.status(201).json({
+            status: 'success',
+            message: '🎉 Registration successful! Welcome to @BL SOVEREIGN GATEWAY. Kindly check your email for onboarding details and sign in to access your merchant dashboard.'
+        });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to complete registration.' });
     }
