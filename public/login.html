@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merchant Access | @BL SOVEREIGN GATEWAY</title>
+    <title>Merchant Portal Access | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -95,7 +95,7 @@ function switchTab(tabId) {
     document.getElementById(tabId).classList.add('active');
 }
 
-// Sign Up
+// Sign Up Form Handler
 document.getElementById('signUpForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
@@ -104,40 +104,71 @@ document.getElementById('signUpForm').addEventListener('submit', async (e) => {
         email: document.getElementById('regEmail').value,
         password: document.getElementById('regPassword').value
     };
-    const res = await fetch('/api/v1/auth/signup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const data = await res.json();
-    alert(data.message);
-    if(data.status === 'success') switchTab('signin');
+
+    try {
+        const res = await fetch('/api/v1/auth/signup', { 
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify(payload) 
+        });
+        const data = await res.json();
+        
+        if(data.status === 'success') {
+            alert(`🎉 Registration successful!\n\nWelcome to @BL SOVEREIGN GATEWAY.\n\nKindly check your email address (${payload.email}) for account details and proceed to sign in.`);
+            switchTab('signin');
+            document.getElementById('loginPhone').value = payload.phone; // Pre-fill phone number
+        } else {
+            alert(`Error: ${data.message}`);
+        }
+    } catch(err) {
+        alert('Registration failed. Please check your internet connection.');
+    }
 });
 
-// Sign In
+// Sign In Form Handler
 document.getElementById('signInForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
         phone: document.getElementById('loginPhone').value,
         password: document.getElementById('loginPassword').value
     };
-    const res = await fetch('/api/v1/auth/signin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const data = await res.json();
-    if(data.status === 'success') {
-        localStorage.setItem('merchantSession', JSON.stringify(data.merchant));
-        window.location.href = '/dashboard';
-    } else {
-        alert(data.message);
+    try {
+        const res = await fetch('/api/v1/auth/signin', { 
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify(payload) 
+        });
+        const data = await res.json();
+        if(data.status === 'success') {
+            localStorage.setItem('merchantSession', JSON.stringify(data.merchant));
+            window.location.href = '/dashboard';
+        } else {
+            alert(`Error: ${data.message}`);
+        }
+    } catch(err) {
+        alert('Sign in failed. Please check your internet connection.');
     }
 });
 
-// Reset Password
+// Password Reset Form Handler
 document.getElementById('resetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
         phone: document.getElementById('resetPhone').value,
         newPassword: document.getElementById('resetNewPass').value
     };
-    const res = await fetch('/api/v1/auth/reset-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const data = await res.json();
-    alert(data.message);
-    if(data.status === 'success') switchTab('signin');
+    try {
+        const res = await fetch('/api/v1/auth/reset-password', { 
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify(payload) 
+        });
+        const data = await res.json();
+        alert(data.message);
+        if(data.status === 'success') switchTab('signin');
+    } catch(err) {
+        alert('Password reset failed. Please check your internet connection.');
+    }
 });
 </script>
 
