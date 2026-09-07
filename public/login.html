@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merchant Portal Access | @BL SOVEREIGN GATEWAY</title>
+    <title>Merchant Access | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -20,6 +20,13 @@
         .form-section { display: none; }
         .form-section.active { display: block; }
         .forgot-link { font-size: 0.8rem; color: #38bdf8; text-align: right; cursor: pointer; margin-top: 6px; display: block; }
+
+        /* Branded Modal Box */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 20px 25px rgba(0,0,0,0.8); }
+        .modal-header { font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+        .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px; white-space: pre-line; }
+        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -85,17 +92,39 @@
     </div>
 </div>
 
+<!-- CUSTOM BRANDED MODAL -->
+<div class="modal-overlay" id="customModal">
+    <div class="modal-box">
+        <div class="modal-header">@BL SOVEREIGN GATEWAY</div>
+        <div class="modal-body" id="modalText">Message goes here...</div>
+        <button class="modal-btn" onclick="closeModal()">OK</button>
+    </div>
+</div>
+
 <script>
+function showModal(msg, callback) {
+    document.getElementById('modalText').innerText = msg;
+    document.getElementById('customModal').style.display = 'flex';
+    window.modalCallback = callback;
+}
+
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+    if (window.modalCallback) {
+        window.modalCallback();
+        window.modalCallback = null;
+    }
+}
+
 function switchTab(tabId) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
-    
     if (tabId === 'signin') document.querySelectorAll('.tab')[0].classList.add('active');
     if (tabId === 'signup') document.querySelectorAll('.tab')[1].classList.add('active');
     document.getElementById(tabId).classList.add('active');
 }
 
-// Sign Up Form Handler
+// Sign Up
 document.getElementById('signUpForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
@@ -104,28 +133,24 @@ document.getElementById('signUpForm').addEventListener('submit', async (e) => {
         email: document.getElementById('regEmail').value,
         password: document.getElementById('regPassword').value
     };
-
     try {
-        const res = await fetch('/api/v1/auth/signup', { 
-            method: 'POST', 
-            headers: {'Content-Type':'application/json'}, 
-            body: JSON.stringify(payload) 
-        });
+        const res = await fetch('/api/v1/auth/signup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         const data = await res.json();
         
         if(data.status === 'success') {
-            alert(`🎉 Registration successful!\n\nWelcome to @BL SOVEREIGN GATEWAY.\n\nKindly check your email address (${payload.email}) for account details and proceed to sign in.`);
-            switchTab('signin');
-            document.getElementById('loginPhone').value = payload.phone; // Pre-fill phone number
+            showModal(`🎉 Registration successful!\n\nWelcome to @BL SOVEREIGN GATEWAY.\n\nKindly check your email address (${payload.email}) for onboarding details and proceed to sign in.`, () => {
+                switchTab('signin');
+                document.getElementById('loginPhone').value = payload.phone;
+            });
         } else {
-            alert(`Error: ${data.message}`);
+            showModal(data.message);
         }
     } catch(err) {
-        alert('Registration failed. Please check your internet connection.');
+        showModal('Registration failed. Please check your network connection.');
     }
 });
 
-// Sign In Form Handler
+// Sign In
 document.getElementById('signInForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
@@ -133,42 +158,31 @@ document.getElementById('signInForm').addEventListener('submit', async (e) => {
         password: document.getElementById('loginPassword').value
     };
     try {
-        const res = await fetch('/api/v1/auth/signin', { 
-            method: 'POST', 
-            headers: {'Content-Type':'application/json'}, 
-            body: JSON.stringify(payload) 
-        });
+        const res = await fetch('/api/v1/auth/signin', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         const data = await res.json();
         if(data.status === 'success') {
             localStorage.setItem('merchantSession', JSON.stringify(data.merchant));
             window.location.href = '/dashboard';
         } else {
-            alert(`Error: ${data.message}`);
+            showModal(data.message);
         }
     } catch(err) {
-        alert('Sign in failed. Please check your internet connection.');
+        showModal('Sign in failed. Check network connection.');
     }
 });
 
-// Password Reset Form Handler
+// Reset Password
 document.getElementById('resetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
         phone: document.getElementById('resetPhone').value,
         newPassword: document.getElementById('resetNewPass').value
     };
-    try {
-        const res = await fetch('/api/v1/auth/reset-password', { 
-            method: 'POST', 
-            headers: {'Content-Type':'application/json'}, 
-            body: JSON.stringify(payload) 
-        });
-        const data = await res.json();
-        alert(data.message);
+    const res = await fetch('/api/v1/auth/reset-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    showModal(data.message, () => {
         if(data.status === 'success') switchTab('signin');
-    } catch(err) {
-        alert('Password reset failed. Please check your internet connection.');
-    }
+    });
 });
 </script>
 
