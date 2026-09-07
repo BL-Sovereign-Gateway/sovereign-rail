@@ -1,5 +1,5 @@
 {
-  "name": "bl-sovereign-gateway",
+  "name": "sovereign-gateway-engine",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -8,6 +8,7 @@
   "dependencies": {
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.7"
   }
 }
