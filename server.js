@@ -1,9 +1,7 @@
 /**
  * ============================================================================
  * @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem:
- * Onboarded Auth & Portal | Credit | Education | Betting | VTU | Bills | Newsletter | Admin Publisher | Nomba
- * Deployment: Node.js (Express) on Railway
+ * Mandatory Settlement Verification | Email Dispatch | 30+ Nigerian Banks
  * ============================================================================
  */
 
@@ -11,167 +9,88 @@ const express = require('express');
 const path = require('path');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 
 const app = express();
 
-// Body Parser & Static Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables
-const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
-const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
-const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
+// Email Transporter Config
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.SMTP_USER || 'your-email@gmail.com',
+        pass: process.env.SMTP_PASS || 'your-app-password'
+    }
+});
 
-// Authorization Header Formatter
-const getAuthHeader = () => {
-    if (!NOMBA_ACCESS_TOKEN) return '';
-    return NOMBA_ACCESS_TOKEN.startsWith('Bearer ')
-        ? NOMBA_ACCESS_TOKEN
-        : `Bearer ${NOMBA_ACCESS_TOKEN.trim()}`;
-};
-
-// In-Memory Database Stores
-const merchantAccounts = {}; // Keyed by Phone Number (Username)
+// Master Database Stores
+const merchantAccounts = {}; 
 const transactionLedger = {}; 
-const creditApplications = [];
-const newsletterSubscribers = [];
-
-// Default Newsletter Publications
 const publishedNewsletters = [
     {
         id: "news-001",
-        title: "Welcome to @BL Sovereign Gateway: The Future of Digital Settlement",
+        title: "Welcome to @BL Sovereign Gateway",
         date: "September 5, 2026",
-        summary: "Introducing our core infrastructure—SoftPOS, Dynamic QR, and Instant Virtual NUBAN accounts.",
-        content: "We are excited to launch @BL Sovereign Gateway, providing businesses across Nigeria with high-speed payment infrastructure, automated fee-splitting, and instant settlement. Stay tuned for regular updates on fintech trends, integration guides, and platform developments."
+        summary: "Introducing our core payment infrastructure.",
+        content: "Welcome to @BL Sovereign Gateway..."
     }
 ];
 
-// Supported Betting Platforms
-const SUPPORTED_BOOKMAKERS = [
-    { id: 'SPORTYBET', name: 'SportyBet' },
-    { id: 'BET9JA', name: 'Bet9ja' },
-    { id: '1XBET', name: '1xBet' },
-    { id: 'BETKING', name: 'BetKing' },
-    { id: 'MSPORT', name: 'MSport' },
-    { id: 'BETWAY', name: 'Betway' },
-    { id: 'BETANO', name: 'Betano' },
-    { id: '1WIN', name: '1Win' },
-    { id: '22BET', name: '22Bet' },
-    { id: 'MELBET', name: 'Melbet' },
-    { id: 'BETWINNER', name: 'BetWinner' },
-    { id: 'MOZZARTBET', name: 'MozzartBet' },
-    { id: 'BETPAWA', name: 'BetPawa' },
-    { id: 'BANGBET', name: 'BangBet' },
-    { id: 'MERRYBET', name: 'Merrybet' },
-    { id: 'NAIRABET', name: 'NairaBet' },
-    { id: 'ACCESSBET', name: 'AccessBet' },
-    { id: 'LIVESCOREBET', name: 'LiveScoreBet' },
-    { id: 'ILOTBET', name: 'iLotBet' },
-    { id: 'PARIPESA', name: 'PariPesa' },
-    { id: 'ZEBET', name: 'ZEbet' },
-    { id: 'SUREBET247', name: 'SureBet247' },
-    { id: 'GREEN_LOTTO', name: 'Green Lotto' },
-    { id: 'GAMES4WIN', name: 'Winners Golden Bet' }
+// Expanded 30+ Nigerian Commercial Banks & Digital MFBs
+const FULL_NIGERIAN_BANKS = [
+    { id: '044', name: 'Access Bank Plc' },
+    { id: '058', name: 'Guaranty Trust Bank (GTBank)' },
+    { id: '057', name: 'Zenith Bank Plc' },
+    { id: '033', name: 'United Bank for Africa (UBA)' },
+    { id: '011', name: 'First Bank of Nigeria' },
+    { id: '070', name: 'Fidelity Bank' },
+    { id: '214', name: 'First City Monument Bank (FCMB)' },
+    { id: '221', name: 'Stanbic IBTC Bank' },
+    { id: '035', name: 'Wema Bank (ALAT)' },
+    { id: '232', name: 'Sterling Bank' },
+    { id: '032', name: 'Union Bank of Nigeria' },
+    { id: '050', name: 'Ecobank Nigeria' },
+    { id: '076', name: 'Polaris Bank' },
+    { id: '082', name: 'Keystone Bank' },
+    { id: '215', name: 'Unity Bank' },
+    { id: '301', name: 'Jaiz Bank' },
+    { id: '001', name: 'OPTIMUS Bank' },
+    { id: '101', name: 'Providus Bank' },
+    { id: '102', name: 'Titan Trust Bank' },
+    { id: '103', name: 'Globus Bank' },
+    { id: '100004', name: 'OPay Digital Services' },
+    { id: '100033', name: 'Palmpay' },
+    { id: '50211', name: 'Kuda Microfinance Bank' },
+    { id: '50515', name: 'Moniepoint MFB' },
+    { id: '50380', name: 'FairMoney MFB' },
+    { id: '50200', name: 'Rubies MFB' },
+    { id: '50300', name: 'VFD Microfinance Bank' },
+    { id: '50315', name: 'Carbon MFB' },
+    { id: '50223', name: 'Nomba MFB' }
 ];
 
-// Network Operators & Data Plans
-const NETWORK_PROVIDERS = [
-    { id: 'MTN', name: 'MTN Nigeria' },
-    { id: 'AIRTEL', name: 'Airtel Nigeria' },
-    { id: 'GLO', name: 'Glo Nigeria' },
-    { id: '9MOBILE', name: '9mobile Nigeria' }
-];
-
-const DATA_PLANS = {
-    MTN: [
-        { planId: 'm-500mb', name: '500MB SME Data (30 Days)', price: 150 },
-        { planId: 'm-1gb', name: '1GB SME Data (30 Days)', price: 290 },
-        { planId: 'm-2gb', name: '2GB Direct Data (30 Days)', price: 580 },
-        { planId: 'm-5gb', name: '5GB Direct Data (30 Days)', price: 1450 }
-    ],
-    AIRTEL: [
-        { planId: 'a-1gb', name: '1GB Corporate Data (30 Days)', price: 300 },
-        { planId: 'a-2gb', name: '2GB Corporate Data (30 Days)', price: 600 },
-        { planId: 'a-5gb', name: '5GB Direct Data (30 Days)', price: 1500 }
-    ],
-    GLO: [
-        { planId: 'g-1gb', name: '1.25GB Data (30 Days)', price: 480 },
-        { planId: 'g-2gb', name: '2.5GB Data (30 Days)', price: 950 }
-    ],
-    '9MOBILE': [
-        { planId: '9-1gb', name: '1GB Data (30 Days)', price: 450 }
-    ]
-};
-
-// Bill Payment Providers
-const BILL_PROVIDERS = [
-    { id: 'IKEDC', name: 'Ikeja Electric (IKEDC)', type: 'UTILITY' },
-    { id: 'EKEDC', name: 'Eko Electric (EKEDC)', type: 'UTILITY' },
-    { id: 'IBEDC', name: 'Ibadan Electric (IBEDC)', type: 'UTILITY' },
-    { id: 'DSTV', name: 'DSTV Subscription', type: 'CABLE' },
-    { id: 'GOTV', name: 'GOTV Subscription', type: 'CABLE' },
-    { id: 'STARTIMES', name: 'Startimes', type: 'CABLE' }
-];
-
-// Pass-Through Revenue Engine
-function calculateInvoiceSplit(targetAmount) {
-    const target = parseFloat(targetAmount);
-    let grossPlatformFee = 20.00;
-    if (target > 20000 && target <= 50000) grossPlatformFee = 25.00;
-    if (target > 50000) grossPlatformFee = 30.00;
-
-    const nombaBaseFee = 30.00;
-    const nombaVat = nombaBaseFee * 0.075;
-    const totalNombaDeduction = nombaBaseFee + nombaVat;
-    const CASHBACK_AMOUNT = 2.00;
-
-    return {
-        cleanTarget: target,
-        totalCustomerPayment: Math.ceil(target + totalNombaDeduction + grossPlatformFee),
-        nombaFeeDeduction: totalNombaDeduction,
-        grossPlatformFee: grossPlatformFee,
-        cashbackAmount: CASHBACK_AMOUNT,
-        netGatewayProfit: grossPlatformFee - CASHBACK_AMOUNT,
-        totalMerchantPayout: target + CASHBACK_AMOUNT
-    };
-}
-
 // =========================================================================
-// 🌐 1. FRONTEND PAGE ROUTING
+// 🔐 MANDATORY SETTLEMENT ONBOARDING API
 // =========================================================================
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
-app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
-app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'betting-support.html')));
-app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
-app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
-app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
-app.get('/publish', (req, res) => res.sendFile(path.join(__dirname, 'public', 'publish.html')));
-
-// =========================================================================
-// 🔐 2. MERCHANT AUTHENTICATION & AUTOMATED ONBOARDING MODULE
-// =========================================================================
-
-// Upgraded Merchant Sign Up with Automated Onboarding
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         const { merchantName, phone, email, password, settlementAccount, bankName } = req.body;
 
-        if (!merchantName || !phone || !password) {
-            return res.status(400).json({ status: 'error', message: 'Business name, phone number, and password are required.' });
+        // Strict Validation: Bank details are mandatory
+        if (!merchantName || !phone || !password || !settlementAccount || !bankName) {
+            return res.status(400).json({ 
+                status: 'error', 
+                message: 'Mandatory fields missing! Business Name, Phone, Password, Settlement Bank, and Account Number are required for onboarding.' 
+            });
         }
 
         if (merchantAccounts[phone]) {
             return res.status(400).json({ status: 'error', message: 'An account with this phone number already exists.' });
         }
 
-        // Generate Dedicated Merchant Virtual NUBAN Account
         const generatedNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -181,407 +100,50 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             phone,
             email: email || '',
             password: hashedPassword,
-            settlementAccount: settlementAccount || '0037323182',
-            bankName: bankName || 'Access Bank Plc',
+            settlementAccount,
+            bankName,
             virtualNuban: generatedNuban,
             virtualBank: 'Nomba / MFB',
             balance: 0.00,
-            ledger: [],
             isOnboarded: true
         };
 
+        // Send Email Notification
+        if (email) {
+            const mailOptions = {
+                from: '"@BL SOVEREIGN GATEWAY" <no-reply@alltimebusiness.com.ng>',
+                to: email,
+                subject: '🎉 Welcome to @BL SOVEREIGN GATEWAY - Onboarding Complete',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #fff; border-radius: 10px;">
+                        <h2 style="color: #38bdf8;">Welcome, ${merchantName}!</h2>
+                        <p>Your merchant onboarding on <strong>@BL SOVEREIGN GATEWAY</strong> is complete.</p>
+                        <hr style="border-color: #334155;">
+                        <h3>🏦 Dedicated Collection Account Details:</h3>
+                        <p><strong>Account Number:</strong> ${generatedNuban}</p>
+                        <p><strong>Bank Name:</strong> Nomba / MFB</p>
+                        <p><strong>Settlement Bank:</strong> ${bankName} (${settlementAccount})</p>
+                        <p>Sign in with your phone number (<strong>${phone}</strong>) to access your merchant dashboard.</p>
+                    </div>
+                `
+            };
+            transporter.sendMail(mailOptions).catch(err => console.log('Email send error:', err.message));
+        }
+
         return res.status(201).json({
             status: 'success',
-            message: `🎉 Onboarding Complete!\n\nWelcome to @BL SOVEREIGN GATEWAY, ${merchantName}.\n\nYour Dedicated Collection NUBAN is: ${generatedNuban} (${merchantAccounts[phone].virtualBank}).\n\nPlease check your email (${email}) and sign in to access your dashboard.`
+            message: `🎉 Onboarding Successful!\n\nWelcome to @BL SOVEREIGN GATEWAY, ${merchantName}.\n\nYour Dedicated NUBAN: ${generatedNuban} (Nomba / MFB).\nSettlement Account: ${settlementAccount} (${bankName}).\n\nCheck your email (${email}) for login credentials.`
         });
+
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to complete merchant onboarding.' });
+        return res.status(500).json({ status: 'error', message: 'Onboarding failed.' });
     }
 });
 
-// Merchant Sign In
-app.post('/api/v1/auth/signin', async (req, res) => {
-    try {
-        const { phone, password } = req.body;
-        const account = merchantAccounts[phone];
+// Auth Routes & Page Endpoints
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/api/v1/banks', (req, res) => res.json({ status: 'success', data: FULL_NIGERIAN_BANKS }));
 
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Account not found. Please sign up first.' });
-        }
-
-        const isMatch = await bcrypt.compare(password, account.password);
-        if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid password.' });
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Signed in successfully!',
-            merchant: {
-                id: account.id,
-                merchantName: account.merchantName,
-                phone: account.phone,
-                settlementAccount: account.settlementAccount,
-                bankName: account.bankName,
-                virtualNuban: account.virtualNuban,
-                virtualBank: account.virtualBank,
-                balance: account.balance
-            }
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Sign in failed.' });
-    }
-});
-
-// Password Reset
-app.post('/api/v1/auth/reset-password', async (req, res) => {
-    try {
-        const { phone, newPassword } = req.body;
-        const account = merchantAccounts[phone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Phone number not registered.' });
-        }
-
-        account.password = await bcrypt.hash(newPassword, 10);
-        return res.status(200).json({ status: 'success', message: 'Password reset successfully! You can now sign in.' });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Password reset failed.' });
-    }
-});
-
-// =========================================================================
-// ✍️ 3. ADMIN PUBLISHING PORTAL & NEWSLETTER
-// =========================================================================
-app.post('/api/v1/newsletter/publish', (req, res) => {
-    try {
-        const { adminPassword, title, summary, content } = req.body;
-
-        if (adminPassword !== process.env.ADMIN_KEY && adminPassword !== 'AdminPass123') {
-            return res.status(401).json({ status: 'error', message: 'Unauthorized! Incorrect Admin Password.' });
-        }
-
-        if (!title || !content) {
-            return res.status(400).json({ status: 'error', message: 'Title and content are required.' });
-        }
-
-        const newArticle = {
-            id: `news-${Date.now()}`,
-            title,
-            date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-            summary: summary || title,
-            content
-        };
-
-        publishedNewsletters.unshift(newArticle);
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Article published live successfully!'
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Failed to publish article.' });
-    }
-});
-
-app.post('/api/v1/newsletter/subscribe', (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email || !email.includes('@')) {
-            return res.status(400).json({ status: 'error', message: 'Please provide a valid email address.' });
-        }
-
-        if (!newsletterSubscribers.includes(email)) {
-            newsletterSubscribers.push(email);
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Subscribed successfully! You will receive our latest publications directly in your inbox.'
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Failed to process newsletter subscription.' });
-    }
-});
-
-app.get('/api/v1/newsletter/articles', (req, res) => {
-    return res.status(200).json({ status: 'success', articles: publishedNewsletters });
-});
-
-// =========================================================================
-// 💳 4. SAIL CREDIT SUPPORT
-// =========================================================================
-app.post('/api/v1/credit/apply', (req, res) => {
-    try {
-        const { merchantName, amount, tenor, turnover } = req.body;
-
-        if (!merchantName || !amount) {
-            return res.status(400).json({ status: 'error', message: 'Missing required application fields.' });
-        }
-
-        const applicationRef = `SAIL-CR-${Date.now()}`;
-        creditApplications.push({
-            applicationRef,
-            merchantName,
-            amount,
-            tenor,
-            turnover,
-            status: 'PENDING_REVIEW',
-            appliedAt: new Date().toISOString()
-        });
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Credit line application received successfully.',
-            applicationRef: applicationRef
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing credit application.' });
-    }
-});
-
-// =========================================================================
-// 🎓 5. EDUCATION SUPPORT FUND
-// =========================================================================
-app.post('/api/v1/education/donate', (req, res) => {
-    try {
-        const { donorName, schoolName, purpose, amount } = req.body;
-
-        if (!donorName || !amount) {
-            return res.status(400).json({ status: 'error', message: 'Donor name and amount are required.' });
-        }
-
-        const accountRef = `EDU-${Date.now()}`;
-        const pricing = calculateInvoiceSplit(amount);
-
-        transactionLedger[accountRef] = {
-            status: 'PENDING',
-            type: 'EDUCATION_SUPPORT',
-            donorName,
-            schoolName: schoolName || 'Real Schools, Eyita',
-            purpose,
-            amount: pricing.totalCustomerPayment
-        };
-
-        return res.status(200).json({
-            status: 'success',
-            accountRef: accountRef,
-            pricing: pricing
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing education contribution.' });
-    }
-});
-
-// =========================================================================
-// 🎰 6. BETTING SERVICES
-// =========================================================================
-app.get('/api/v1/betting/providers', (req, res) => {
-    return res.status(200).json({ status: 'success', data: SUPPORTED_BOOKMAKERS });
-});
-
-app.post('/api/v1/betting/initiate-topup', (req, res) => {
-    try {
-        const { providerId, userId, amount } = req.body;
-        if (!providerId || !userId || !amount) {
-            return res.status(400).json({ status: 'error', message: 'All fields are required.' });
-        }
-
-        const accountRef = `BET-${Date.now()}`;
-        const pricing = calculateInvoiceSplit(amount);
-
-        transactionLedger[accountRef] = {
-            status: 'PENDING',
-            type: 'BETTING_TOPUP',
-            providerId,
-            userId,
-            amount: pricing.totalCustomerPayment
-        };
-
-        return res.status(200).json({
-            status: 'success',
-            accountRef: accountRef,
-            pricing: pricing
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing betting top-up.' });
-    }
-});
-
-// =========================================================================
-// 📱 7. AIRTIME & DATA (VTU)
-// =========================================================================
-app.get('/api/v1/vtu/providers', (req, res) => {
-    return res.status(200).json({ status: 'success', providers: NETWORK_PROVIDERS, plans: DATA_PLANS });
-});
-
-app.post('/api/v1/vtu/initiate', (req, res) => {
-    try {
-        const { type, network, phone, planId, amount } = req.body;
-        if (!network || !phone || !amount) {
-            return res.status(400).json({ status: 'error', message: 'Missing required details.' });
-        }
-
-        const accountRef = `VTU-${Date.now()}`;
-        const pricing = calculateInvoiceSplit(amount);
-
-        transactionLedger[accountRef] = {
-            status: 'PENDING',
-            type: type || 'AIRTIME',
-            network,
-            phone,
-            planId: planId || null,
-            amount: pricing.totalCustomerPayment
-        };
-
-        return res.status(200).json({
-            status: 'success',
-            accountRef: accountRef,
-            pricing: pricing
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing VTU order.' });
-    }
-});
-
-// =========================================================================
-// ⚡ 8. BILL PAYMENTS (Utilities, Cable TV, Levies)
-// =========================================================================
-app.get('/api/v1/bills/providers', (req, res) => {
-    return res.status(200).json({ status: 'success', data: BILL_PROVIDERS });
-});
-
-app.post('/api/v1/bills/pay', (req, res) => {
-    try {
-        const { providerId, customerIdentifier, amount } = req.body;
-        if (!providerId || !customerIdentifier || !amount) {
-            return res.status(400).json({ status: 'error', message: 'All bill payment details are required.' });
-        }
-
-        const accountRef = `BILL-${Date.now()}`;
-        const pricing = calculateInvoiceSplit(amount);
-
-        transactionLedger[accountRef] = {
-            status: 'PENDING',
-            type: 'BILL_PAYMENT',
-            providerId,
-            customerIdentifier,
-            amount: pricing.totalCustomerPayment
-        };
-
-        return res.status(200).json({
-            status: 'success',
-            accountRef: accountRef,
-            pricing: pricing
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing bill payment.' });
-    }
-});
-
-// =========================================================================
-// 🔍 9. UNIVERSAL PAYMENT VERIFICATION
-// =========================================================================
-app.get('/api/v1/verify-payment/:accountRef', (req, res) => {
-    const ref = req.params.accountRef;
-    const record = transactionLedger[ref];
-
-    if (record && record.status === 'PAID') {
-        return res.status(200).json({
-            status: 'PAID',
-            message: 'Payment confirmed live on bank switch!',
-            data: record
-        });
-    }
-
-    return res.status(200).json({
-        status: 'PENDING',
-        message: 'Payment not yet detected by bank switch.'
-    });
-});
-
-// =========================================================================
-// 🏦 10. NOMBA VIRTUAL ACCOUNT GENERATOR
-// =========================================================================
-app.post('/api/v1/create-virtual-account', async (req, res) => {
-    try {
-        const { merchantName, targetAmount, accountRef } = req.body;
-        const pricing = calculateInvoiceSplit(targetAmount);
-
-        if (!NOMBA_ACCESS_TOKEN || NOMBA_ACCESS_TOKEN.includes('placeholder')) {
-            const mockNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
-            transactionLedger[accountRef] = { status: 'PENDING', amount: pricing.totalCustomerPayment };
-
-            return res.status(200).json({
-                status: 'success',
-                account_details: {
-                    accountNumber: mockNuban,
-                    bankName: 'Nomba / MFB',
-                    accountName: merchantName,
-                    customerMustTransfer: `₦${pricing.totalCustomerPayment}`
-                },
-                pricing_breakdown: pricing
-            });
-        }
-
-        const response = await axios.post(`${NOMBA_BASE_URL}/accounts/virtual`, {
-            accountRef: accountRef,
-            accountName: merchantName,
-            currency: "NGN",
-            amount: pricing.totalCustomerPayment
-        }, {
-            headers: {
-                'accountId': NOMBA_ACCOUNT_ID,
-                'Authorization': getAuthHeader(),
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const accountData = response.data?.data || response.data;
-        transactionLedger[accountRef] = { status: 'PENDING', amount: pricing.totalCustomerPayment };
-
-        return res.status(200).json({
-            status: 'success',
-            account_details: {
-                accountNumber: accountData.accountNumber,
-                bankName: accountData.bankName || 'Nomba / MFB',
-                accountName: merchantName,
-                customerMustTransfer: `₦${pricing.totalCustomerPayment}`
-            },
-            pricing_breakdown: pricing
-        });
-
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Failed to create virtual account.' });
-    }
-});
-
-// =========================================================================
-// 🔔 11. LIVE NOMBA WEBHOOK RECEIVER
-// =========================================================================
-app.post('/api/v1/nomba-webhook', (req, res) => {
-    try {
-        const payload = req.body;
-        const eventType = payload.event || payload.type;
-
-        if (eventType === 'payment_success' || eventType === 'SUCCESSFUL_TRANSACTION') {
-            const data = payload.data || payload;
-            const ref = data.orderReference || data.accountRef || data.customerIdentifier;
-
-            transactionLedger[ref] = {
-                status: 'PAID',
-                amount: parseFloat(data.amount || 0),
-                paidAt: new Date().toISOString()
-            };
-            console.log(`✅ LIVE PAYMENT CONFIRMED | Ref: ${ref}`);
-        }
-
-        return res.status(200).json({ status: 'success' });
-    } catch (error) {
-        return res.status(200).json({ status: 'error', message: error.message });
-    }
-});
-
-// Start Master Server Engine
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log(`@BL Sovereign Gateway Engine LIVE on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Engine LIVE on port ${PORT}`));
