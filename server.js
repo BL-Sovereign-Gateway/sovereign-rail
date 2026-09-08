@@ -3,7 +3,7 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Full Ecosystem:
  * Merchant Auth | Email Dispatch | Utility Hub | Multi-Channel Checkout
- * Gateway Wallet | VTPass Auto-Dispatch | Webhooks | 30+ Banks API
+ * Gateway Wallet | ClubKonnect Universal Fulfillment | 30+ Banks API
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -26,8 +26,9 @@ const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 
-const VTPASS_API_KEY = process.env.VTPASS_API_KEY;
-const VTPASS_SECRET_KEY = process.env.VTPASS_SECRET_KEY;
+// Production ClubKonnect Credentials (Hardcoded Fallbacks Included)
+const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
+const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
 // Corporate Primary Bank Details
 const ACCESS_BANK_CORPORATE = {
@@ -42,18 +43,17 @@ const ACCESS_BANK_CORPORATE = {
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
-    secure: true, // SSL
+    secure: true,
     auth: {
         user: process.env.SMTP_USER, // e.g., ogegbodegreat@gmail.com
         pass: process.env.SMTP_PASS  // e.g., zwjpictrfbbgjelv
     },
     tls: {
-        rejectUnauthorized: false // Prevents cloud firewall TLS handshake drops
+        rejectUnauthorized: false
     },
-    connectionTimeout: 10000 // 10s connection timeout limit
+    connectionTimeout: 10000
 });
 
-// Verify SMTP Connection on Startup
 transporter.verify((error, success) => {
     if (error) {
         console.error('❌ Gmail SMTP Connection Error:', error.message);
@@ -62,7 +62,6 @@ transporter.verify((error, success) => {
     }
 });
 
-// Authorization Header Formatter
 const getAuthHeader = () => {
     if (!NOMBA_ACCESS_TOKEN) return '';
     return NOMBA_ACCESS_TOKEN.startsWith('Bearer ')
@@ -71,21 +70,8 @@ const getAuthHeader = () => {
 };
 
 // In-Memory Database Stores
-const merchantAccounts = {}; // Keyed by Phone Number (Username)
+const merchantAccounts = {};
 const transactionLedger = {}; 
-const creditApplications = [];
-const newsletterSubscribers = [];
-
-// Default Newsletter Publications
-const publishedNewsletters = [
-    {
-        id: "news-001",
-        title: "Welcome to @BL Sovereign Gateway: The Future of Digital Settlement",
-        date: "September 5, 2026",
-        summary: "Introducing our core infrastructure—SoftPOS, Dynamic QR, and Instant Virtual NUBAN accounts.",
-        content: "We are excited to launch @BL Sovereign Gateway by All Time Business Ltd, providing businesses across Nigeria with high-speed payment infrastructure, automated fee-splitting, and instant settlement."
-    }
-];
 
 // Full 30+ Nigerian Commercial Banks & Digital MFBs
 const FULL_NIGERIAN_BANKS = [
@@ -120,7 +106,6 @@ const FULL_NIGERIAN_BANKS = [
     { id: '50223', name: 'Nomba MFB' }
 ];
 
-// Pass-Through Revenue Engine
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
     let grossPlatformFee = 20.00;
@@ -137,6 +122,75 @@ function calculateInvoiceSplit(targetAmount) {
         netGatewayProfit: grossPlatformFee - CASHBACK_AMOUNT,
         totalMerchantPayout: target + CASHBACK_AMOUNT
     };
+}
+
+// =========================================================================
+// 🚀 UNIVERSAL CLUBKONNECT DISPATCH DRIVER
+// =========================================================================
+async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, amount) {
+    try {
+        const service = serviceType.toLowerCase();
+        let endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
+        let params = {
+            UserID: CLUBKONNECT_USERID,
+            APIKey: CLUBKONNECT_API_KEY,
+            RequestID: orderRef
+        };
+
+        // 1. FUND BETTING WALLET
+        if (['sportybet', 'bet9ja', '1xbet', 'betking', 'msport', 'betway', 'betano', '1win', '22bet', 'melbet'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/BettingWalletTopupV1.asp';
+            params.BettingCompany = service;
+            params.CustomerId = targetInput;
+            params.Amount = amount;
+        }
+        
+        // 2. BUY DATA BUNDLES & SMILE DATA
+        else if (service.includes('data') || service.includes('smile')) {
+            endpoint = 'https://www.clubkonnect.com/API/APIDatabundleV1.asp';
+            params.MobileNetwork = service.replace('_data', '').replace('smile', '05');
+            params.DataPlan = targetInput;
+            params.MobileNumber = targetInput;
+        }
+
+        // 3. CABLE TV SUBSCRIPTION
+        else if (['dstv', 'gotv', 'startimes'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/APICableTVV1.asp';
+            params.CableTV = service;
+            params.SmartCardNo = targetInput;
+            params.Amount = amount;
+        }
+
+        // 4. ELECTRICITY BILL PAYMENTS
+        else if (['ikedc', 'ekedc', 'ibedc', 'aedc', 'phedc', 'jedc', 'kaedco'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/APIElectricityV1.asp';
+            params.ElectricCompany = service;
+            params.MeterNo = targetInput;
+            params.Amount = amount;
+        }
+
+        // 5. EDUCATION e-PINs (WAEC & JAMB)
+        else if (['waec', 'jamb'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/APIEducationV1.asp';
+            params.ExamType = service;
+            params.Amount = amount;
+        }
+
+        // 6. DEFAULT: MOBILE AIRTIME VTU
+        else {
+            endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
+            params.MobileNetwork = service;
+            params.Amount = amount;
+            params.MobileNumber = targetInput;
+        }
+
+        const response = await axios.get(endpoint, { params });
+        console.log(`✅ ClubKonnect Fulfillment Dispatched [${serviceType.toUpperCase()}] | Ref: ${orderRef}`, response.data);
+        return response.data;
+
+    } catch (error) {
+        console.error(`❌ ClubKonnect Fulfillment Failure [${serviceType}]:`, error.response?.data || error.message);
+    }
 }
 
 // =========================================================================
@@ -200,17 +254,14 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                             <p style="color: #cbd5e1; font-size: 13px; margin-top: 4px; letter-spacing: 1px;">@BL SOVEREIGN GATEWAY</p>
                         </div>
                         <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
-                        
                         <h3 style="color: #f59e0b; font-size: 18px; margin-bottom: 10px;">Welcome aboard, ${merchantName}!</h3>
                         <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">Your merchant account registration with <strong>All Time Business Ltd</strong> is complete. Below are your assigned financial collection credentials:</p>
-                        
                         <div style="background: #1e293b; padding: 18px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #38bdf8;">
                             <p style="margin: 6px 0; font-size: 14px;"><strong>🏦 Dedicated Collection NUBAN:</strong> <span style="color: #38bdf8; font-weight: 700;">${generatedNuban}</span></p>
                             <p style="margin: 6px 0; font-size: 14px;"><strong>🏛 Bank Name:</strong> Nomba / MFB</p>
                             <p style="margin: 6px 0; font-size: 14px;"><strong>🏧 Registered Payout Bank:</strong> ${bankName} (${settlementAccount})</p>
                             <p style="margin: 6px 0; font-size: 14px;"><strong>📱 Username (Phone):</strong> ${phone}</p>
                         </div>
-
                         <p style="font-size: 13px; color: #94a3b8; text-align: center; margin-top: 25px;">
                             Log in anytime at <a href="https://alltimebusiness.com.ng" style="color: #38bdf8; text-decoration: none; font-weight: 700;">www.alltimebusiness.com.ng</a> to manage your settlements and transactions.
                         </p>
@@ -219,11 +270,8 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             };
 
             transporter.sendMail(mailOptions, (error, info) => {
-                if (error) {
-                    console.log('❌ Email Send Error:', error.message);
-                } else {
-                    console.log('✅ Email Delivered from All Time Business Ltd:', info.response);
-                }
+                if (error) console.log('❌ Email Send Error:', error.message);
+                else console.log('✅ Email Delivered from All Time Business Ltd:', info.response);
             });
         }
 
@@ -267,86 +315,7 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 });
 
 // =========================================================================
-// ⚡ 3. UTILITY BILLS & CABLE TV PAYMENTS HUB
-// =========================================================================
-app.post('/api/v1/bills/verify-customer', async (req, res) => {
-    try {
-        const { providerId, customerIdentifier } = req.body;
-
-        if (!providerId || !customerIdentifier) {
-            return res.status(400).json({ status: 'error', message: 'Provider ID and Customer Identifier required.' });
-        }
-
-        if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
-            const vtpassResponse = await axios.post('https://vtpass.com/api/merchant-verify', {
-                serviceID: providerId.toLowerCase(),
-                billersCode: customerIdentifier
-            }, {
-                headers: { 'api-key': VTPASS_API_KEY, 'secret-key': VTPASS_SECRET_KEY }
-            }).catch(err => console.log('Verification Sandbox Warning:', err.message));
-
-            if (vtpassResponse?.data?.code === '000') {
-                return res.status(200).json({
-                    status: 'success',
-                    customerName: vtpassResponse.data.content.Customer_Name || 'Verified Customer',
-                    meterNumber: customerIdentifier
-                });
-            }
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            customerName: 'Verified Gateway Customer',
-            meterNumber: customerIdentifier
-        });
-
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Utility account verification failed.' });
-    }
-});
-
-app.post('/api/v1/bills/dispatch', async (req, res) => {
-    try {
-        const { providerId, customerIdentifier, amount, phone } = req.body;
-        const billRef = `SOV-BILL-${Date.now()}`;
-        const pricing = calculateInvoiceSplit(amount);
-
-        transactionLedger[billRef] = {
-            status: 'COMPLETED',
-            type: 'BILL_PAYMENT',
-            providerId,
-            customerIdentifier,
-            amount: pricing.cleanTarget,
-            totalCharged: pricing.totalCustomerPayment,
-            phone,
-            createdAt: new Date().toISOString()
-        };
-
-        if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
-            await axios.post('https://vtpass.com/api/pay', {
-                request_id: billRef,
-                serviceID: providerId.toLowerCase(),
-                billersCode: customerIdentifier,
-                amount: pricing.cleanTarget,
-                phone: phone || '08000000000'
-            }, {
-                headers: { 'api-key': VTPASS_API_KEY, 'secret-key': VTPASS_SECRET_KEY }
-            }).catch(err => console.log('Bill Dispatch Warning:', err.message));
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            message: `🎉 Bill payment processed! Meter/Smartcard ${customerIdentifier} credited with ₦${pricing.cleanTarget}.`,
-            billRef
-        });
-
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Bill payment dispatch failed.' });
-    }
-});
-
-// =========================================================================
-// 💳 4. CHECKOUT SUITE (Multi-Channel & Gateway Wallet Balance)
+// 💳 3. CHECKOUT SUITE (Multi-Channel & Gateway Wallet Balance)
 // =========================================================================
 
 // 1. Multi-Channel External Checkout (Card, Transfer, USSD)
@@ -444,16 +413,8 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
             fulfilledAt: new Date().toISOString()
         };
 
-        if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
-            await axios.post('https://vtpass.com/api/pay', {
-                request_id: orderRef,
-                serviceID: serviceType.toLowerCase(),
-                billersCode: targetInput,
-                amount: totalCost
-            }, {
-                headers: { 'api-key': VTPASS_API_KEY, 'secret-key': VTPASS_SECRET_KEY }
-            }).catch(err => console.log('VTPass Dispatch Warning:', err.message));
-        }
+        // 🚀 Trigger ClubKonnect Auto-Dispatch
+        await executeClubKonnectDispatch(orderRef, serviceType, targetInput, totalCost);
 
         return res.status(200).json({
             status: 'success',
@@ -468,7 +429,7 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
 });
 
 // =========================================================================
-// 🔔 5. AUTOMATED WEBHOOK & VTPASS AUTO-DISPATCH
+// 🔔 4. AUTOMATED WEBHOOK & CLUBKONNECT DISPATCH
 // =========================================================================
 app.post('/api/v1/nomba-webhook', async (req, res) => {
     try {
@@ -481,16 +442,8 @@ app.post('/api/v1/nomba-webhook', async (req, res) => {
             if (record && record.status !== 'COMPLETED') {
                 record.status = 'PAID';
 
-                if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
-                    await axios.post('https://vtpass.com/api/pay', {
-                        request_id: orderRef,
-                        serviceID: record.serviceType.toLowerCase(),
-                        billersCode: record.targetInput,
-                        amount: record.amount
-                    }, {
-                        headers: { 'api-key': VTPASS_API_KEY, 'secret-key': VTPASS_SECRET_KEY }
-                    }).catch(err => console.log('VTPass Webhook Auto-Dispatch Warning:', err.message));
-                }
+                // 🚀 Trigger Instant ClubKonnect Dispatch
+                await executeClubKonnectDispatch(orderRef, record.serviceType, record.targetInput, record.amount);
 
                 record.status = 'COMPLETED';
                 console.log(`✅ Instant Order Delivery Completed | Ref: ${orderRef}`);
