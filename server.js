@@ -47,6 +47,15 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Verify SMTP Connection on Server Startup
+transporter.verify((error, success) => {
+    if (error) {
+        console.error('❌ SMTP Connection Error:', error.message);
+    } else {
+        console.log('🚀 SMTP Server Ready to Send Emails from All Time Business Ltd!');
+    }
+});
+
 // Authorization Header Formatter
 const getAuthHeader = () => {
     if (!NOMBA_ACCESS_TOKEN) return '';
@@ -173,8 +182,9 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         };
 
         if (email) {
+            const senderEmail = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
             const mailOptions = {
-                from: '"All Time Business Ltd | @BL SOVEREIGN GATEWAY" <' + (process.env.SMTP_USER || 'no-reply@alltimebusiness.com.ng') + '>',
+                from: `"All Time Business Ltd | @BL SOVEREIGN GATEWAY" <${senderEmail}>`,
                 to: email,
                 subject: '🎉 Onboarding Complete - All Time Business Ltd',
                 html: `
