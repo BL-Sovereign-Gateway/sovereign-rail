@@ -77,18 +77,8 @@
 <script>
 let selectedPayMethod = 'TRANSFER';
 
+// Single clean declaration with all 24+ Nigerian platforms
 const FALLBACK_BOOKMAKERS = [
-    { id: 'sportybet', name: 'SportyBet' },
-    { id: 'bet9ja', name: 'Bet9ja' },
-    { id: '1xbet', name: '1xBet' },
-    { id: 'betking', name: 'BetKing' },
-    { id: 'msport', name: 'MSport' },
-    { id: 'betway', name: 'Betway' },
-    { id: 'betano', name: 'Betano' },
-    { id: '1win', name: '1Win' },
-    { id: '22bet', name: '22Bet' },
-    { id: 'melbet', name: 'Melbet' }
-];const FALLBACK_BOOKMAKERS = [
     { id: 'sportybet', name: 'SportyBet' },
     { id: 'bet9ja', name: 'Bet9ja' },
     { id: '1xbet', name: '1xBet' },
@@ -125,9 +115,7 @@ function closeModal() {
     document.getElementById('customModal').style.display = 'none';
 }
 
-// Load Bookmakers reliably with fallback
 async function loadBookmakers() {
-    const select = document.getElementById('bookmakerSelect');
     try {
         const res = await fetch('/api/v1/betting/providers');
         const data = await res.json();
