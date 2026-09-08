@@ -3,113 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bill Payments | @BL SOVEREIGN GATEWAY</title>
+    <title>Bill Payments & Utilities | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h2 { color: #f59e0b; font-size: 1.5rem; margin-bottom: 6px; }
-        .header p { color: #94a3b8; font-size: 0.85rem; }
-        
-        .promo-banner { background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 8px; padding: 10px; text-align: center; color: #f59e0b; font-weight: 700; font-size: 0.8rem; margin-bottom: 20px; }
-        
-        .form-group { margin-bottom: 16px; }
+        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .brand-header { text-align: center; margin-bottom: 20px; }
+        .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
+        .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+        .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
-        input:focus, select:focus { border-color: #f59e0b; }
-        button.btn { width: 100%; padding: 14px; background: #f59e0b; color: #000; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
-        button.btn:hover { background: #d97706; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
+        input:focus, select:focus { border-color: #38bdf8; }
+        
+        .payment-options { display: flex; gap: 10px; margin: 15px 0; }
+        .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
+        .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        
+        .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .btn-submit:hover { background: #059669; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
+        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header">
-        <h2>⚡ INSTANT BILL PAYMENTS</h2>
-        <p>Electricity Bills, Cable TV Subscriptions & Government Levies</p>
-    </div>
-
-    <div class="promo-banner">
-        CONSOLIDATED UTILITY & BILL SETTLEMENTS AT SCALE
+    <div class="brand-header">
+        <h2>⚡ UTILITY & BILL PAYMENTS</h2>
+        <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
     </div>
 
     <form id="billForm">
         <div class="form-group">
-            <label>Select Biller / Service *</label>
+            <label>Select Bill / Service Provider *</label>
             <select id="providerSelect" required>
-                <option value="" disabled selected>Loading Biller Services...</option>
+                <option value="" disabled selected>Loading Bill Providers...</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Meter Number / Smartcard ID / Customer Ref *</label>
-            <input type="text" id="customerIdentifier" placeholder="e.g. 45012345678" required>
+            <label>Meter Number / Smartcard ID / Account No *</label>
+            <input type="text" id="customerIdentifier" placeholder="e.g. 11112222333" required>
         </div>
 
         <div class="form-group">
-            <label>Payment Amount (₦) *</label>
-            <input type="number" id="amount" placeholder="2000" min="100" required>
+            <label>Bill Amount (₦) *</label>
+            <input type="number" id="amount" placeholder="1000" min="100" required>
         </div>
 
-        <button type="submit" class="btn">Proceed to Pay Bill</button>
+        <label>Payment Method</label>
+        <div class="payment-options">
+            <div class="pay-option active" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
+            <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
+            <div class="pay-option" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Proceed to Pay Bill</button>
     </form>
 </div>
 
+<!-- Modal Popup -->
+<div class="modal-overlay" id="customModal">
+    <div class="modal-box">
+        <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
+        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px;"></div>
+        <button class="modal-btn" onclick="closeModal()">Close</button>
+    </div>
+</div>
+
 <script>
-async function loadProviders() {
-    const select = document.getElementById('providerSelect');
+let selectedPayMethod = 'TRANSFER';
+
+const FALLBACK_BILL_PROVIDERS = [
+    { id: 'ikedc', name: 'Ikeja Electric (IKEDC Prepaid/Postpaid)' },
+    { id: 'ekedc', name: 'Eko Electric (EKEDC Prepaid/Postpaid)' },
+    { id: 'ibedc', name: 'Ibadan Electric (IBEDC)' },
+    { id: 'aedc', name: 'Abuja Electric (AEDC)' },
+    { id: 'dstv', name: 'DSTV Subscription' },
+    { id: 'gotv', name: 'GOTV Subscription' },
+    { id: 'startimes', name: 'Startimes TV' }
+];
+
+function setPayMethod(method, el) {
+    selectedPayMethod = method;
+    document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+}
+
+async function loadBillProviders() {
     try {
         const res = await fetch('/api/v1/bills/providers');
         const data = await res.json();
-        if (data.status === 'success') {
-            select.innerHTML = '<option value="" disabled selected>Select Utility / Cable Biller...</option>';
-            data.data.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.id;
-                opt.textContent = item.name;
-                select.appendChild(opt);
-            });
+        if (data.status === 'success' && data.data && data.data.length > 0) {
+            populateSelect(data.data);
+            return;
         }
     } catch (err) {
-        console.error('Failed to load bill providers', err);
-        select.innerHTML = '<option value="">Error loading providers</option>';
+        console.warn('Bills API warning, using fallback list...');
     }
+    populateSelect(FALLBACK_BILL_PROVIDERS);
+}
+
+function populateSelect(list) {
+    const select = document.getElementById('providerSelect');
+    select.innerHTML = '<option value="" disabled selected>Select Provider...</option>';
+    list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.name;
+        select.appendChild(opt);
+    });
 }
 
 document.getElementById('billForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
 
-    const payload = {
-        providerId: document.getElementById('providerSelect').value,
-        customerIdentifier: document.getElementById('customerIdentifier').value,
-        amount: document.getElementById('amount').value
-    };
+    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
+    const modalBody = document.getElementById('modalBody');
+
+    const providerId = document.getElementById('providerSelect').value;
+    const customerIdentifier = document.getElementById('customerIdentifier').value;
+    const amount = parseFloat(document.getElementById('amount').value);
 
     try {
-        const response = await fetch('/api/v1/bills/pay', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json' 
-            },
-            body: JSON.stringify(payload)
-        });
+        if (selectedPayMethod === 'WALLET') {
+            if (!merchant.phone) {
+                modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
+                document.getElementById('customModal').style.display = 'flex';
+                btn.disabled = false;
+                btn.textContent = 'Proceed to Pay Bill';
+                return;
+            }
 
-        const result = await response.json();
-
-        if (result.status === 'success') {
-            alert(`✅ Session Created!\nRef: ${result.accountRef}\nTotal Payable: ₦${result.pricing.totalCustomerPayment}\nProceeding to payment gateway...`);
+            const res = await fetch('/api/v1/checkout/wallet', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    merchantPhone: merchant.phone,
+                    serviceType: providerId,
+                    targetInput: customerIdentifier,
+                    amount: amount
+                })
+            });
+            const data = await res.json();
+            modalBody.innerText = data.message;
+            document.getElementById('customModal').style.display = 'flex';
         } else {
-            alert(`Error: ${result.message}`);
+            const res = await fetch('/api/v1/checkout/initialize', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    serviceType: providerId,
+                    targetInput: customerIdentifier,
+                    amount: amount,
+                    paymentMethod: selectedPayMethod
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                if (data.paymentMethod === 'TRANSFER') {
+                    modalBody.innerHTML = `
+                        <p>Transfer <strong>${data.bankDetails.amountToPay}</strong> for meter/account <strong>${customerIdentifier}</strong>:</p>
+                        <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
+                            <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName}</p>
+                            <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
+                        </div>
+                        <small style="color:#10b981; font-weight:700;">⚡ Instant automated token dispatch upon bank credit!</small>
+                    `;
+                } else {
+                    modalBody.innerHTML = `
+                        <p>Click below to complete your payment via Card or USSD:</p>
+                        <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Card Gateway</a>
+                    `;
+                }
+                document.getElementById('customModal').style.display = 'flex';
+            }
         }
     } catch (err) {
-        console.error('Bill payment submit error:', err);
-        alert('Failed to connect to bill payment gateway server.');
+        modalBody.innerText = "❌ Network error. Please try again.";
+        document.getElementById('customModal').style.display = 'flex';
     }
+
+    btn.disabled = false;
+    btn.textContent = 'Proceed to Pay Bill';
 });
 
-window.onload = loadProviders;
+window.onload = loadBillProviders;
 </script>
 
 </body>
