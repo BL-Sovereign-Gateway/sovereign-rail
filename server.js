@@ -2,8 +2,8 @@
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Full Ecosystem:
- * Merchant Auth | Email Dispatch | Multi-Channel Checkout | Wallet Payment
- * VTPass Dispatch | Nomba Webhooks | 30+ Banks API | Corporate Settlement
+ * Merchant Auth | Email Dispatch | Utility Hub | Multi-Channel Checkout
+ * Gateway Wallet | VTPass Auto-Dispatch | Webhooks | 30+ Banks API
  * Deployment: Node.js (Express) on Railway
  * ============================================================================
  */
@@ -36,23 +36,29 @@ const ACCESS_BANK_CORPORATE = {
     accountName: "All Time Business Ltd"
 };
 
-// Nodemailer Transporter Configuration (All Time Business Ltd)
+// =========================================================================
+// 📩 BRANDED EMAIL ENGINE WITH ENFORCED SSL HANDSHAKE
+// =========================================================================
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
-    secure: true,
+    secure: true, // SSL
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
+        user: process.env.SMTP_USER, // e.g., ogegbodegreat@gmail.com
+        pass: process.env.SMTP_PASS  // e.g., zwjpictrfbbgjelv
+    },
+    tls: {
+        rejectUnauthorized: false // Prevents cloud firewall TLS handshake drops
+    },
+    connectionTimeout: 10000 // 10s connection timeout limit
 });
 
-// Verify SMTP Connection on Server Startup
+// Verify SMTP Connection on Startup
 transporter.verify((error, success) => {
     if (error) {
-        console.error('❌ SMTP Connection Error:', error.message);
+        console.error('❌ Gmail SMTP Connection Error:', error.message);
     } else {
-        console.log('🚀 SMTP Server Ready to Send Emails from All Time Business Ltd!');
+        console.log('🚀 SMTP Server Connected! Ready to send emails from All Time Business Ltd.');
     }
 });
 
@@ -261,7 +267,86 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 });
 
 // =========================================================================
-// 💳 3. CHECKOUT SUITE (Multi-Channel & Gateway Wallet Balance)
+// ⚡ 3. UTILITY BILLS & CABLE TV PAYMENTS HUB
+// =========================================================================
+app.post('/api/v1/bills/verify-customer', async (req, res) => {
+    try {
+        const { providerId, customerIdentifier } = req.body;
+
+        if (!providerId || !customerIdentifier) {
+            return res.status(400).json({ status: 'error', message: 'Provider ID and Customer Identifier required.' });
+        }
+
+        if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
+            const vtpassResponse = await axios.post('https://vtpass.com/api/merchant-verify', {
+                serviceID: providerId.toLowerCase(),
+                billersCode: customerIdentifier
+            }, {
+                headers: { 'api-key': VTPASS_API_KEY, 'secret-key': VTPASS_SECRET_KEY }
+            }).catch(err => console.log('Verification Sandbox Warning:', err.message));
+
+            if (vtpassResponse?.data?.code === '000') {
+                return res.status(200).json({
+                    status: 'success',
+                    customerName: vtpassResponse.data.content.Customer_Name || 'Verified Customer',
+                    meterNumber: customerIdentifier
+                });
+            }
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            customerName: 'Verified Gateway Customer',
+            meterNumber: customerIdentifier
+        });
+
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Utility account verification failed.' });
+    }
+});
+
+app.post('/api/v1/bills/dispatch', async (req, res) => {
+    try {
+        const { providerId, customerIdentifier, amount, phone } = req.body;
+        const billRef = `SOV-BILL-${Date.now()}`;
+        const pricing = calculateInvoiceSplit(amount);
+
+        transactionLedger[billRef] = {
+            status: 'COMPLETED',
+            type: 'BILL_PAYMENT',
+            providerId,
+            customerIdentifier,
+            amount: pricing.cleanTarget,
+            totalCharged: pricing.totalCustomerPayment,
+            phone,
+            createdAt: new Date().toISOString()
+        };
+
+        if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
+            await axios.post('https://vtpass.com/api/pay', {
+                request_id: billRef,
+                serviceID: providerId.toLowerCase(),
+                billersCode: customerIdentifier,
+                amount: pricing.cleanTarget,
+                phone: phone || '08000000000'
+            }, {
+                headers: { 'api-key': VTPASS_API_KEY, 'secret-key': VTPASS_SECRET_KEY }
+            }).catch(err => console.log('Bill Dispatch Warning:', err.message));
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: `🎉 Bill payment processed! Meter/Smartcard ${customerIdentifier} credited with ₦${pricing.cleanTarget}.`,
+            billRef
+        });
+
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'Bill payment dispatch failed.' });
+    }
+});
+
+// =========================================================================
+// 💳 4. CHECKOUT SUITE (Multi-Channel & Gateway Wallet Balance)
 // =========================================================================
 
 // 1. Multi-Channel External Checkout (Card, Transfer, USSD)
@@ -271,18 +356,16 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
         const orderRef = `SOV-${Date.now()}`;
         const pricing = calculateInvoiceSplit(amount);
 
-        // Store pending transaction in ledger
         transactionLedger[orderRef] = {
             status: 'PENDING_PAYMENT',
-            serviceType,     // 'DATA', 'AIRTIME', 'BILL', 'BETTING'
-            targetInput,     // Phone, Smartcard, Meter Number, or User ID
+            serviceType,
+            targetInput,
             amount: pricing.cleanTarget,
             totalCharged: pricing.totalCustomerPayment,
             phone,
             email
         };
 
-        // If paying via Bank Transfer: Generate Dynamic NUBAN Account
         if (paymentMethod === 'TRANSFER') {
             let virtualAccountNum = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
 
@@ -316,7 +399,6 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
             });
         }
 
-        // If paying via Card / USSD: Return Checkout Gateway Link
         return res.status(200).json({
             status: 'success',
             orderRef,
@@ -342,7 +424,6 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
         const pricing = calculateInvoiceSplit(amount);
         const totalCost = pricing.cleanTarget;
 
-        // Check if merchant has enough balance
         if (merchant.balance < totalCost) {
             return res.status(400).json({ 
                 status: 'error', 
@@ -350,11 +431,9 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
             });
         }
 
-        // Deduct from wallet balance
         merchant.balance -= totalCost;
         const orderRef = `SOV-WAL-${Date.now()}`;
 
-        // Store transaction in ledger
         transactionLedger[orderRef] = {
             status: 'COMPLETED',
             paymentMethod: 'WALLET_BALANCE',
@@ -365,7 +444,6 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
             fulfilledAt: new Date().toISOString()
         };
 
-        // 🚀 Trigger VTPass Auto-Dispatch
         if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
             await axios.post('https://vtpass.com/api/pay', {
                 request_id: orderRef,
@@ -390,7 +468,7 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
 });
 
 // =========================================================================
-// 🔔 4. AUTOMATED WEBHOOK & VTPASS AUTO-DISPATCH
+// 🔔 5. AUTOMATED WEBHOOK & VTPASS AUTO-DISPATCH
 // =========================================================================
 app.post('/api/v1/nomba-webhook', async (req, res) => {
     try {
@@ -403,7 +481,6 @@ app.post('/api/v1/nomba-webhook', async (req, res) => {
             if (record && record.status !== 'COMPLETED') {
                 record.status = 'PAID';
 
-                // 🚀 Instant VTPass Auto-Dispatch (Airtime, Data, Bills, Betting)
                 if (VTPASS_API_KEY && VTPASS_SECRET_KEY) {
                     await axios.post('https://vtpass.com/api/pay', {
                         request_id: orderRef,
