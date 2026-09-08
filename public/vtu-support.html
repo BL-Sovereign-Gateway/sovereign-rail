@@ -3,131 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airtime & Data Top-Up | @BL SOVEREIGN GATEWAY</title>
+    <title>VTU Airtime & Data | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h2 { color: #38bdf8; font-size: 1.5rem; }
-        .form-group { margin-bottom: 16px; }
+        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .brand-header { text-align: center; margin-bottom: 20px; }
+        .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
+        .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+        .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
-        .tab-group { display: flex; gap: 10px; margin-bottom: 16px; }
-        .tab { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; text-align: center; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: 600; }
-        .tab.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
-        button.btn { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; }
-        button.btn:hover { background: #38bdf8; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
+        input:focus, select:focus { border-color: #38bdf8; }
+        
+        .payment-options { display: flex; gap: 10px; margin: 15px 0; }
+        .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
+        .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        
+        .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .btn-submit:hover { background: #059669; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
+        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header">
-        <h2>📱 AIRTIME & DATA TOP-UP</h2>
-        <p style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">Instant Recharge across MTN, Airtel, Glo & 9mobile</p>
-    </div>
-
-    <div class="tab-group">
-        <div class="tab active" id="tabAirtime" onclick="setMode('AIRTIME')">Airtime</div>
-        <div class="tab" id="tabData" onclick="setMode('DATA')">Data Bundle</div>
+    <div class="brand-header">
+        <h2>📱 AIRTIME & DATA RECHARGE</h2>
+        <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
     </div>
 
     <form id="vtuForm">
         <div class="form-group">
-            <label>Select Network Provider *</label>
-            <select id="networkSelect" required onchange="handleNetworkChange()">
-                <option value="MTN">MTN Nigeria</option>
-                <option value="AIRTEL">Airtel Nigeria</option>
-                <option value="GLO">Glo Nigeria</option>
-                <option value="9MOBILE">9mobile Nigeria</option>
+            <label>Select Network Operator *</label>
+            <select id="networkSelect" required>
+                <option value="mtn">MTN Nigeria</option>
+                <option value="airtel">Airtel Nigeria</option>
+                <option value="glo">Glo Nigeria</option>
+                <option value="9mobile">9mobile Nigeria</option>
             </select>
         </div>
 
         <div class="form-group">
             <label>Phone Number *</label>
-            <input type="tel" id="phoneInput" placeholder="08012345678" maxlength="11" required>
+            <input type="tel" id="phoneNumber" placeholder="08012345678" maxlength="11" required>
         </div>
 
-        <div class="form-group" id="dataPlanGroup" style="display:none;">
-            <label>Select Data Plan *</label>
-            <select id="dataPlanSelect"></select>
+        <div class="form-group">
+            <label>Recharge Amount (₦) *</label>
+            <input type="number" id="amount" placeholder="1000" min="100" required>
         </div>
 
-        <div class="form-group" id="amountGroup">
-            <label>Amount (₦) *</label>
-            <input type="number" id="vtuAmount" min="50" placeholder="e.g. 1000">
+        <label>Payment Method</label>
+        <div class="payment-options">
+            <div class="pay-option active" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
+            <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
+            <div class="pay-option" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
         </div>
 
-        <button type="submit" class="btn">Proceed to Pay</button>
+        <button type="submit" class="btn-submit" id="submitBtn">Proceed to Payment</button>
     </form>
 </div>
 
+<!-- Modal Popup -->
+<div class="modal-overlay" id="customModal">
+    <div class="modal-box">
+        <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
+        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px;"></div>
+        <button class="modal-btn" onclick="closeModal()">Close</button>
+    </div>
+</div>
+
 <script>
-    let activeMode = 'AIRTIME';
-    let plansData = {};
+let selectedPayMethod = 'TRANSFER';
 
-    function setMode(mode) {
-        activeMode = mode;
-        document.getElementById('tabAirtime').classList.toggle('active', mode === 'AIRTIME');
-        document.getElementById('tabData').classList.toggle('active', mode === 'DATA');
-        
-        document.getElementById('dataPlanGroup').style.display = (mode === 'DATA') ? 'block' : 'none';
-        document.getElementById('amountGroup').style.display = (mode === 'AIRTIME') ? 'block' : 'none';
-    }
+function setPayMethod(method, el) {
+    selectedPayMethod = method;
+    document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
+    el.classList.add('active');
+}
 
-    async function init() {
-        const res = await fetch('/api/v1/vtu/providers');
-        const data = await res.json();
-        if (data.status === 'success') {
-            plansData = data.plans;
-            handleNetworkChange();
-        }
-    }
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+}
 
-    function handleNetworkChange() {
-        const network = document.getElementById('networkSelect').value;
-        const planSelect = document.getElementById('dataPlanSelect');
-        planSelect.innerHTML = '';
+document.getElementById('vtuForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
 
-        if (plansData[network]) {
-            plansData[network].forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.planId;
-                opt.dataset.price = p.price;
-                opt.textContent = `${p.name} - ₦${p.price}`;
-                planSelect.appendChild(opt);
+    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
+    const modalBody = document.getElementById('modalBody');
+
+    const network = document.getElementById('networkSelect').value;
+    const phone = document.getElementById('phoneNumber').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+
+    try {
+        if (selectedPayMethod === 'WALLET') {
+            if (!merchant.phone) {
+                modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
+                document.getElementById('customModal').style.display = 'flex';
+                btn.disabled = false;
+                btn.textContent = 'Proceed to Payment';
+                return;
+            }
+
+            const res = await fetch('/api/v1/checkout/wallet', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    merchantPhone: merchant.phone,
+                    serviceType: network,
+                    targetInput: phone,
+                    amount: amount
+                })
             });
+            const data = await res.json();
+            modalBody.innerText = data.message;
+            document.getElementById('customModal').style.display = 'flex';
+        } else {
+            const res = await fetch('/api/v1/checkout/initialize', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    serviceType: network,
+                    targetInput: phone,
+                    amount: amount,
+                    paymentMethod: selectedPayMethod
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                if (data.paymentMethod === 'TRANSFER') {
+                    modalBody.innerHTML = `
+                        <p>Transfer <strong>${data.bankDetails.amountToPay}</strong> to recharge <strong>${phone}</strong>:</p>
+                        <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
+                            <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName}</p>
+                            <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
+                        </div>
+                        <small style="color:#10b981; font-weight:700;">⚡ Airtime/Data dispatches automatically upon credit!</small>
+                    `;
+                } else {
+                    modalBody.innerHTML = `
+                        <p>Click below to complete your payment via Card or USSD:</p>
+                        <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Payment Gateway</a>
+                    `;
+                }
+                document.getElementById('customModal').style.display = 'flex';
+            }
         }
+    } catch (err) {
+        modalBody.innerText = "❌ Network connection error. Please try again.";
+        document.getElementById('customModal').style.display = 'flex';
     }
 
-    document.getElementById('vtuForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const network = document.getElementById('networkSelect').value;
-        const phone = document.getElementById('phoneInput').value;
-        
-        let amount = document.getElementById('vtuAmount').value;
-        let planId = null;
-
-        if (activeMode === 'DATA') {
-            const selectedOpt = document.getElementById('dataPlanSelect').selectedOptions[0];
-            planId = selectedOpt.value;
-            amount = selectedOpt.dataset.price;
-        }
-
-        const res = await fetch('/api/v1/vtu/initiate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: activeMode, network, phone, planId, amount })
-        });
-
-        const data = await res.json();
-        if (data.status === 'success') {
-            alert(`✅ Session Created! Ref: ${data.accountRef}\nProceeding to payment gateway...`);
-        }
-    });
-
-    window.onload = init;
+    btn.disabled = false;
+    btn.textContent = 'Proceed to Payment';
+});
 </script>
 
 </body>
