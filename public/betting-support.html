@@ -7,44 +7,46 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h2 { color: #10b981; font-size: 1.5rem; margin-bottom: 6px; }
-        .header p { color: #94a3b8; font-size: 0.85rem; }
-        
-        .promo-banner { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 8px; padding: 10px; text-align: center; color: #10b981; font-weight: 700; font-size: 0.8rem; margin-bottom: 20px; }
-        
-        .form-group { margin-bottom: 16px; }
+        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .brand-header { text-align: center; margin-bottom: 20px; }
+        .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
+        .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+        .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
-        input:focus, select:focus { border-color: #10b981; }
-        button.btn { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
-        button.btn:hover { background: #059669; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
+        input:focus, select:focus { border-color: #38bdf8; }
+        
+        .payment-options { display: flex; gap: 10px; margin: 15px 0; }
+        .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
+        .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        
+        .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .btn-submit:hover { background: #059669; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
+        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header">
+    <div class="brand-header">
         <h2>🎰 INSTANT BETTING TOP-UP</h2>
-        <p>Fund SportyBet, Bet9ja, 1xBet & 20+ Nigerian Bookmakers</p>
-    </div>
-
-    <div class="promo-banner">
-        ⚡ REAL-TIME WALLET CREDITING POWERED BY @BL SOVEREIGN GATEWAY
+        <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
     </div>
 
     <form id="bettingForm">
         <div class="form-group">
             <label>Select Bookmaker / Platform *</label>
-            <select id="providerSelect" required>
+            <select id="bookmakerSelect" required>
                 <option value="" disabled selected>Loading Bookmakers...</option>
             </select>
         </div>
 
         <div class="form-group">
             <label>Betting User ID / Account ID *</label>
-            <input type="text" id="userId" placeholder="e.g. 08012345678 or Bet9ja User ID" required>
+            <input type="text" id="userId" placeholder="e.g. 08012345678 or 123456" required>
         </div>
 
         <div class="form-group">
@@ -52,65 +54,146 @@
             <input type="number" id="amount" placeholder="1000" min="100" required>
         </div>
 
-        <button type="submit" class="btn">Proceed to Fund Wallet</button>
+        <label>Payment Method</label>
+        <div class="payment-options">
+            <div class="pay-option active" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
+            <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
+            <div class="pay-option" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
+        </div>
+
+        <button type="submit" class="btn-submit">Proceed to Fund Wallet</button>
     </form>
 </div>
 
+<!-- Modal Popup -->
+<div class="modal-overlay" id="customModal">
+    <div class="modal-box">
+        <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
+        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px;"></div>
+        <button class="modal-btn" onclick="closeModal()">Close</button>
+    </div>
+</div>
+
 <script>
-// Fetch bookmakers dynamically on load
-async function loadProviders() {
-    const select = document.getElementById('providerSelect');
+let selectedPayMethod = 'TRANSFER';
+
+const FALLBACK_BOOKMAKERS = [
+    { id: 'sportybet', name: 'SportyBet' },
+    { id: 'bet9ja', name: 'Bet9ja' },
+    { id: '1xbet', name: '1xBet' },
+    { id: 'betking', name: 'BetKing' },
+    { id: 'msport', name: 'MSport' },
+    { id: 'betway', name: 'Betway' },
+    { id: 'betano', name: 'Betano' },
+    { id: '1win', name: '1Win' },
+    { id: '22bet', name: '22Bet' },
+    { id: 'melbet', name: 'Melbet' }
+];
+
+function setPayMethod(method, el) {
+    selectedPayMethod = method;
+    document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('customModal').style.display = 'none';
+}
+
+// Load Bookmakers reliably with fallback
+async function loadBookmakers() {
+    const select = document.getElementById('bookmakerSelect');
     try {
         const res = await fetch('/api/v1/betting/providers');
         const data = await res.json();
-        if (data.status === 'success') {
-            select.innerHTML = '<option value="" disabled selected>Select Bookmaker / App...</option>';
-            data.data.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.id;
-                opt.textContent = item.name;
-                select.appendChild(opt);
-            });
+        if (data.status === 'success' && data.data && data.data.length > 0) {
+            populateSelect(data.data);
+            return;
         }
     } catch (err) {
-        console.error('Failed to load bookmakers', err);
-        select.innerHTML = '<option value="">Error loading platforms</option>';
+        console.warn('API fetch warning, loading local bookmaker list...');
     }
+    populateSelect(FALLBACK_BOOKMAKERS);
+}
+
+function populateSelect(list) {
+    const select = document.getElementById('bookmakerSelect');
+    select.innerHTML = '<option value="" disabled selected>Select Bookmaker / Platform...</option>';
+    list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.name;
+        select.appendChild(opt);
+    });
 }
 
 document.getElementById('bettingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
+    const modalBody = document.getElementById('modalBody');
 
-    const payload = {
-        providerId: document.getElementById('providerSelect').value,
-        userId: document.getElementById('userId').value,
-        amount: document.getElementById('amount').value
-    };
+    const providerId = document.getElementById('bookmakerSelect').value;
+    const userId = document.getElementById('userId').value;
+    const amount = parseFloat(document.getElementById('amount').value);
 
-    try {
-        const response = await fetch('/api/v1/betting/initiate-topup', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json' 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (result.status === 'success') {
-            alert(`✅ Session Created!\nRef: ${result.accountRef}\nTotal Payable: ₦${result.pricing.totalCustomerPayment}\nProceeding to payment gateway...`);
-        } else {
-            alert(`Error: ${result.message}`);
+    // Pay via Wallet Balance
+    if (selectedPayMethod === 'WALLET') {
+        if (!merchant.phone) {
+            modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
+            document.getElementById('customModal').style.display = 'flex';
+            return;
         }
-    } catch (err) {
-        console.error('Betting submit error:', err);
-        alert('Failed to connect to betting gateway server.');
+
+        const res = await fetch('/api/v1/checkout/wallet', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                merchantPhone: merchant.phone,
+                serviceType: providerId,
+                targetInput: userId,
+                amount: amount
+            })
+        });
+        const data = await res.json();
+        modalBody.innerText = data.message;
+        document.getElementById('customModal').style.display = 'flex';
+        return;
+    }
+
+    // Pay via Multi-Channel Checkout (Transfer / Card)
+    const res = await fetch('/api/v1/checkout/initialize', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            serviceType: providerId,
+            targetInput: userId,
+            amount: amount,
+            paymentMethod: selectedPayMethod
+        })
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+        if (data.paymentMethod === 'TRANSFER') {
+            modalBody.innerHTML = `
+                <p>Transfer <strong>${data.bankDetails.amountToPay}</strong> to fund betting ID <strong>${userId}</strong>:</p>
+                <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
+                    <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName}</p>
+                    <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
+                </div>
+                <small style="color:#10b981; font-weight:700;">⚡ Instant automated wallet top-up upon payment credit!</small>
+            `;
+        } else {
+            modalBody.innerHTML = `
+                <p>Click below to complete your payment via Card or USSD:</p>
+                <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Card Gateway</a>
+            `;
+        }
+        document.getElementById('customModal').style.display = 'flex';
     }
 });
 
-window.onload = loadProviders;
+window.onload = loadBookmakers;
 </script>
 
 </body>
