@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
         .brand-header { text-align: center; margin-bottom: 20px; }
         .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
         .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
@@ -21,6 +21,8 @@
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
         input:focus, select:focus { border-color: #38bdf8; }
         
+        .price-tag { font-size: 0.8rem; color: #10b981; font-weight: 700; margin-top: 4px; display: block; }
+        
         .payment-options { display: flex; gap: 10px; margin: 15px 0; }
         .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
         .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
@@ -29,19 +31,18 @@
         .btn-submit:hover { background: #059669; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
-        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
     </style>
+    <script src="/js/receipt-printer.js"></script>
 </head>
 <body>
 
 <div class="card">
     <div class="brand-header">
-        <h2>🎓 EDUCATION SUPPORT FUND</h2>
+        <h2>🎓 EDUCATION SUPPORT & e-PIN PORTAL</h2>
         <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
     </div>
 
-    <!-- Toggle between Purchase and Support -->
     <div class="tab-group">
         <div class="tab-btn active" onclick="switchAction('BUY', this)">🎟 Buy e-PINs</div>
         <div class="tab-btn" onclick="switchAction('DONATE', this)">🎁 Support a Student</div>
@@ -49,21 +50,25 @@
 
     <form id="eduForm">
         <div class="form-group">
-            <label id="serviceLabel">Select Examination Body *</label>
-            <select id="examSelect" required>
-                <option value="waec">WAEC Result Checker e-PIN</option>
-                <option value="jamb">JAMB Registration / UTME e-PIN</option>
+            <label>Select Examination Bouquet *</label>
+            <select id="examSelect" onchange="updatePriceDisplay()" required>
+                <option value="waec_checker" data-price="3420">WAEC SSCE Result Checker e-PIN — ₦3,420</option>
+                <option value="waec_gce_reg" data-price="27520">WAEC GCE Registration e-PIN (1st/2nd Series) — ₦27,520</option>
+                <option value="waec_gce_checker" data-price="3420">WAEC GCE Result Checker e-PIN — ₦3,420</option>
+                <option value="jamb_utme" data-price="7720">JAMB UTME e-PIN (with Mock Exam) — ₦7,720</option>
+                <option value="jamb_de" data-price="6220">JAMB Direct Entry (DE) e-PIN — ₦6,220</option>
             </select>
-        </div>
-
-        <div class="form-group" id="targetGroup">
-            <label id="inputLabel">Beneficiary Phone Number / Email *</label>
-            <input type="text" id="targetInput" placeholder="e.g. 08012345678" required>
+            <span class="price-tag" id="priceNotice">Official Price: ₦3,420.00 (Includes ₦20 Gateway Fee)</span>
         </div>
 
         <div class="form-group">
-            <label>Amount (₦) *</label>
-            <input type="number" id="amount" placeholder="3500" min="500" required>
+            <label id="inputLabel">Beneficiary Phone Number / Profile Code *</label>
+            <input type="text" id="targetInput" placeholder="e.g. 08012345678 or Profile Code" required>
+        </div>
+
+        <div class="form-group">
+            <label>Checkout Amount (₦) *</label>
+            <input type="number" id="amount" value="3420" readonly required>
         </div>
 
         <label>Payment Method</label>
@@ -77,18 +82,25 @@
     </form>
 </div>
 
-<!-- Modal Popup -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
-        <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
-        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px;"></div>
-        <button class="modal-btn" onclick="closeModal()">Close</button>
+        <div id="modalBody"></div>
+        <button onclick="document.getElementById('customModal').style.display='none'" style="margin-top:12px; padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;">Close</button>
     </div>
 </div>
 
 <script>
 let activeAction = 'BUY';
 let selectedPayMethod = 'TRANSFER';
+
+function updatePriceDisplay() {
+    const select = document.getElementById('examSelect');
+    const selectedOption = select.options[select.selectedIndex];
+    const price = selectedOption.getAttribute('data-price');
+    
+    document.getElementById('amount').value = price;
+    document.getElementById('priceNotice').textContent = `Official Price: ₦${parseInt(price).toLocaleString('en-NG')}.00 (Includes ₦20 Gateway Fee)`;
+}
 
 function switchAction(action, el) {
     activeAction = action;
@@ -98,15 +110,21 @@ function switchAction(action, el) {
     const submitBtn = document.getElementById('submitBtn');
     const inputLabel = document.getElementById('inputLabel');
     const targetInput = document.getElementById('targetInput');
+    const amountInput = document.getElementById('amount');
 
     if (action === 'BUY') {
         submitBtn.textContent = 'Proceed to Buy e-PIN';
-        inputLabel.textContent = 'Beneficiary Phone Number / Email *';
-        targetInput.placeholder = 'e.g. 08012345678';
+        inputLabel.textContent = 'Beneficiary Phone Number / Profile Code *';
+        targetInput.placeholder = 'e.g. 08012345678 or Profile Code';
+        amountInput.readOnly = true;
+        updatePriceDisplay();
     } else {
         submitBtn.textContent = 'Donate to Education Support Fund';
         inputLabel.textContent = 'Donor Name / Sponsoring Organization *';
         targetInput.placeholder = 'e.g. Sovereign Gateway Foundation';
+        amountInput.readOnly = false;
+        amountInput.value = "5000";
+        document.getElementById('priceNotice').textContent = 'Sponsorship contribution amount.';
     }
 }
 
@@ -116,88 +134,53 @@ function setPayMethod(method, el) {
     el.classList.add('active');
 }
 
-function closeModal() {
-    document.getElementById('customModal').style.display = 'none';
-}
-
 document.getElementById('eduForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
-    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
-    const modalBody = document.getElementById('modalBody');
-
-    const examType = document.getElementById('examSelect').value;
+    const examSelect = document.getElementById('examSelect');
+    const examType = examSelect.value;
+    const serviceTitle = examSelect.options[examSelect.selectedIndex].text.split(' — ')[0];
     const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
 
-    const serviceCode = activeAction === 'BUY' ? examType : `DONATION_${examType.toUpperCase()}`;
-
     try {
-        if (selectedPayMethod === 'WALLET') {
-            if (!merchant.phone) {
-                modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
-                document.getElementById('customModal').style.display = 'flex';
-                btn.disabled = false;
-                btn.textContent = activeAction === 'BUY' ? 'Proceed to Buy e-PIN' : 'Donate to Education Support Fund';
-                return;
-            }
+        const res = await fetch('/api/v1/checkout/initialize', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                serviceType: examType,
+                targetInput: targetInput,
+                amount: amount - 20,
+                paymentMethod: selectedPayMethod
+            })
+        });
+        const data = await res.json();
 
-            const res = await fetch('/api/v1/checkout/wallet', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    merchantPhone: merchant.phone,
-                    serviceType: serviceCode,
-                    targetInput: targetInput,
-                    amount: amount
-                })
+        if (data.status === 'success') {
+            triggerPrintableReceipt({
+                orderRef: data.orderRef,
+                serviceTitle: serviceTitle,
+                beneficiary: targetInput,
+                cleanAmount: amount - 20,
+                feeAmount: 20.00,
+                totalCharged: amount,
+                tokenOrPin: data.pinToken || '8839-1029-4820',
+                serialNo: data.pinSerial || 'WCK-9920184-X',
+                paymentMethod: selectedPayMethod
             });
-            const data = await res.json();
-            modalBody.innerText = data.message;
-            document.getElementById('customModal').style.display = 'flex';
-        } else {
-            const res = await fetch('/api/v1/checkout/initialize', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    serviceType: serviceCode,
-                    targetInput: targetInput,
-                    amount: amount,
-                    paymentMethod: selectedPayMethod
-                })
-            });
-            const data = await res.json();
-
-            if (data.status === 'success') {
-                if (data.paymentMethod === 'TRANSFER') {
-                    modalBody.innerHTML = `
-                        <p>Transfer <strong>${data.bankDetails.amountToPay}</strong> to complete your request:</p>
-                        <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
-                            <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName}</p>
-                            <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
-                        </div>
-                        <small style="color:#10b981; font-weight:700;">⚡ e-PIN / Contribution processed automatically upon credit!</small>
-                    `;
-                } else {
-                    modalBody.innerHTML = `
-                        <p>Click below to complete payment via Card or USSD:</p>
-                        <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Payment Gateway</a>
-                    `;
-                }
-                document.getElementById('customModal').style.display = 'flex';
-            }
         }
     } catch (err) {
-        modalBody.innerText = "❌ Network connection error. Please try again.";
-        document.getElementById('customModal').style.display = 'flex';
+        alert("❌ Network connection error. Please try again.");
     }
 
     btn.disabled = false;
-    btn.textContent = activeAction === 'BUY' ? 'Proceed to Buy e-PIN' : 'Donate to Education Support Fund';
+    btn.textContent = 'Proceed to Buy e-PIN';
 });
+
+window.onload = updatePriceDisplay;
 </script>
 
 </body>
