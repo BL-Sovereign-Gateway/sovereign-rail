@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem with Enforced Unique Phone/Email, Persistent DB & Credit Emailing
+ * Fixed: Persistent Merchant DB | Enforced Unique Auth | Robust Email Delivery
  * ============================================================================
  */
 
@@ -18,17 +18,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables & Credentials
-const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
-const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
-const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
-
+// Environment Variables
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// File-System Database Storage
+// Persistent Database Path
 const DB_FILE = path.join(__dirname, 'database.json');
 
+// Synchronous Persistent Load & Save
 function loadAccounts() {
     try {
         if (fs.existsSync(DB_FILE)) {
@@ -36,7 +33,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.log('❌ DB Read Error. Initializing fresh merchant storage.');
+        console.error('⚠️ DB Load Exception:', e.message);
     }
     return {};
 }
@@ -45,20 +42,13 @@ function saveAccounts(accounts) {
     try {
         fs.writeFileSync(DB_FILE, JSON.stringify(accounts, null, 2), 'utf8');
     } catch (e) {
-        console.error('❌ DB Write Error:', e.message);
+        console.error('❌ DB Save Exception:', e.message);
     }
 }
 
-const merchantAccounts = loadAccounts();
-const transactionLedger = {}; 
+let merchantAccounts = loadAccounts();
 
-const ACCESS_BANK_CORPORATE = {
-    bankName: "Access Bank Plc",
-    accountNumber: "0037323182",
-    accountName: "All Time Business Ltd"
-};
-
-// Nodemailer SMTP Engine
+// Branded SMTP Engine Initialization
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -67,114 +57,64 @@ const transporter = nodemailer.createTransport({
         user: process.env.SMTP_USER || 'ogegbodegreat@gmail.com',
         pass: process.env.SMTP_PASS || 'zwjpictrfbbgjelv'
     },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 10000
+    tls: { rejectUnauthorized: false }
 });
 
 transporter.verify((error) => {
-    if (error) console.error('❌ Gmail SMTP Error:', error.message);
-    else console.log('🚀 Branded SMTP Engine Ready from All Time Business Ltd!');
+    if (error) console.error('❌ SMTP Connection Error:', error.message);
+    else console.log('🚀 SMTP Server Ready! Email dispatch operational.');
 });
 
-const getAuthHeader = () => {
-    if (!NOMBA_ACCESS_TOKEN) return '';
-    return NOMBA_ACCESS_TOKEN.startsWith('Bearer ') ? NOMBA_ACCESS_TOKEN : `Bearer ${NOMBA_ACCESS_TOKEN.trim()}`;
-};
-
-function calculateInvoiceSplit(targetAmount) {
-    const target = parseFloat(targetAmount);
-    let grossPlatformFee = 20.00;
-    if (target > 20000 && target <= 50000) grossPlatformFee = 25.00;
-    if (target > 50000) grossPlatformFee = 30.00;
-    return {
-        cleanTarget: target,
-        totalCustomerPayment: Math.ceil(target + grossPlatformFee),
-        grossPlatformFee: grossPlatformFee
-    };
-}
-
-// Universal Fulfillment Engine
-async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, amount) {
+// Helper Function: Send Branded Emails Asynchronously
+async function dispatchEmail(to, subject, html) {
+    const sender = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
     try {
-        const service = serviceType.toLowerCase();
-        let endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
-        let params = { UserID: CLUBKONNECT_USERID, APIKey: CLUBKONNECT_API_KEY, RequestID: orderRef };
-
-        if (['sportybet', 'bet9ja', '1xbet', 'betking', 'msport', 'betway'].includes(service)) {
-            endpoint = 'https://www.clubkonnect.com/API/BettingWalletTopupV1.asp';
-            params.BettingCompany = service;
-            params.CustomerId = targetInput;
-            params.Amount = amount;
-        } else if (service.includes('data') || service.includes('smile')) {
-            endpoint = 'https://www.clubkonnect.com/API/APIDatabundleV1.asp';
-            params.MobileNetwork = service.replace('_data', '').replace('smile', '05');
-            params.DataPlan = targetInput;
-            params.MobileNumber = targetInput;
-        } else if (['dstv', 'gotv', 'startimes'].includes(service)) {
-            endpoint = 'https://www.clubkonnect.com/API/APICableTVV1.asp';
-            params.CableTV = service;
-            params.SmartCardNo = targetInput;
-            params.Amount = amount;
-        } else if (['ikedc', 'ekedc', 'ibedc', 'aedc', 'phedc'].includes(service)) {
-            endpoint = 'https://www.clubkonnect.com/API/APIElectricityV1.asp';
-            params.ElectricCompany = service;
-            params.MeterNo = targetInput;
-            params.Amount = amount;
-        } else if (service.includes('waec') || service.includes('jamb')) {
-            endpoint = 'https://www.clubkonnect.com/API/APIEducationV1.asp';
-            params.ExamType = service;
-            params.Amount = amount;
-        } else {
-            endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
-            params.MobileNetwork = service;
-            params.Amount = amount;
-            params.MobileNumber = targetInput;
-        }
-
-        const response = await axios.get(endpoint, { params });
-        return response.data;
-    } catch (error) {
-        console.error('❌ Dispatch Failure:', error.message);
+        await transporter.sendMail({
+            from: `"All Time Business Ltd | Gateway" <${sender}>`,
+            to,
+            subject,
+            html
+        });
+        console.log(`✅ Email delivered successfully to ${to}`);
+    } catch (err) {
+        console.error(`❌ Mail Delivery Failure to ${to}:`, err.message);
     }
 }
 
-// 🌐 Page Routing
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
-app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'betting-support.html')));
-app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
-app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
-app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
-app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
+// =========================================================================
+// 🔐 AUTHENTICATION ENDPOINTS (CLINICAL STABILITY)
+// =========================================================================
 
-// 🔐 Merchant Onboarding with Enforced Unique Phone AND Email Check
+// Merchant Sign Up
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
+        // Reload memory from disk to ensure sync
+        merchantAccounts = loadAccounts();
+
         const { merchantName, phone, email, password, settlementAccount, bankName } = req.body;
 
         if (!merchantName || !phone || !email || !password || !settlementAccount || !bankName) {
-            return res.status(400).json({ status: 'error', message: 'All fields are strictly required.' });
+            return res.status(400).json({ status: 'error', message: 'All onboarding fields are required.' });
         }
 
         const cleanPhone = phone.trim();
         const cleanEmail = email.trim().toLowerCase();
 
+        // Check Unique Phone
         if (merchantAccounts[cleanPhone]) {
-            return res.status(400).json({ status: 'error', message: 'An account with this phone number already exists.' });
+            return res.status(400).json({ status: 'error', message: 'This Phone Number is already registered. Please Sign In.' });
         }
 
+        // Check Unique Email
         const emailExists = Object.values(merchantAccounts).some(acc => acc.email.toLowerCase() === cleanEmail);
         if (emailExists) {
-            return res.status(400).json({ status: 'error', message: 'An account with this email address already exists.' });
+            return res.status(400).json({ status: 'error', message: 'This Email Address is already registered. Please Sign In.' });
         }
 
         const generatedNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        merchantAccounts[cleanPhone] = {
+        const newMerchant = {
             id: `MCH-${Date.now()}`,
             merchantName,
             phone: cleanPhone,
@@ -184,123 +124,141 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             bankName,
             virtualNuban: generatedNuban,
             virtualBank: 'Nomba / MFB',
-            balance: 0.00
+            balance: 0.00,
+            createdAt: new Date().toISOString()
         };
 
+        merchantAccounts[cleanPhone] = newMerchant;
         saveAccounts(merchantAccounts);
+
+        // Dispatch Welcome Email
+        const welcomeMailHtml = `
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
+                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
+                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY</p>
+                <hr style="border-color:#334155; margin:20px 0;">
+                <h3 style="color:#10b981;">Welcome, ${merchantName}!</h3>
+                <p style="line-height:1.6; color:#cbd5e1;">Your merchant account onboarding is complete. Below are your collection account details:</p>
+                <div style="background:#1e293b; padding:15px; border-radius:8px; margin:15px 0; border-left:4px solid #38bdf8;">
+                    <p><strong>Collection NUBAN:</strong> <span style="color:#f59e0b; font-weight:800;">${generatedNuban}</span></p>
+                    <p><strong>Collection Bank:</strong> Nomba MFB</p>
+                    <p><strong>Username (Phone):</strong> ${cleanPhone}</p>
+                    <p><strong>Payout Account:</strong> ${bankName} (${settlementAccount})</p>
+                </div>
+                <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Log in anytime at <a href="https://alltimebusiness.com.ng" style="color:#38bdf8;">www.alltimebusiness.com.ng</a></p>
+            </div>
+        `;
+        dispatchEmail(cleanEmail, '🎉 Merchant Onboarding Successful - All Time Business Ltd', welcomeMailHtml);
 
         return res.status(201).json({
             status: 'success',
-            message: '🎉 Onboarding complete!',
-            merchant: merchantAccounts[cleanPhone]
+            message: 'Onboarding completed successfully!',
+            merchant: {
+                id: newMerchant.id,
+                merchantName: newMerchant.merchantName,
+                phone: newMerchant.phone,
+                email: newMerchant.email,
+                settlementAccount: newMerchant.settlementAccount,
+                bankName: newMerchant.bankName,
+                virtualNuban: newMerchant.virtualNuban,
+                virtualBank: newMerchant.virtualBank,
+                balance: newMerchant.balance
+            }
         });
 
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Onboarding process encountered an error.' });
+        return res.status(500).json({ status: 'error', message: 'Server error during merchant onboarding.' });
     }
 });
 
-// Merchant Sign In Engine
+// Merchant Sign In
 app.post('/api/v1/auth/signin', async (req, res) => {
     try {
+        // Force refresh DB read
+        merchantAccounts = loadAccounts();
+
         const { phone, password } = req.body;
         const cleanPhone = phone ? phone.trim() : '';
+
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Account not found. Please complete merchant onboarding.' });
+            return res.status(404).json({
+                status: 'error',
+                message: 'Account not found. Please complete merchant onboarding first.'
+            });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid password. Please check your credentials.' });
+            return res.status(401).json({
+                status: 'error',
+                message: 'Incorrect password. Please verify your credentials.'
+            });
         }
 
         return res.status(200).json({
             status: 'success',
             message: 'Signed in successfully!',
-            merchant: account
+            merchant: {
+                id: account.id,
+                merchantName: account.merchantName,
+                phone: account.phone,
+                email: account.email,
+                settlementAccount: account.settlementAccount,
+                bankName: account.bankName,
+                virtualNuban: account.virtualNuban,
+                virtualBank: account.virtualBank,
+                balance: account.balance
+            }
         });
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Sign in failed.' });
+        return res.status(500).json({ status: 'error', message: 'Sign in processing failed.' });
     }
 });
 
-// 💳 SAIL CREDIT APPLICATION EMAIL DISPATCH
+// Credit Application Mail Dispatch
 app.post('/api/v1/credit/apply', async (req, res) => {
     try {
         const { merchantName, creditAmount, tenor, turnover, merchantEmail } = req.body;
+        const targetEmail = merchantEmail || process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
 
-        const senderEmail = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
-        const targetEmail = merchantEmail || senderEmail;
-
-        const mailOptions = {
-            from: `"All Time Business Ltd | SAIL Credit" <${senderEmail}>`,
-            to: targetEmail,
-            subject: '💳 SAIL Credit Application Received - All Time Business Ltd',
-            html: `
-                <div style="background-color: #0f172a; color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif; padding: 32px; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #38bdf8;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h2 style="color: #38bdf8; margin: 0; font-size: 24px; font-weight: 800;">ALL TIME BUSINESS LTD</h2>
-                        <p style="color: #cbd5e1; font-size: 13px; margin-top: 4px; letter-spacing: 1px;">@BL SOVEREIGN GATEWAY | SAIL CREDIT</p>
-                    </div>
-                    <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
-                    <h3 style="color: #10b981; font-size: 18px; margin-bottom: 10px;">Credit Facility Application Confirmation</h3>
-                    <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
-                    <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">Your request for a SAIL Credit Facility has been received and logged into our underwriting engine.</p>
-                    <div style="background: #1e293b; padding: 18px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #38bdf8;">
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>👤 Merchant Name:</strong> ${merchantName}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>💰 Facility Requested:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>⏳ Repayment Tenor:</strong> ${tenor} Days</p>
-                        <p style="margin: 6px 0; font-size: 14px;"><strong>📊 Estimated Turnover:</strong> ₦${parseFloat(turnover).toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
-                    </div>
-                    <p style="font-size: 13px; color: #94a3b8; text-align: center; margin-top: 25px;">
-                        Our automated risk underwriting team will review your account's daily settlement volume and communicate the decision shortly.
-                    </p>
+        const creditMailHtml = `
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
+                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
+                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY | SAIL CREDIT</p>
+                <hr style="border-color:#334155; margin:20px 0;">
+                <h3 style="color:#10b981;">Credit Line Application Logged</h3>
+                <p style="line-height:1.6; color:#cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
+                <p style="line-height:1.6; color:#cbd5e1;">Your application for a working capital credit line has been logged into our underwriting system.</p>
+                <div style="background:#1e293b; padding:15px; border-radius:8px; margin:15px 0; border-left:4px solid #38bdf8;">
+                    <p><strong>Merchant:</strong> ${merchantName}</p>
+                    <p><strong>Facility Requested:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG')}</p>
+                    <p><strong>Tenor:</strong> ${tenor} Days</p>
+                    <p><strong>Estimated Turnover:</strong> ₦${parseFloat(turnover).toLocaleString('en-NG')}</p>
                 </div>
-            `
-        };
+                <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Our risk underwriting team is reviewing your account's daily settlement volume.</p>
+            </div>
+        `;
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) console.error('❌ Credit Email Send Error:', error.message);
-            else console.log('✅ Credit Application Email Sent:', info.response);
-        });
-
-        return res.status(200).json({ status: 'success', message: 'Credit application received and confirmation email dispatched.' });
+        dispatchEmail(targetEmail, '💳 SAIL Credit Application Received - All Time Business Ltd', creditMailHtml);
+        return res.status(200).json({ status: 'success', message: 'Credit application received and email dispatched.' });
 
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to process credit application.' });
+        return res.status(500).json({ status: 'error', message: 'Failed to log credit application.' });
     }
 });
 
-// Checkout Routes
-app.post('/api/v1/checkout/initialize', async (req, res) => {
-    try {
-        const { serviceType, targetInput, amount, paymentMethod } = req.body;
-        const orderRef = `SOV-${Date.now()}`;
-        const pricing = calculateInvoiceSplit(amount);
+// Page Routes
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
+app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'betting-support.html')));
+app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
+app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
+app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
 
-        if (paymentMethod === 'TRANSFER') {
-            let virtualAccountNum = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
-            return res.status(200).json({
-                status: 'success', orderRef, paymentMethod: 'TRANSFER',
-                bankDetails: {
-                    accountNumber: virtualAccountNum,
-                    bankName: 'Nomba / MFB',
-                    amountToPay: `₦${pricing.totalCustomerPayment}`
-                }
-            });
-        }
-
-        return res.status(200).json({
-            status: 'success', orderRef, paymentMethod: 'CARD_OR_USSD',
-            checkoutUrl: `https://checkout.nomba.com/pay/${orderRef}?amount=${pricing.totalCustomerPayment}`
-        });
-    } catch (error) {
-        return res.status(500).json({ status: 'error', message: 'Checkout initialization failed.' });
-    }
-});
-
-// Start Server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`Master Engine LIVE on port ${PORT}`));
