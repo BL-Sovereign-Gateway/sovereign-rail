@@ -8,7 +8,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0b132b; color: #fff; min-height: 100vh; padding: 0; }
         
-        /* Multi-Partner & ₦2.00 Cashback Marquee */
+        /* Running Header Ticker */
         .top-marquee { background: #1c2541; padding: 8px 0; border-bottom: 1px solid #3a506b; font-size: 0.8rem; color: #5bc0be; font-weight: 700; white-space: nowrap; overflow: hidden; }
         .nav-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #0b132b; border-bottom: 1px solid #1c2541; }
         .nav-logo { font-size: 1.2rem; font-weight: 800; color: #38bdf8; text-decoration: none; }
@@ -16,7 +16,7 @@
         
         .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
         
-        /* Merchant Card */
+        /* Merchant Card Header Layout */
         .merchant-card { background: linear-gradient(135deg, #1c2541 0%, #0b132b 100%); border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
         .merchant-main-info { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 16px; }
         
@@ -253,7 +253,33 @@ function logout() {
     window.location.href = '/login';
 }
 
-window.onload = checkSession;
+// =========================================================================
+// ⏳ 5-MINUTE DORMANT SESSION AUTO-TIMEOUT ENGINE
+// =========================================================================
+let inactivityTimer;
+const TIMEOUT_LIMIT = 5 * 60 * 1000; // 5 minutes (300,000 ms)
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(handleInactivityTimeout, TIMEOUT_LIMIT);
+}
+
+function handleInactivityTimeout() {
+    localStorage.removeItem('merchantSession');
+    alert('🔒 Security Timeout: Your dashboard session expired due to 5 minutes of inactivity. Please sign in again.');
+    window.location.href = '/login';
+}
+
+// User activity listeners
+window.onload = () => {
+    checkSession();
+    resetInactivityTimer();
+
+    const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach(eventType => {
+        document.addEventListener(eventType, resetInactivityTimer, false);
+    });
+};
 </script>
 
 </body>
