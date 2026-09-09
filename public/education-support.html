@@ -143,7 +143,7 @@ function setPayMethod(method, el) {
     el.classList.add('active');
 }
 
-// 🚀 Active Form Submission Handler
+// 🚀 Form Submission Handler
 document.getElementById('eduForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -206,7 +206,11 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
 
             if (data.status === 'success') {
                 if (data.paymentMethod === 'TRANSFER') {
-                    // Display Account Transfer Instructions (DO NOT SHOW SUCCESS RECEIPT YET)
+                    // Dynamic notice text based on active tab mode
+                    const fulfillmentNotice = activeAction === 'BUY'
+                        ? '⚡ e-PIN will be dispatched and displayed automatically as soon as bank payment is confirmed!'
+                        : '⚡ Your sponsorship contribution will be processed and credited automatically as soon as bank payment is confirmed!';
+
                     document.getElementById('modalBody').innerHTML = `
                         <div style="text-align:center; padding:10px;">
                             <h3 style="color:#38bdf8; margin-bottom:8px;">🏦 Complete Bank Transfer</h3>
@@ -219,7 +223,7 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
                             </div>
                             
                             <p style="font-size:0.75rem; color:#94a3b8;">Order Ref: <strong>${data.orderRef}</strong></p>
-                            <small style="color:#cbd5e1; display:block; margin-top:8px;">⚡ e-PIN / Service will be dispatched automatically as soon as bank payment is confirmed!</small>
+                            <small style="color:#cbd5e1; display:block; margin-top:8px;">${fulfillmentNotice}</small>
                         </div>
                     `;
                     document.getElementById('customModal').style.display = 'flex';
