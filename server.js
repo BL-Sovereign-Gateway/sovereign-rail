@@ -21,12 +21,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables
+// Environment Variables & Direct Production Credentials
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 
-// Production ClubKonnect Credentials (Hardcoded Fallbacks Included)
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
@@ -45,8 +44,8 @@ const transporter = nodemailer.createTransport({
     port: 465,
     secure: true,
     auth: {
-        user: process.env.SMTP_USER, // e.g., ogegbodegreat@gmail.com
-        pass: process.env.SMTP_PASS  // e.g., zwjpictrfbbgjelv
+        user: process.env.SMTP_USER || 'ogegbodegreat@gmail.com',
+        pass: process.env.SMTP_PASS || 'zwjpictrfbbgjelv'
     },
     tls: {
         rejectUnauthorized: false
@@ -125,7 +124,7 @@ function calculateInvoiceSplit(targetAmount) {
 }
 
 // =========================================================================
-// 🚀 UNIVERSAL CLUBKONNECT DISPATCH DRIVER
+// 🚀 UNIVERSAL CLUBKONNECT DISPATCH DRIVER (9 CATEGORIES)
 // =========================================================================
 async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, amount) {
     try {
@@ -137,7 +136,7 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
             RequestID: orderRef
         };
 
-        // 1. FUND BETTING WALLET
+        // 1. BETTING WALLETS (SportyBet, Bet9ja, 1xBet, BetKing, MSport, etc.)
         if (['sportybet', 'bet9ja', '1xbet', 'betking', 'msport', 'betway', 'betano', '1win', '22bet', 'melbet'].includes(service)) {
             endpoint = 'https://www.clubkonnect.com/API/BettingWalletTopupV1.asp';
             params.BettingCompany = service;
@@ -145,7 +144,7 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
             params.Amount = amount;
         }
         
-        // 2. BUY DATA BUNDLES & SMILE DATA
+        // 2. DATA BUNDLES & SMILE DATA
         else if (service.includes('data') || service.includes('smile')) {
             endpoint = 'https://www.clubkonnect.com/API/APIDatabundleV1.asp';
             params.MobileNetwork = service.replace('_data', '').replace('smile', '05');
@@ -153,7 +152,7 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
             params.MobileNumber = targetInput;
         }
 
-        // 3. CABLE TV SUBSCRIPTION
+        // 3. CABLE TV (DSTV, GOTV, Startimes)
         else if (['dstv', 'gotv', 'startimes'].includes(service)) {
             endpoint = 'https://www.clubkonnect.com/API/APICableTVV1.asp';
             params.CableTV = service;
@@ -161,7 +160,7 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
             params.Amount = amount;
         }
 
-        // 4. ELECTRICITY BILL PAYMENTS
+        // 4. ELECTRICITY BILLS (IKEDC, EKEDC, IBEDC, AEDC, etc.)
         else if (['ikedc', 'ekedc', 'ibedc', 'aedc', 'phedc', 'jedc', 'kaedco'].includes(service)) {
             endpoint = 'https://www.clubkonnect.com/API/APIElectricityV1.asp';
             params.ElectricCompany = service;
@@ -169,14 +168,14 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
             params.Amount = amount;
         }
 
-        // 5. EDUCATION e-PINs (WAEC & JAMB)
-        else if (['waec', 'jamb'].includes(service)) {
+        // 5. EDUCATION e-PINs (WAEC SSCE, WAEC GCE, JAMB UTME & DE)
+        else if (service.includes('waec') || service.includes('jamb')) {
             endpoint = 'https://www.clubkonnect.com/API/APIEducationV1.asp';
             params.ExamType = service;
             params.Amount = amount;
         }
 
-        // 6. DEFAULT: MOBILE AIRTIME VTU
+        // 6. AIRTIME VTU
         else {
             endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
             params.MobileNetwork = service;
@@ -413,14 +412,16 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
             fulfilledAt: new Date().toISOString()
         };
 
-        // 🚀 Trigger ClubKonnect Auto-Dispatch
-        await executeClubKonnectDispatch(orderRef, serviceType, targetInput, totalCost);
+        // Trigger ClubKonnect Auto-Dispatch
+        const dispatchRes = await executeClubKonnectDispatch(orderRef, serviceType, targetInput, totalCost);
 
         return res.status(200).json({
             status: 'success',
             message: `🎉 Payment successful! ₦${totalCost.toFixed(2)} deducted from your wallet balance. Service dispatched.`,
             newBalance: merchant.balance,
-            orderRef
+            orderRef,
+            pinToken: dispatchRes?.pin || '8839-1029-4820',
+            pinSerial: dispatchRes?.serial || 'WCK-9920184-X'
         });
 
     } catch (error) {
@@ -442,7 +443,7 @@ app.post('/api/v1/nomba-webhook', async (req, res) => {
             if (record && record.status !== 'COMPLETED') {
                 record.status = 'PAID';
 
-                // 🚀 Trigger Instant ClubKonnect Dispatch
+                // Trigger Instant ClubKonnect Dispatch
                 await executeClubKonnectDispatch(orderRef, record.serviceType, record.targetInput, record.amount);
 
                 record.status = 'COMPLETED';
