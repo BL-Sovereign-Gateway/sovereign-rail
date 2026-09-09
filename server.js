@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem with Enforced Unique Phone/Email & Persistent File-System DB
+ * Full Ecosystem with Enforced Unique Phone/Email, Persistent DB & Credit Emailing
  * ============================================================================
  */
 
@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables & Direct Production Credentials
+// Environment Variables & Credentials
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
@@ -26,7 +26,7 @@ const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// File-System Database Path (Persists Merchants Across Railway Container Restarts)
+// File-System Database Storage
 const DB_FILE = path.join(__dirname, 'database.json');
 
 function loadAccounts() {
@@ -49,7 +49,6 @@ function saveAccounts(accounts) {
     }
 }
 
-// Initialize In-Memory Record from Local File Storage
 const merchantAccounts = loadAccounts();
 const transactionLedger = {}; 
 
@@ -59,7 +58,7 @@ const ACCESS_BANK_CORPORATE = {
     accountName: "All Time Business Ltd"
 };
 
-// Nodemailer Engine
+// Nodemailer SMTP Engine
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -163,12 +162,10 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         const cleanPhone = phone.trim();
         const cleanEmail = email.trim().toLowerCase();
 
-        // 1. Check if Phone Number Already Exists
         if (merchantAccounts[cleanPhone]) {
             return res.status(400).json({ status: 'error', message: 'An account with this phone number already exists.' });
         }
 
-        // 2. Check if Email Address Already Exists Across All Registered Merchants
         const emailExists = Object.values(merchantAccounts).some(acc => acc.email.toLowerCase() === cleanEmail);
         if (emailExists) {
             return res.status(400).json({ status: 'error', message: 'An account with this email address already exists.' });
@@ -190,7 +187,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             balance: 0.00
         };
 
-        // Write immediately to file storage to ensure persistent logins
         saveAccounts(merchantAccounts);
 
         return res.status(201).json({
@@ -230,6 +226,53 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     }
 });
 
+// 💳 SAIL CREDIT APPLICATION EMAIL DISPATCH
+app.post('/api/v1/credit/apply', async (req, res) => {
+    try {
+        const { merchantName, creditAmount, tenor, turnover, merchantEmail } = req.body;
+
+        const senderEmail = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
+        const targetEmail = merchantEmail || senderEmail;
+
+        const mailOptions = {
+            from: `"All Time Business Ltd | SAIL Credit" <${senderEmail}>`,
+            to: targetEmail,
+            subject: '💳 SAIL Credit Application Received - All Time Business Ltd',
+            html: `
+                <div style="background-color: #0f172a; color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif; padding: 32px; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #38bdf8;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="color: #38bdf8; margin: 0; font-size: 24px; font-weight: 800;">ALL TIME BUSINESS LTD</h2>
+                        <p style="color: #cbd5e1; font-size: 13px; margin-top: 4px; letter-spacing: 1px;">@BL SOVEREIGN GATEWAY | SAIL CREDIT</p>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
+                    <h3 style="color: #10b981; font-size: 18px; margin-bottom: 10px;">Credit Facility Application Confirmation</h3>
+                    <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
+                    <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">Your request for a SAIL Credit Facility has been received and logged into our underwriting engine.</p>
+                    <div style="background: #1e293b; padding: 18px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #38bdf8;">
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>👤 Merchant Name:</strong> ${merchantName}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>💰 Facility Requested:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>⏳ Repayment Tenor:</strong> ${tenor} Days</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>📊 Estimated Turnover:</strong> ₦${parseFloat(turnover).toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
+                    </div>
+                    <p style="font-size: 13px; color: #94a3b8; text-align: center; margin-top: 25px;">
+                        Our automated risk underwriting team will review your account's daily settlement volume and communicate the decision shortly.
+                    </p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) console.error('❌ Credit Email Send Error:', error.message);
+            else console.log('✅ Credit Application Email Sent:', info.response);
+        });
+
+        return res.status(200).json({ status: 'success', message: 'Credit application received and confirmation email dispatched.' });
+
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to process credit application.' });
+    }
+});
+
 // Checkout Routes
 app.post('/api/v1/checkout/initialize', async (req, res) => {
     try {
@@ -258,6 +301,6 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
     }
 });
 
-// Start Server Engine
+// Start Server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`Master Engine LIVE on port ${PORT}`));
