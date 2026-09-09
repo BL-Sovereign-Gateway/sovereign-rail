@@ -37,7 +37,6 @@
         <p>ALL TIME BUSINESS LTD | MERCHANT PORTAL</p>
     </div>
 
-    <!-- Toggle between Sign In and Sign Up -->
     <div class="tab-group">
         <div class="tab-btn active" id="tabSignIn" onclick="switchTab('SIGNIN')">Sign In</div>
         <div class="tab-btn" id="tabSignUp" onclick="switchTab('SIGNUP')">Sign Up (Onboarding)</div>
@@ -75,7 +74,7 @@
         <div class="form-group">
             <label>Settlement Bank Name *</label>
             <select id="bankName" required>
-                <option value="">Select Settlement Bank...</option>
+                <option value="">Loading 30+ Commercial Banks...</option>
             </select>
         </div>
         <div class="form-group">
@@ -91,8 +90,6 @@
 </div>
 
 <script>
-let currentTab = 'SIGNIN';
-
 const FULL_BANKS_STATIC = [
     'Access Bank Plc', 'Guaranty Trust Bank (GTBank)', 'Zenith Bank Plc', 'United Bank for Africa (UBA)',
     'First Bank of Nigeria', 'Fidelity Bank', 'First City Monument Bank (FCMB)', 'Stanbic IBTC Bank',
@@ -102,49 +99,27 @@ const FULL_BANKS_STATIC = [
     'FairMoney MFB', 'Rubies MFB', 'VFD Microfinance Bank', 'Carbon MFB', 'Nomba MFB'
 ];
 
-window.onload = async () => {
+window.onload = () => {
+    // Auto-Redirect if Session Exists
     const existingSession = localStorage.getItem('merchantSession');
     if (existingSession) {
         window.location.href = '/dashboard';
         return;
     }
-    await loadBankList();
-};
 
-async function loadBankList() {
+    // Populate Banks
     const bankSelect = document.getElementById('bankName');
-    try {
-        const res = await fetch('/api/v1/banks');
-        const result = await res.json();
-
-        if (result.status === 'success' && result.data && result.data.length > 0) {
-            bankSelect.innerHTML = '<option value="">Select Settlement Bank...</option>';
-            result.data.forEach(bank => {
-                const opt = document.createElement('option');
-                opt.value = bank.name;
-                opt.textContent = bank.name;
-                bankSelect.appendChild(opt);
-            });
-            return;
-        }
-    } catch (err) {
-        console.log('Using static bank list fallback');
-    }
-
-    // Comprehensive Fallback if API call fails
     bankSelect.innerHTML = '<option value="">Select Settlement Bank...</option>';
-    FULL_BANKS_STATIC.forEach(bankName => {
+    FULL_BANKS_STATIC.forEach(b => {
         const opt = document.createElement('option');
-        opt.value = bankName;
-        opt.textContent = bankName;
+        opt.value = b;
+        opt.textContent = b;
         bankSelect.appendChild(opt);
     });
-}
+};
 
 function switchTab(tab) {
-    currentTab = tab;
     document.getElementById('alertBox').style.display = 'none';
-
     if (tab === 'SIGNIN') {
         document.getElementById('tabSignIn').classList.add('active');
         document.getElementById('tabSignUp').classList.remove('active');
@@ -181,7 +156,7 @@ document.getElementById('signInForm').addEventListener('submit', async (e) => {
         if (data.status === 'success') {
             localStorage.setItem('merchantSession', JSON.stringify(data.merchant));
             showAlert('🎉 Login successful! Redirecting...', 'success');
-            setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+            setTimeout(() => { window.location.href = '/dashboard'; }, 800);
         } else {
             showAlert(data.message || 'Invalid credentials.', 'error');
         }
@@ -208,11 +183,9 @@ document.getElementById('signUpForm').addEventListener('submit', async (e) => {
         const data = await res.json();
 
         if (data.status === 'success') {
-            if (data.merchant) {
-                localStorage.setItem('merchantSession', JSON.stringify(data.merchant));
-            }
+            localStorage.setItem('merchantSession', JSON.stringify(data.merchant));
             showAlert('🎉 Onboarding successful! Redirecting to dashboard...', 'success');
-            setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
+            setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
         } else {
             showAlert(data.message || 'Onboarding failed.', 'error');
         }
