@@ -3,30 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bill Payments & Utilities | @BL SOVEREIGN GATEWAY</title>
+    <title>Bill Payments | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
         .brand-header { text-align: center; margin-bottom: 20px; }
         .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
         .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
         input:focus, select:focus { border-color: #38bdf8; }
-        
+
+        .price-tag { font-size: 0.8rem; color: #10b981; font-weight: 700; margin-top: 4px; display: block; }
+
         .payment-options { display: flex; gap: 10px; margin: 15px 0; }
         .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
         .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
-        
+
         .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         .btn-submit:hover { background: #059669; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
-        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
     </style>
+    <script src="/js/receipt-printer.js"></script>
 </head>
 <body>
 
@@ -38,20 +41,34 @@
 
     <form id="billForm">
         <div class="form-group">
-            <label>Select Bill / Service Provider *</label>
-            <select id="providerSelect" required>
-                <option value="" disabled selected>Loading Bill Providers...</option>
+            <label>Select Bill Category *</label>
+            <select id="categorySelect" onchange="handleCategoryChange()" required>
+                <option value="cable">Cable TV Subscriptions (GOTV, DSTV, Startimes)</option>
+                <option value="power">Electricity Bill Tokens (Prepaid & Postpaid)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="bouquetGroup">
+            <label>Select Package Bouquet *</label>
+            <select id="bouquetSelect" onchange="updateBillPrice()" required>
+                <option value="gotv_smallie" data-price="1590">GOTV Smallie (Monthly) — ₦1,590</option>
+                <option value="gotv_jinja" data-price="3320">GOTV Jinja (Monthly) — ₦3,320</option>
+                <option value="gotv_jolli" data-price="4870">GOTV Jolli (Monthly) — ₦4,870</option>
+                <option value="dstv_yanga" data-price="5120">DSTV Yanga (Monthly) — ₦5,120</option>
+                <option value="dstv_confam" data-price="9320">DSTV Confam (Monthly) — ₦9,320</option>
+                <option value="startimes_basic" data-price="3320">Startimes Basic (Monthly) — ₦3,320</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Meter Number / Smartcard ID / Account No *</label>
-            <input type="text" id="customerIdentifier" placeholder="e.g. 11112222333" required>
+            <label id="inputLabel">Smartcard / IUC / Meter Number *</label>
+            <input type="text" id="targetInput" placeholder="e.g. 11112222333" required>
         </div>
 
         <div class="form-group">
-            <label>Bill Amount (₦) *</label>
-            <input type="number" id="amount" placeholder="1000" min="100" required>
+            <label>Bill Amount (₦) [Includes ₦20 Gateway Fee] *</label>
+            <input type="number" id="amount" value="1590" readonly required>
+            <span class="price-tag" id="priceTagNotice">Official Package Price: ₦1,590.00</span>
         </div>
 
         <label>Payment Method</label>
@@ -65,27 +82,42 @@
     </form>
 </div>
 
-<!-- Modal Popup -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
-        <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
-        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px;"></div>
-        <button class="modal-btn" onclick="closeModal()">Close</button>
+        <div id="modalBody"></div>
+        <button onclick="document.getElementById('customModal').style.display='none'" style="margin-top:12px; padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;">Close</button>
     </div>
 </div>
 
 <script>
 let selectedPayMethod = 'TRANSFER';
 
-const FALLBACK_BILL_PROVIDERS = [
-    { id: 'ikedc', name: 'Ikeja Electric (IKEDC Prepaid/Postpaid)' },
-    { id: 'ekedc', name: 'Eko Electric (EKEDC Prepaid/Postpaid)' },
-    { id: 'ibedc', name: 'Ibadan Electric (IBEDC)' },
-    { id: 'aedc', name: 'Abuja Electric (AEDC)' },
-    { id: 'dstv', name: 'DSTV Subscription' },
-    { id: 'gotv', name: 'GOTV Subscription' },
-    { id: 'startimes', name: 'Startimes TV' }
-];
+function handleCategoryChange() {
+    const category = document.getElementById('categorySelect').value;
+    const bouquetSelect = document.getElementById('bouquetSelect');
+    const amountInput = document.getElementById('amount');
+    const priceTag = document.getElementById('priceTagNotice');
+
+    if (category === 'cable') {
+        document.getElementById('bouquetGroup').style.display = 'block';
+        amountInput.readOnly = true;
+        updateBillPrice();
+    } else {
+        document.getElementById('bouquetGroup').style.display = 'none';
+        amountInput.readOnly = false;
+        amountInput.value = "2020";
+        priceTag.textContent = "Custom electricity token purchase.";
+    }
+}
+
+function updateBillPrice() {
+    const select = document.getElementById('bouquetSelect');
+    const selectedOption = select.options[select.selectedIndex];
+    const price = selectedOption.getAttribute('data-price');
+
+    document.getElementById('amount').value = price;
+    document.getElementById('priceTagNotice').textContent = `Official Package Price: ₦${parseInt(price).toLocaleString('en-NG')}.00 (Includes ₦20 Gateway Fee)`;
+}
 
 function setPayMethod(method, el) {
     selectedPayMethod = method;
@@ -93,113 +125,55 @@ function setPayMethod(method, el) {
     el.classList.add('active');
 }
 
-function closeModal() {
-    document.getElementById('customModal').style.display = 'none';
-}
-
-async function loadBillProviders() {
-    try {
-        const res = await fetch('/api/v1/bills/providers');
-        const data = await res.json();
-        if (data.status === 'success' && data.data && data.data.length > 0) {
-            populateSelect(data.data);
-            return;
-        }
-    } catch (err) {
-        console.warn('Bills API warning, using fallback list...');
-    }
-    populateSelect(FALLBACK_BILL_PROVIDERS);
-}
-
-function populateSelect(list) {
-    const select = document.getElementById('providerSelect');
-    select.innerHTML = '<option value="" disabled selected>Select Provider...</option>';
-    list.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.id;
-        opt.textContent = item.name;
-        select.appendChild(opt);
-    });
-}
-
 document.getElementById('billForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = 'Processing...';
+    btn.textContent = 'Processing Payment...';
 
-    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
-    const modalBody = document.getElementById('modalBody');
-
-    const providerId = document.getElementById('providerSelect').value;
-    const customerIdentifier = document.getElementById('customerIdentifier').value;
+    const category = document.getElementById('categorySelect').value;
+    const bouquetSelect = document.getElementById('bouquetSelect');
+    const serviceTitle = category === 'cable' 
+        ? bouquetSelect.options[bouquetSelect.selectedIndex].text.split(' — ')[0]
+        : 'Electricity Token';
+        
+    const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
 
     try {
-        if (selectedPayMethod === 'WALLET') {
-            if (!merchant.phone) {
-                modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
-                document.getElementById('customModal').style.display = 'flex';
-                btn.disabled = false;
-                btn.textContent = 'Proceed to Pay Bill';
-                return;
-            }
+        const res = await fetch('/api/v1/checkout/initialize', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                serviceType: category === 'cable' ? bouquetSelect.value : 'electricity',
+                targetInput: targetInput,
+                amount: amount - 20,
+                paymentMethod: selectedPayMethod
+            })
+        });
+        const data = await res.json();
 
-            const res = await fetch('/api/v1/checkout/wallet', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    merchantPhone: merchant.phone,
-                    serviceType: providerId,
-                    targetInput: customerIdentifier,
-                    amount: amount
-                })
+        if (data.status === 'success') {
+            triggerPrintableReceipt({
+                orderRef: data.orderRef,
+                serviceTitle: serviceTitle,
+                beneficiary: targetInput,
+                cleanAmount: amount - 20,
+                feeAmount: 20.00,
+                totalCharged: amount,
+                tokenOrPin: data.token || 'N/A',
+                paymentMethod: selectedPayMethod
             });
-            const data = await res.json();
-            modalBody.innerText = data.message;
-            document.getElementById('customModal').style.display = 'flex';
-        } else {
-            const res = await fetch('/api/v1/checkout/initialize', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    serviceType: providerId,
-                    targetInput: customerIdentifier,
-                    amount: amount,
-                    paymentMethod: selectedPayMethod
-                })
-            });
-            const data = await res.json();
-
-            if (data.status === 'success') {
-                if (data.paymentMethod === 'TRANSFER') {
-                    modalBody.innerHTML = `
-                        <p>Transfer <strong>${data.bankDetails.amountToPay}</strong> for meter/account <strong>${customerIdentifier}</strong>:</p>
-                        <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
-                            <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName}</p>
-                            <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
-                        </div>
-                        <small style="color:#10b981; font-weight:700;">⚡ Instant automated token dispatch upon bank credit!</small>
-                    `;
-                } else {
-                    modalBody.innerHTML = `
-                        <p>Click below to complete your payment via Card or USSD:</p>
-                        <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Card Gateway</a>
-                    `;
-                }
-                document.getElementById('customModal').style.display = 'flex';
-            }
         }
     } catch (err) {
-        modalBody.innerText = "❌ Network error. Please try again.";
-        document.getElementById('customModal').style.display = 'flex';
+        alert('❌ Network connection error. Please try again.');
     }
 
     btn.disabled = false;
     btn.textContent = 'Proceed to Pay Bill';
 });
 
-window.onload = loadBillProviders;
+window.onload = handleCategoryChange;
 </script>
 
 </body>
