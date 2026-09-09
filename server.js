@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem with Persistent JSON Database Storage
+ * Full Ecosystem with Enforced Unique Phone/Email & Persistent File-System DB
  * ============================================================================
  */
 
@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables
+// Environment Variables & Direct Production Credentials
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
@@ -26,7 +26,7 @@ const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// File-System Database (Survives Server Restarts)
+// File-System Database Path (Persists Merchants Across Railway Container Restarts)
 const DB_FILE = path.join(__dirname, 'database.json');
 
 function loadAccounts() {
@@ -36,7 +36,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.log('Creating fresh merchant database file...');
+        console.log('❌ DB Read Error. Initializing fresh merchant storage.');
     }
     return {};
 }
@@ -45,10 +45,11 @@ function saveAccounts(accounts) {
     try {
         fs.writeFileSync(DB_FILE, JSON.stringify(accounts, null, 2), 'utf8');
     } catch (e) {
-        console.error('Database write error:', e.message);
+        console.error('❌ DB Write Error:', e.message);
     }
 }
 
+// Initialize In-Memory Record from Local File Storage
 const merchantAccounts = loadAccounts();
 const transactionLedger = {}; 
 
@@ -58,7 +59,7 @@ const ACCESS_BANK_CORPORATE = {
     accountName: "All Time Business Ltd"
 };
 
-// Nodemailer Transporter
+// Nodemailer Engine
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -73,7 +74,7 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((error) => {
     if (error) console.error('❌ Gmail SMTP Error:', error.message);
-    else console.log('🚀 SMTP Engine Ready from All Time Business Ltd!');
+    else console.log('🚀 Branded SMTP Engine Ready from All Time Business Ltd!');
 });
 
 const getAuthHeader = () => {
@@ -93,7 +94,7 @@ function calculateInvoiceSplit(targetAmount) {
     };
 }
 
-// Universal ClubKonnect Fulfillment Driver
+// Universal Fulfillment Engine
 async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, amount) {
     try {
         const service = serviceType.toLowerCase();
@@ -138,7 +139,7 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
     }
 }
 
-// Routes
+// 🌐 Page Routing
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -150,43 +151,80 @@ app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'publ
 app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
 app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
 
-// Merchant Sign Up
+// 🔐 Merchant Onboarding with Enforced Unique Phone AND Email Check
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         const { merchantName, phone, email, password, settlementAccount, bankName } = req.body;
-        if (!merchantName || !phone || !password) return res.status(400).json({ status: 'error', message: 'Missing fields.' });
-        
-        if (merchantAccounts[phone]) return res.status(400).json({ status: 'error', message: 'Account exists.' });
+
+        if (!merchantName || !phone || !email || !password || !settlementAccount || !bankName) {
+            return res.status(400).json({ status: 'error', message: 'All fields are strictly required.' });
+        }
+
+        const cleanPhone = phone.trim();
+        const cleanEmail = email.trim().toLowerCase();
+
+        // 1. Check if Phone Number Already Exists
+        if (merchantAccounts[cleanPhone]) {
+            return res.status(400).json({ status: 'error', message: 'An account with this phone number already exists.' });
+        }
+
+        // 2. Check if Email Address Already Exists Across All Registered Merchants
+        const emailExists = Object.values(merchantAccounts).some(acc => acc.email.toLowerCase() === cleanEmail);
+        if (emailExists) {
+            return res.status(400).json({ status: 'error', message: 'An account with this email address already exists.' });
+        }
 
         const generatedNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        merchantAccounts[phone] = {
+        merchantAccounts[cleanPhone] = {
             id: `MCH-${Date.now()}`,
-            merchantName, phone, email: email || '',
-            password: hashedPassword, settlementAccount, bankName,
-            virtualNuban: generatedNuban, virtualBank: 'Nomba / MFB', balance: 0.00
+            merchantName,
+            phone: cleanPhone,
+            email: cleanEmail,
+            password: hashedPassword,
+            settlementAccount,
+            bankName,
+            virtualNuban: generatedNuban,
+            virtualBank: 'Nomba / MFB',
+            balance: 0.00
         };
 
-        saveAccounts(merchantAccounts); // Persist to database file
+        // Write immediately to file storage to ensure persistent logins
+        saveAccounts(merchantAccounts);
 
-        return res.status(201).json({ status: 'success', message: 'Registration complete!', merchant: merchantAccounts[phone] });
+        return res.status(201).json({
+            status: 'success',
+            message: '🎉 Onboarding complete!',
+            merchant: merchantAccounts[cleanPhone]
+        });
+
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Signup error.' });
+        return res.status(500).json({ status: 'error', message: 'Onboarding process encountered an error.' });
     }
 });
 
-// Merchant Sign In
+// Merchant Sign In Engine
 app.post('/api/v1/auth/signin', async (req, res) => {
     try {
         const { phone, password } = req.body;
-        const account = merchantAccounts[phone];
-        if (!account) return res.status(404).json({ status: 'error', message: 'Account not found.' });
+        const cleanPhone = phone ? phone.trim() : '';
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please complete merchant onboarding.' });
+        }
 
         const isMatch = await bcrypt.compare(password, account.password);
-        if (!isMatch) return res.status(401).json({ status: 'error', message: 'Invalid password.' });
+        if (!isMatch) {
+            return res.status(401).json({ status: 'error', message: 'Invalid password. Please check your credentials.' });
+        }
 
-        return res.status(200).json({ status: 'success', merchant: account });
+        return res.status(200).json({
+            status: 'success',
+            message: 'Signed in successfully!',
+            merchant: account
+        });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Sign in failed.' });
     }
@@ -220,5 +258,6 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
     }
 });
 
+// Start Server Engine
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`Master Engine LIVE on port ${PORT}`));
