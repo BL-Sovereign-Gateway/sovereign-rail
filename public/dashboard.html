@@ -3,212 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merchant Portal | @BL SOVEREIGN GATEWAY</title>
+    <title>Merchant Dashboard | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #0f172a; color: #fff; min-height: 100vh; padding: 20px; padding-bottom: 90px; }
-        .container { max-width: 1100px; margin: 0 auto; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .dashboard-card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 25px; width: 100%; max-width: 600px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .brand-header { text-align: center; margin-bottom: 20px; }
+        .brand-header h2 { font-size: 1.4rem; font-weight: 800; color: #38bdf8; }
+        .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; text-transform: uppercase; }
 
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #334155; }
-        .logo { font-size: 1.4rem; font-weight: 800; color: #38bdf8; }
-        .user-badge { background: #1e293b; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); }
+        .service-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .service-btn { background: #0f172a; border: 1px solid #334155; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .service-btn:hover, .service-btn.active { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        .service-btn h4 { font-size: 0.9rem; color: #38bdf8; }
+        .service-btn p { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
 
-        .ticker { background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 10px; border-radius: 8px; margin: 20px 0; overflow: hidden; white-space: nowrap; font-size: 0.85rem; color: #38bdf8; font-weight: 600; }
-        .ticker marquee { vertical-align: middle; }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
+        select:focus, input:focus { border-color: #38bdf8; }
 
-        .balance-card { background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%); border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 30px; position: relative; }
-        .balance-label { font-size: 0.85rem; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
-        .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 10px 0; color: #fff; }
-        .cashback-badge { position: absolute; top: 25px; right: 25px; background: #f59e0b; color: #000; font-weight: 800; font-size: 0.8rem; padding: 6px 14px; border-radius: 20px; }
+        .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .btn-submit:hover { background: #059669; }
 
-        .onboarding-suite { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 15px; }
-        .suite-box { background: rgba(0,0,0,0.3); border: 1px dashed #38bdf8; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #38bdf8; }
-        .suite-box strong { color: #fff; display: block; margin-bottom: 4px; }
+        /* Scrolling Partner Ticker */
+        .partners-strip { width: 100%; max-width: 600px; margin-top: 25px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px 15px; overflow: hidden; }
+        .partners-label { font-size: 0.7rem; color: #38bdf8; font-weight: 800; text-transform: uppercase; text-align: center; margin-bottom: 6px; letter-spacing: 1px; }
+        .partners-marquee { font-size: 0.85rem; color: #cbd5e1; white-space: nowrap; }
+        .partner-item { margin-right: 25px; font-weight: 700; color: #f59e0b; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .action-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 24px; }
-        .action-card h3 { color: #f8fafc; font-size: 1.1rem; margin-bottom: 14px; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
-        input, select { width: 100%; padding: 10px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
-        .btn-action { width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 6px; }
-        .btn-action.withdraw { background: #f59e0b; color: #000; }
-
-        .services-bar { background: #1e293b; border-radius: 14px; padding: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; text-align: center; }
-        .service-btn { background: #0f172a; border: 1px solid #334155; padding: 12px 20px; border-radius: 8px; color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 0.85rem; }
-
-        /* Bottom Fixed Partners Strip */
-        .partners-strip { position: fixed; bottom: 0; left: 0; width: 100%; background: #0a0f1d; border-top: 1px solid #38bdf8; padding: 10px 0; overflow: hidden; z-index: 900; }
-        .partners-label { text-align: center; font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: 700; }
-        .partners-marquee { display: flex; align-items: center; gap: 40px; font-size: 0.85rem; font-weight: 700; color: #cbd5e1; }
-        .partner-item { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; border: 1px solid #334155; }
-
-        /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
-        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 20px; width: 90%; max-width: 440px; text-align: center; }
     </style>
+    <script src="/js/receipt-printer.js"></script>
 </head>
 <body>
 
-<div class="container">
-
-    <div class="header">
-        <div class="logo">@BL SOVEREIGN GATEWAY</div>
-        <div class="user-badge" id="merchantDisplay">Loading Merchant...</div>
+<div class="dashboard-card">
+    <div class="brand-header">
+        <h2>⚡ @BL SOVEREIGN GATEWAY</h2>
+        <p>ALL TIME BUSINESS LTD | OFFICIAL SETTLEMENT HUB</p>
     </div>
 
-    <div class="ticker">
-        <marquee scrollamount="5">
-            🎁 ₦2.00 Instant Cashback Active  ||  💱 FOREX: USD/NGN ₦1,510.50 | EUR/NGN ₦1,642.10  ||  📈 NGX/NSE: GTCO ₦46.20 | ACCESS ₦19.80  ||  ⚡ Wallet Balance Checkout Supported
-        </marquee>
-    </div>
-
-    <div class="balance-card">
-        <div class="cashback-badge">🎁 ₦2.00 CASHBACK ACTIVE</div>
-        <div class="balance-label">Available Gateway Wallet Balance</div>
-        <div class="balance-amount" id="walletBalance">₦0.00</div>
-        
-        <div class="onboarding-suite">
-            <div class="suite-box">
-                <strong>🏦 Virtual NUBAN Account</strong>
-                Account No: <span id="merchantNuban">9957740181</span><br>
-                Bank: <span id="merchantBank">Nomba / MFB</span>
-            </div>
-            <div class="suite-box">
-                <strong>📲 SoftPOS Terminal ID</strong>
-                Status: <span style="color:#10b981; font-weight:700;">ACTIVE (Tap-on-Phone)</span><br>
-                Terminal: POS-MCH-<span id="posId">9901</span>
-            </div>
-            <div class="suite-box">
-                <strong>📷 Scan & Pay QR Code</strong>
-                Dynamic QR Gateway: <span style="color:#10b981; font-weight:700;">ENABLED</span><br>
-                Routing: Auto-Settlement Active
-            </div>
+    <!-- Category Selector -->
+    <div class="service-grid">
+        <div class="service-btn active" onclick="selectCategory('EDU', this)">
+            <h4>🎓 Education e-PINs</h4>
+            <p>WAEC SSCE, GCE & JAMB</p>
+        </div>
+        <div class="service-btn" onclick="selectCategory('CABLE', this)">
+            <h4>📺 Cable TV Sub</h4>
+            <p>GOTV, DSTV & Startimes</p>
         </div>
     </div>
 
-    <div class="grid">
-        
-        <div class="action-card">
-            <h3>🏧 Instant Settlement Withdrawal</h3>
-            <form id="withdrawForm">
-                <div class="form-group">
-                    <label>Registered Settlement Bank</label>
-                    <input type="text" id="settlementBank" value="Access Bank Plc" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Account Number</label>
-                    <input type="text" id="settlementAccount" value="0037323182" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Withdrawal Amount (₦)</label>
-                    <input type="number" id="withdrawAmount" placeholder="1000" min="100" required>
-                </div>
-                <button type="submit" class="btn-action withdraw">Withdraw Funds</button>
-            </form>
+    <!-- Dynamic Form -->
+    <form id="checkoutForm">
+        <div class="form-group">
+            <label id="bouquetLabel">Select Package / Bouquet *</label>
+            <select id="bouquetSelect" onchange="updatePrice()"></select>
         </div>
 
-        <div class="action-card">
-            <h3>🏦 Interbank Transfer</h3>
-            <form id="transferForm">
-                <div class="form-group">
-                    <label>Recipient Bank</label>
-                    <select id="targetBank" required>
-                        <option value="" disabled selected>Loading All Nigerian Banks...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>10-Digit Account Number</label>
-                    <input type="text" id="targetAccount" placeholder="0123456789" maxlength="10" required>
-                </div>
-                <div class="form-group">
-                    <label>Transfer Amount (₦)</label>
-                    <input type="number" id="transferAmount" placeholder="5000" min="100" required>
-                </div>
-                <button type="submit" class="btn-action">Initiate Bank Transfer</button>
-            </form>
+        <div class="form-group">
+            <label id="inputLabel">Target Number / Smartcard / Profile Code *</label>
+            <input type="text" id="targetInput" placeholder="Enter details..." required>
         </div>
 
-    </div>
+        <div class="form-group">
+            <label>Price (₦) [Includes ₦20 Gateway Fee]</label>
+            <input type="number" id="totalAmount" readonly required>
+        </div>
 
-    <h4 style="margin-bottom:12px; color:#cbd5e1;">Quick Financial Portals</h4>
-    <div class="services-bar">
-        <a href="/vtu-support" class="service-btn">📱 VTU Airtime & Data</a>
-        <a href="/betting-support" class="service-btn">🎰 Betting Top-Up</a>
-        <a href="/bill-payments" class="service-btn">⚡ Pay Utilities</a>
-        <a href="/credit-support" class="service-btn">📈 SAIL Credit Line</a>
-        <a href="/education-support" class="service-btn">🎓 Education Fund</a>
-    </div>
-
+        <button type="submit" class="btn-submit" id="submitBtn">Process Instant Order</button>
+    </form>
 </div>
 
-<!-- Sliding Partners Bottom Strip -->
+<!-- Scrolling Partner Strip -->
 <div class="partners-strip">
-    <div class="partners-label">Powered By Strategic Infrastructure Partners</div>
+    <div class="partners-label">Strategic Infrastructure & Fulfillment Partners</div>
     <marquee scrollamount="6" class="partners-marquee">
-        <span class="partner-item">🐙 GitHub</span>
-        <span class="partner-item">🚀 Railway</span>
-        <span class="partner-item">🏦 Access Bank Plc</span>
+        <span class="partner-item">🌐 ClubKonnect Technologies</span>
+        <span class="partner-item">🎓 WAEC e-PIN Services</span>
+        <span class="partner-item">🏛 JAMB UTME & Direct Entry</span>
+        <span class="partner-item">📺 DSTV & GOTV Multichoice</span>
+        <span class="partner-item">⚡ Startimes & Electricity Hub</span>
+        <span class="partner-item">🏦 Access Bank Plc (0037323182)</span>
         <span class="partner-item">💳 Nomba Financial Services</span>
-        <span class="partner-item">🦋 Flutterwave Technologies</span>
-        <span class="partner-item">⚡ Squad by GTCO</span>
-        <span class="partner-item">🐙 GitHub</span>
-        <span class="partner-item">🚀 Railway</span>
-        <span class="partner-item">🏦 Access Bank Plc</span>
-        <span class="partner-item">💳 Nomba Financial Services</span>
-        <span class="partner-item">🦋 Flutterwave Technologies</span>
-        <span class="partner-item">⚡ Squad by GTCO</span>
+        <span class="partner-item">🚀 Railway Cloud Infrastructure</span>
     </marquee>
 </div>
 
+<!-- Receipt Modal -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
-        <div class="modal-header" style="color:#38bdf8; font-weight:800; margin-bottom:10px;">@BL SOVEREIGN GATEWAY</div>
-        <div id="modalText" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:20px; white-space:pre-line;"></div>
-        <button class="modal-btn" onclick="document.getElementById('customModal').style.display='none'">OK</button>
+        <div id="modalBody"></div>
+        <button onclick="document.getElementById('customModal').style.display='none'" style="margin-top:12px; padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;">Close</button>
     </div>
 </div>
 
 <script>
-function showModal(msg) {
-    document.getElementById('modalText').innerText = msg;
-    document.getElementById('customModal').style.display = 'flex';
+let currentCategory = 'EDU';
+
+const EDU_PACKAGES = [
+    { name: 'WAEC Result Checker e-PIN', price: 3420, code: 'waec_checker' },
+    { name: 'WAEC GCE Registration e-PIN (1st/2nd Series)', price: 27520, code: 'waec_gce_reg' },
+    { name: 'WAEC GCE Result Checker e-PIN', price: 3420, code: 'waec_gce_checker' },
+    { name: 'JAMB UTME e-PIN (with Mock Exam)', price: 7720, code: 'jamb_utme' },
+    { name: 'JAMB Direct Entry (DE) e-PIN', price: 6220, code: 'jamb_de' }
+];
+
+const CABLE_PACKAGES = [
+    { name: 'GOTV Smallie (Monthly)', price: 1590, code: 'gotv_smallie' },
+    { name: 'GOTV Jinja (Monthly)', price: 3320, code: 'gotv_jinja' },
+    { name: 'GOTV Jolli (Monthly)', price: 4870, code: 'gotv_jolli' },
+    { name: 'DSTV Yanga (Monthly)', price: 5120, code: 'dstv_yanga' },
+    { name: 'DSTV Confam (Monthly)', price: 9320, code: 'dstv_confam' },
+    { name: 'Startimes Basic (Monthly)', price: 3320, code: 'startimes_basic' }
+];
+
+function loadBouquets(category) {
+    const select = document.getElementById('bouquetSelect');
+    select.innerHTML = '';
+    
+    const list = category === 'EDU' ? EDU_PACKAGES : CABLE_PACKAGES;
+    list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.code;
+        opt.setAttribute('data-price', item.price);
+        opt.textContent = `${item.name} — ₦${item.price.toLocaleString('en-NG')}`;
+        select.appendChild(opt);
+    });
+    updatePrice();
 }
 
-async function loadDashboardBanks() {
+function selectCategory(cat, el) {
+    currentCategory = cat;
+    document.querySelectorAll('.service-btn').forEach(btn => btn.classList.remove('active'));
+    el.classList.add('active');
+
+    document.getElementById('inputLabel').textContent = cat === 'EDU' 
+        ? 'Beneficiary Phone Number / Profile Code *' 
+        : 'Smartcard / IUC Number *';
+
+    loadBouquets(cat);
+}
+
+function updatePrice() {
+    const select = document.getElementById('bouquetSelect');
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption) {
+        document.getElementById('totalAmount').value = selectedOption.getAttribute('data-price');
+    }
+}
+
+document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing Order...';
+
+    const select = document.getElementById('bouquetSelect');
+    const serviceCode = select.value;
+    const serviceTitle = select.options[select.selectedIndex].text.split(' — ')[0];
+    const targetInput = document.getElementById('targetInput').value;
+    const amount = parseFloat(document.getElementById('totalAmount').value);
+
     try {
-        const res = await fetch('/api/v1/banks');
+        const res = await fetch('/api/v1/checkout/initialize', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                serviceType: serviceCode,
+                targetInput: targetInput,
+                amount: amount - 20, // Net amount before ₦20 gateway fee
+                paymentMethod: 'TRANSFER'
+            })
+        });
         const data = await res.json();
+
         if (data.status === 'success') {
-            const select = document.getElementById('targetBank');
-            select.innerHTML = '<option value="" disabled selected>Select Recipient Bank...</option>';
-            data.data.forEach(bank => {
-                const opt = document.createElement('option');
-                opt.value = bank.name;
-                opt.textContent = bank.name;
-                select.appendChild(opt);
+            triggerPrintableReceipt({
+                orderRef: data.orderRef,
+                serviceTitle: serviceTitle,
+                beneficiary: targetInput,
+                cleanAmount: amount - 20,
+                feeAmount: 20.00,
+                totalCharged: amount,
+                paymentMethod: 'Bank Transfer (Nomba NUBAN)'
             });
         }
-    } catch (err) { console.error('Error loading banks:', err); }
-}
+    } catch (err) {
+        alert('❌ Network connection failed. Please try again.');
+    }
 
-const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
+    btn.disabled = false;
+    btn.textContent = 'Process Instant Order';
+});
 
-if (!merchant.merchantName) {
-    window.location.href = '/login';
-} else {
-    document.getElementById('merchantDisplay').textContent = `👤 ${merchant.merchantName} (${merchant.phone})`;
-    document.getElementById('walletBalance').textContent = `₦${(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-    document.getElementById('merchantNuban').textContent = merchant.virtualNuban || '9957740181';
-    document.getElementById('merchantBank').textContent = merchant.virtualBank || 'Nomba / MFB';
-    document.getElementById('posId').textContent = (merchant.phone || '0000').slice(-4);
-    
-    if (merchant.settlementAccount) document.getElementById('settlementAccount').value = merchant.settlementAccount;
-    if (merchant.bankName) document.getElementById('settlementBank').value = merchant.bankName;
-}
-
-window.onload = loadDashboardBanks;
+// Initial Load
+window.onload = () => loadBouquets('EDU');
 </script>
 
 </body>
