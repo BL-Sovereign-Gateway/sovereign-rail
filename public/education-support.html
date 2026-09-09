@@ -49,7 +49,8 @@
     </div>
 
     <form id="eduForm">
-        <div class="form-group">
+        <!-- Examination Bouquet Dropdown (Hidden automatically when under Support a Student) -->
+        <div class="form-group" id="bouquetGroup">
             <label>Select Examination Bouquet *</label>
             <select id="examSelect" onchange="updatePriceDisplay()" required>
                 <option value="waec_checker" data-price="3420">WAEC SSCE Result Checker e-PIN — ₦3,420</option>
@@ -58,8 +59,9 @@
                 <option value="jamb_utme" data-price="7720">JAMB UTME e-PIN (with Mock Exam) — ₦7,720</option>
                 <option value="jamb_de" data-price="6220">JAMB Direct Entry (DE) e-PIN — ₦6,220</option>
             </select>
-            <span class="price-tag" id="priceNotice">Official Price: ₦3,420.00 (Includes ₦20 Gateway Fee)</span>
         </div>
+
+        <span class="price-tag" id="priceNotice" style="margin-bottom: 12px;">Official Price: ₦3,420.00 (Includes ₦20 Gateway Fee)</span>
 
         <div class="form-group">
             <label id="inputLabel">Beneficiary Phone Number / Profile Code *</label>
@@ -94,12 +96,14 @@ let activeAction = 'BUY';
 let selectedPayMethod = 'TRANSFER';
 
 function updatePriceDisplay() {
-    const select = document.getElementById('examSelect');
-    const selectedOption = select.options[select.selectedIndex];
-    const price = selectedOption.getAttribute('data-price');
-    
-    document.getElementById('amount').value = price;
-    document.getElementById('priceNotice').textContent = `Official Price: ₦${parseInt(price).toLocaleString('en-NG')}.00 (Includes ₦20 Gateway Fee)`;
+    if (activeAction === 'BUY') {
+        const select = document.getElementById('examSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        const price = selectedOption.getAttribute('data-price');
+        
+        document.getElementById('amount').value = price;
+        document.getElementById('priceNotice').textContent = `Official Price: ₦${parseInt(price).toLocaleString('en-NG')}.00 (Includes ₦20 Gateway Fee)`;
+    }
 }
 
 function switchAction(action, el) {
@@ -111,20 +115,23 @@ function switchAction(action, el) {
     const inputLabel = document.getElementById('inputLabel');
     const targetInput = document.getElementById('targetInput');
     const amountInput = document.getElementById('amount');
+    const bouquetGroup = document.getElementById('bouquetGroup');
 
     if (action === 'BUY') {
+        bouquetGroup.style.display = 'block'; // Show dropdown for purchasing e-PINs
         submitBtn.textContent = 'Proceed to Buy e-PIN';
         inputLabel.textContent = 'Beneficiary Phone Number / Profile Code *';
         targetInput.placeholder = 'e.g. 08012345678 or Profile Code';
         amountInput.readOnly = true;
         updatePriceDisplay();
     } else {
+        bouquetGroup.style.display = 'none'; // HIDE dropdown completely under Support a Student
         submitBtn.textContent = 'Donate to Education Support Fund';
         inputLabel.textContent = 'Donor Name / Sponsoring Organization *';
         targetInput.placeholder = 'e.g. Sovereign Gateway Foundation';
         amountInput.readOnly = false;
         amountInput.value = "5000";
-        document.getElementById('priceNotice').textContent = 'Sponsorship contribution amount.';
+        document.getElementById('priceNotice').textContent = 'Sponsorship Contribution Amount.';
     }
 }
 
@@ -141,8 +148,11 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
     btn.textContent = 'Processing...';
 
     const examSelect = document.getElementById('examSelect');
-    const examType = examSelect.value;
-    const serviceTitle = examSelect.options[examSelect.selectedIndex].text.split(' — ')[0];
+    const examType = activeAction === 'BUY' ? examSelect.value : 'DONATION_FUND';
+    const serviceTitle = activeAction === 'BUY' 
+        ? examSelect.options[examSelect.selectedIndex].text.split(' — ')[0]
+        : 'Education Sponsorship Fund';
+        
     const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
 
@@ -167,8 +177,8 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
                 cleanAmount: amount - 20,
                 feeAmount: 20.00,
                 totalCharged: amount,
-                tokenOrPin: data.pinToken || '8839-1029-4820',
-                serialNo: data.pinSerial || 'WCK-9920184-X',
+                tokenOrPin: data.pinToken || (activeAction === 'BUY' ? '8839-1029-4820' : 'N/A'),
+                serialNo: data.pinSerial || (activeAction === 'BUY' ? 'WCK-9920184-X' : 'N/A'),
                 paymentMethod: selectedPayMethod
             });
         }
@@ -177,7 +187,7 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
     }
 
     btn.disabled = false;
-    btn.textContent = 'Proceed to Buy e-PIN';
+    btn.textContent = activeAction === 'BUY' ? 'Proceed to Buy e-PIN' : 'Donate to Education Support Fund';
 });
 
 window.onload = updatePriceDisplay;
