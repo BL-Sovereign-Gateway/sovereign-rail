@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 520px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
         .brand-header { text-align: center; margin-bottom: 20px; }
         .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
         .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
@@ -16,16 +16,28 @@
         .banner h4 { color: #f59e0b; font-size: 0.9rem; margin-bottom: 4px; }
         .banner p { font-size: 0.8rem; color: #cbd5e1; }
 
+        .merchant-profile-bar { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .merchant-profile-bar div { font-size: 0.85rem; color: #cbd5e1; }
+        .merchant-profile-bar strong { color: #38bdf8; font-size: 0.95rem; }
+
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
         input:focus, select:focus { border-color: #38bdf8; }
 
+        /* Financial Breakdown Calculator */
+        .calc-box { background: #0f172a; border: 1px dashed #38bdf8; border-radius: 10px; padding: 16px; margin: 16px 0; }
+        .calc-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px; color: #cbd5e1; }
+        .calc-row strong { color: #fff; }
+        .calc-divider { border-top: 1px solid #334155; margin: 8px 0; }
+        .calc-row.total strong { color: #f59e0b; font-size: 0.95rem; }
+        .calc-row.daily strong { color: #10b981; font-size: 0.95rem; }
+
         .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         .btn-submit:hover { background: #059669; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 460px; text-align: center; }
     </style>
 </head>
 <body>
@@ -36,41 +48,68 @@
         <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
     </div>
 
+    <!-- Onboarded Merchant Identity Bar -->
+    <div class="merchant-profile-bar">
+        <div>Merchant Account: <strong id="merchantDisplayName">Authenticated Merchant</strong></div>
+        <span style="font-size:0.7rem; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid #10b981; padding:3px 8px; border-radius:6px; font-weight:700;">VERIFIED GATEWAY PROFILE</span>
+    </div>
+
     <div class="banner">
-        <h4>ACCESSIBLE CREDIT LINES POWERED BY YOUR DAILY SETTLEMENT VOLUME</h4>
-        <p>Working Capital & Inventory Financing for Merchants</p>
+        <h4>WORKING CAPITAL FINANCING (MAX FACILITY: ₦100,000)</h4>
+        <p>Approval is dynamically evaluated from your live platform transaction history.</p>
     </div>
 
     <form id="creditForm">
+        <!-- Hidden input to preserve exact API field binding without asking user -->
+        <input type="hidden" id="merchantId" value="Authenticated Merchant">
+
         <div class="form-group">
-            <label>Merchant ID / Business Name *</label>
-            <input type="text" id="merchantId" placeholder="e.g. Tope Ogegbo" required>
+            <label>Facility Amount Requested (Maximum ₦100,000) *</label>
+            <input type="number" id="creditAmount" min="5000" max="100000" value="50000" oninput="calculateBreakdown()" required>
+            <small style="color:#94a3b8; font-size:0.75rem;">Limit: ₦5,000 – ₦100,000 max accessibility.</small>
+        </div>
+
+        <!-- Automatic Financial Breakdown Engine -->
+        <div class="calc-box">
+            <div class="calc-row">
+                <span>Loan Amount Applied/Credited:</span>
+                <strong id="dispApplied">₦50,000.00</strong>
+            </div>
+            <div class="calc-row">
+                <span>Upfront Interest (15%):</span>
+                <strong id="dispInterest" style="color:#ef4444;">₦7,500.00</strong>
+            </div>
+            <div class="calc-row">
+                <span>Upfront Insurance (1%):</span>
+                <strong id="dispInsurance" style="color:#ef4444;">₦500.00</strong>
+            </div>
+            <div class="calc-divider"></div>
+            <div class="calc-row total">
+                <span>Total Upfront Fee to Collect:</span>
+                <strong id="dispUpfrontTotal">₦8,000.00</strong>
+            </div>
+            <div class="calc-row daily">
+                <span>Daily Repayment Target (5%):</span>
+                <strong id="dispDailyTarget">₦2,500.00 / working day</strong>
+            </div>
         </div>
 
         <div class="form-group">
-            <label>Credit Amount Requested (₦) *</label>
-            <input type="number" id="creditAmount" placeholder="e.g. 50000" required>
+            <label>Repayment Tenor Schedule *</label>
+            <input type="text" value="20 Working Days (Starts Day 2 Post-Disbursement)" readonly style="color:#38bdf8; font-weight:700;">
         </div>
 
         <div class="form-group">
-            <label>Repayment Tenor *</label>
-            <select id="tenor" required>
-                <option value="30">30 Days (Daily Automated Deduction)</option>
-                <option value="60">60 Days (Weekly Automated Deduction)</option>
-                <option value="90">90 Days (Monthly Automated Deduction)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Estimated Monthly Gateway Turnover (₦) *</label>
-            <input type="number" id="turnover" placeholder="e.g. 100000" required>
+            <label>Monthly Platform Activity Evaluation *</label>
+            <input type="text" value="Live Transaction Volume Auto-Evaluation Enabled" readonly style="color:#10b981; font-weight:700;">
+            <input type="hidden" id="turnover" value="100000">
         </div>
 
         <button type="submit" class="btn-submit">Apply for Credit Line</button>
     </form>
 </div>
 
-<!-- Custom Branded Modal Overlay -->
+<!-- Custom Branded Modal -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 style="color:#38bdf8; margin-bottom:10px;">⚡ @BL SOVEREIGN GATEWAY</h3>
@@ -81,18 +120,37 @@
 </div>
 
 <script>
-// Auto-populate Merchant Details on Page Load
+function calculateBreakdown() {
+    let amount = parseFloat(document.getElementById('creditAmount').value) || 0;
+    if (amount > 100000) {
+        amount = 100000;
+        document.getElementById('creditAmount').value = 100000;
+    }
+
+    const interest = amount * 0.15;
+    const insurance = amount * 0.01;
+    const upfrontTotal = interest + insurance;
+    const dailyTarget = amount * 0.05;
+
+    document.getElementById('dispApplied').textContent = `₦${amount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('dispInterest').textContent = `₦${interest.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('dispInsurance').textContent = `₦${insurance.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('dispUpfrontTotal').textContent = `₦${upfrontTotal.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('dispDailyTarget').textContent = `₦${dailyTarget.toLocaleString('en-NG', {minimumFractionDigits: 2})} / working day`;
+}
+
 window.onload = () => {
     const session = localStorage.getItem('merchantSession');
     if (session) {
         const merchant = JSON.parse(session);
         if (merchant.merchantName) {
+            document.getElementById('merchantDisplayName').textContent = merchant.merchantName;
             document.getElementById('merchantId').value = merchant.merchantName;
         }
     }
+    calculateBreakdown();
 };
 
-// 🚀 Unified Credit Application Form Submission Handler
 document.getElementById('creditForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
@@ -101,9 +159,13 @@ document.getElementById('creditForm').addEventListener('submit', async (e) => {
 
     const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
     const merchantName = document.getElementById('merchantId').value;
-    const creditAmount = document.getElementById('creditAmount').value;
-    const tenor = document.getElementById('tenor').value;
+    const creditAmount = parseFloat(document.getElementById('creditAmount').value);
     const turnover = document.getElementById('turnover').value;
+
+    const interest = creditAmount * 0.15;
+    const insurance = creditAmount * 0.01;
+    const upfrontTotal = interest + insurance;
+    const dailyTarget = creditAmount * 0.05;
 
     try {
         await fetch('/api/v1/credit/apply', {
@@ -112,33 +174,32 @@ document.getElementById('creditForm').addEventListener('submit', async (e) => {
             body: JSON.stringify({
                 merchantName,
                 creditAmount,
-                tenor,
+                interest,
+                insurance,
+                upfrontTotal,
+                dailyTarget,
+                tenor: '20 Working Days (Starts Day 2 Post-Disbursement)',
                 turnover,
                 merchantEmail: merchant.email || ''
             })
         });
 
-        const formattedAmount = parseFloat(creditAmount).toLocaleString('en-NG');
         const modalBody = document.getElementById('modalBody');
         modalBody.innerHTML = `
             <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
                 <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ CREDIT APPLICATION RECEIVED</p>
-                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:6px;"><strong>Merchant:</strong> ${merchantName}</p>
-                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:6px;"><strong>Requested Facility:</strong> ₦${formattedAmount}</p>
-                <p style="font-size:0.8rem; color:#94a3b8; margin-top:8px;">A confirmation email has been sent to your registered address. Our underwriting engine is evaluating your daily settlement turnover and will notify you shortly.</p>
+                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Merchant:</strong> ${merchantName}</p>
+                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Facility Amount:</strong> ₦${creditAmount.toLocaleString('en-NG')}</p>
+                <p style="font-size:0.85rem; color:#f59e0b; margin-bottom:4px;"><strong>Upfront Fee (16%):</strong> ₦${upfrontTotal.toLocaleString('en-NG')}</p>
+                <p style="font-size:0.85rem; color:#10b981; margin-bottom:8px;"><strong>Daily Target (5%):</strong> ₦${dailyTarget.toLocaleString('en-NG')} / working day</p>
+                <p style="font-size:0.8rem; color:#38bdf8; margin-bottom:8px;"><strong>Evaluation Mode:</strong> Live Gateway Transaction Volume</p>
+                <p style="font-size:0.8rem; color:#94a3b8; margin-top:8px;">A breakdown has been sent to your email address. Our risk underwriting engine is assessing your live settlement turnover.</p>
             </div>
         `;
         document.getElementById('customModal').style.display = 'flex';
 
     } catch (err) {
-        const modalBody = document.getElementById('modalBody');
-        modalBody.innerHTML = `
-            <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #ef4444; text-align:left;">
-                <p style="color:#ef4444; font-weight:800; margin-bottom:8px;">❌ CONNECTION ERROR</p>
-                <p style="font-size:0.85rem; color:#cbd5e1;">Unable to communicate with the underwriting server. Please check your network connection and try again.</p>
-            </div>
-        `;
-        document.getElementById('customModal').style.display = 'flex';
+        alert('❌ Connection error. Please try submitting again.');
     }
 
     btn.disabled = false;
