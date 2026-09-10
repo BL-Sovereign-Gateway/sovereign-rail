@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem: Persistent DB | Universal Email Engine | SAIL Credit & Checkout
+ * Full Ecosystem: Persistent DB | Universal Email Engine | Instant Test Endpoint
  * ============================================================================
  */
 
@@ -18,15 +18,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables & Production Credentials
+// Environment Variables & Credentials
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
-const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// Persistent File-System Database Storage
+// Persistent File-System Database
 const DB_FILE = path.join(__dirname, 'database.json');
 
 function loadAccounts() {
@@ -50,22 +49,15 @@ function saveAccounts(accounts) {
 }
 
 let merchantAccounts = loadAccounts();
-const transactionLedger = {}; 
 
-const ACCESS_BANK_CORPORATE = {
-    bankName: "Access Bank Plc",
-    accountNumber: "0037323182",
-    accountName: "All Time Business Ltd"
-};
-
-// Branded SMTP Engine Initialization
+// Branded SMTP Engine (Configured with generated App Password)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
     auth: {
         user: process.env.SMTP_USER || 'ogegbodegreat@gmail.com',
-        pass: process.env.SMTP_PASS || 'zwjpictrfbbgjelv'
+        pass: process.env.SMTP_PASS || 'vgdkarqhxtcqdtsc'
     },
     tls: { rejectUnauthorized: false }
 });
@@ -75,16 +67,9 @@ transporter.verify((error) => {
     else console.log('🚀 Universal SMTP Engine Connected & Ready!');
 });
 
-/**
- * ============================================================================
- * ALL TIME BUSINESS LTD | Universal Email Engine
- * Delivers alerts to ALL email providers (Gmail, Yahoo, Outlook, Corporate)
- * ============================================================================
- */
+// Universal Email Dispatcher
 async function dispatchEmail(targetEmail, subject, htmlContent) {
     const defaultSender = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
-    
-    // Fallback to primary corporate admin if target email is omitted
     const recipient = (targetEmail && targetEmail.includes('@')) 
         ? targetEmail.trim() 
         : defaultSender;
@@ -102,10 +87,7 @@ async function dispatchEmail(targetEmail, subject, htmlContent) {
         return true;
     } catch (error) {
         console.error(`❌ Email dispatch failed for [${recipient}]:`, error.message);
-        
-        // Backup delivery copy to corporate admin account
         if (recipient !== defaultSender) {
-            console.log(`🔄 Retrying backup delivery to admin [${defaultSender}]...`);
             mailOptions.to = defaultSender;
             try {
                 await transporter.sendMail(mailOptions);
@@ -129,50 +111,39 @@ function calculateInvoiceSplit(targetAmount) {
     };
 }
 
-// Universal ClubKonnect Fulfillment Engine
-async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, amount) {
+// 🧪 INSTANT TEST EMAIL ROUTE
+app.get('/api/v1/test-email', async (req, res) => {
     try {
-        const service = serviceType.toLowerCase();
-        let endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
-        let params = { UserID: CLUBKONNECT_USERID, APIKey: CLUBKONNECT_API_KEY, RequestID: orderRef };
+        const testTarget = req.query.email || process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
+        
+        const success = await dispatchEmail(
+            testTarget,
+            '⚡ @BL SOVEREIGN GATEWAY - Live SMTP Delivery Test',
+            `
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
+                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
+                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY</p>
+                <hr style="border-color:#334155; margin:20px 0;">
+                <h3 style="color:#10b981;">SMTP Email Delivery Test Successful!</h3>
+                <p style="line-height:1.6; color:#cbd5e1;">Your Gmail App Password integration is fully operational and delivering real-time corporate notifications.</p>
+                <div style="background:#1e293b; padding:15px; border-radius:8px; margin:15px 0; border-left:4px solid #10b981;">
+                    <p><strong>Recipient:</strong> ${testTarget}</p>
+                    <p><strong>Status:</strong> Dispatched via Google App Password</p>
+                    <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+            </div>
+            `
+        );
 
-        if (['sportybet', 'bet9ja', '1xbet', 'betking', 'msport', 'betway'].includes(service)) {
-            endpoint = 'https://www.clubkonnect.com/API/BettingWalletTopupV1.asp';
-            params.BettingCompany = service;
-            params.CustomerId = targetInput;
-            params.Amount = amount;
-        } else if (service.includes('data') || service.includes('smile')) {
-            endpoint = 'https://www.clubkonnect.com/API/APIDatabundleV1.asp';
-            params.MobileNetwork = service.replace('_data', '').replace('smile', '05');
-            params.DataPlan = targetInput;
-            params.MobileNumber = targetInput;
-        } else if (['dstv', 'gotv', 'startimes'].includes(service)) {
-            endpoint = 'https://www.clubkonnect.com/API/APICableTVV1.asp';
-            params.CableTV = service;
-            params.SmartCardNo = targetInput;
-            params.Amount = amount;
-        } else if (['ikedc', 'ekedc', 'ibedc', 'aedc', 'phedc'].includes(service)) {
-            endpoint = 'https://www.clubkonnect.com/API/APIElectricityV1.asp';
-            params.ElectricCompany = service;
-            params.MeterNo = targetInput;
-            params.Amount = amount;
-        } else if (service.includes('waec') || service.includes('jamb')) {
-            endpoint = 'https://www.clubkonnect.com/API/APIEducationV1.asp';
-            params.ExamType = service;
-            params.Amount = amount;
+        if (success) {
+            return res.status(200).json({ status: 'success', message: `Test email successfully sent to ${testTarget}` });
         } else {
-            endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
-            params.MobileNetwork = service;
-            params.Amount = amount;
-            params.MobileNumber = targetInput;
+            return res.status(500).json({ status: 'error', message: 'Mail delivery failed. Check server logs.' });
         }
-
-        const response = await axios.get(endpoint, { params });
-        return response.data;
-    } catch (error) {
-        console.error('❌ Dispatch Failure:', error.message);
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: err.message });
     }
-}
+});
 
 // Page Routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -311,12 +282,10 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     }
 });
 
-// 💳 SAIL CREDIT APPLICATION DISPATCH WITH FINANCIAL BREAKDOWN
+// SAIL Credit Application Route
 app.post('/api/v1/credit/apply', async (req, res) => {
     try {
         const { merchantName, creditAmount, interest, insurance, upfrontTotal, dailyTarget, tenor, turnover, merchantEmail } = req.body;
-
-        const tenureText = tenor || '20 Working Days (Commencing Day 2 Post-Disbursement)';
 
         const creditMailHtml = `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
@@ -334,7 +303,7 @@ app.post('/api/v1/credit/apply', async (req, res) => {
                     <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Insurance (1%):</strong> ₦${parseFloat(insurance || (creditAmount*0.01)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
                     <p style="margin:6px 0; color:#f59e0b;"><strong>⚠️ Total Upfront Fee Collected:</strong> ₦${parseFloat(upfrontTotal || (creditAmount*0.16)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
                     <p style="margin:6px 0; color:#34d399;"><strong>🟩 Daily Repayment Target (5%):</strong> ₦${parseFloat(dailyTarget || (creditAmount*0.05)).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
-                    <p style="margin:6px 0;"><strong>⏳ Repayment Schedule:</strong> ${tenureText}</p>
+                    <p style="margin:6px 0;"><strong>⏳ Repayment Schedule:</strong> 20 Working Days (Commencing Day 2 Post-Disbursement)</p>
                 </div>
                 
                 <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Our risk underwriting team is reviewing your account's daily settlement volume.</p>
