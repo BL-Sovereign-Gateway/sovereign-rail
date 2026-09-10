@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem: Persistent DB | Universal Email Engine | ClubKonnect & Nomba
+ * Full Ecosystem: Persistent DB | Universal Email Engine | SAIL Credit & Checkout
  * ============================================================================
  */
 
@@ -26,7 +26,7 @@ const NOMBA_BASE_URL = 'https://api.nomba.com/v1';
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// Persistent File-System Database
+// Persistent File-System Database Storage
 const DB_FILE = path.join(__dirname, 'database.json');
 
 function loadAccounts() {
@@ -84,7 +84,7 @@ transporter.verify((error) => {
 async function dispatchEmail(targetEmail, subject, htmlContent) {
     const defaultSender = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
     
-    // Ensure fallback to admin email if target email is missing or empty
+    // Fallback to primary corporate admin if target email is omitted
     const recipient = (targetEmail && targetEmail.includes('@')) 
         ? targetEmail.trim() 
         : defaultSender;
@@ -103,7 +103,7 @@ async function dispatchEmail(targetEmail, subject, htmlContent) {
     } catch (error) {
         console.error(`❌ Email dispatch failed for [${recipient}]:`, error.message);
         
-        // If external domain fails, dispatch copy to primary corporate admin account as backup
+        // Backup delivery copy to corporate admin account
         if (recipient !== defaultSender) {
             console.log(`🔄 Retrying backup delivery to admin [${defaultSender}]...`);
             mailOptions.to = defaultSender;
@@ -311,31 +311,38 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     }
 });
 
-// SAIL Credit Application Route
+// 💳 SAIL CREDIT APPLICATION DISPATCH WITH FINANCIAL BREAKDOWN
 app.post('/api/v1/credit/apply', async (req, res) => {
     try {
-        const { merchantName, creditAmount, tenor, turnover, merchantEmail } = req.body;
+        const { merchantName, creditAmount, interest, insurance, upfrontTotal, dailyTarget, tenor, turnover, merchantEmail } = req.body;
+
+        const tenureText = tenor || '20 Working Days (Commencing Day 2 Post-Disbursement)';
 
         const creditMailHtml = `
-            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
                 <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
                 <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY | SAIL CREDIT</p>
                 <hr style="border-color:#334155; margin:20px 0;">
-                <h3 style="color:#10b981;">Credit Line Application Logged</h3>
+                <h3 style="color:#10b981;">Credit Facility Application Received</h3>
                 <p style="line-height:1.6; color:#cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
-                <p style="line-height:1.6; color:#cbd5e1;">Your application for a working capital credit line has been logged into our underwriting system.</p>
-                <div style="background:#1e293b; padding:15px; border-radius:8px; margin:15px 0; border-left:4px solid #38bdf8;">
-                    <p><strong>Merchant:</strong> ${merchantName}</p>
-                    <p><strong>Facility Requested:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG')}</p>
-                    <p><strong>Tenor:</strong> ${tenor} Days</p>
-                    <p><strong>Estimated Turnover:</strong> ₦${parseFloat(turnover).toLocaleString('en-NG')}</p>
+                <p style="line-height:1.6; color:#cbd5e1;">Your request for a SAIL Working Capital Credit Line has been logged. Below is your official financial terms breakdown:</p>
+                
+                <div style="background:#1e293b; padding:18px; border-radius:10px; margin:20px 0; border-left:4px solid #38bdf8;">
+                    <p style="margin:6px 0;"><strong>👤 Merchant Name:</strong> ${merchantName}</p>
+                    <p style="margin:6px 0;"><strong>💰 Facility Credited:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Interest (15%):</strong> ₦${parseFloat(interest || (creditAmount*0.15)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Insurance (1%):</strong> ₦${parseFloat(insurance || (creditAmount*0.01)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#f59e0b;"><strong>⚠️ Total Upfront Fee Collected:</strong> ₦${parseFloat(upfrontTotal || (creditAmount*0.16)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#34d399;"><strong>🟩 Daily Repayment Target (5%):</strong> ₦${parseFloat(dailyTarget || (creditAmount*0.05)).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
+                    <p style="margin:6px 0;"><strong>⏳ Repayment Schedule:</strong> ${tenureText}</p>
                 </div>
+                
                 <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Our risk underwriting team is reviewing your account's daily settlement volume.</p>
             </div>
         `;
 
-        await dispatchEmail(merchantEmail, '💳 SAIL Credit Application Received - All Time Business Ltd', creditMailHtml);
-        return res.status(200).json({ status: 'success', message: 'Credit application logged and confirmation email dispatched.' });
+        await dispatchEmail(merchantEmail, '💳 SAIL Credit Facility Application - All Time Business Ltd', creditMailHtml);
+        return res.status(200).json({ status: 'success', message: 'Credit application logged and breakdown email dispatched.' });
 
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to log credit application.' });
