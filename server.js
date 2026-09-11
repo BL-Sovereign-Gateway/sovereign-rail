@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Fixed: Robust Gmail STARTTLS Transport | File-System Persistence | Email Test
+ * Full Ecosystem: Persistent DB | Universal SMTP | SAIL Credit | Admin Command Desk
  * ============================================================================
  */
 
@@ -18,10 +18,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Environment Variables & Credentials
+const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
+const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
+
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// Persistent Database Storage
+// Global In-Memory Credit Tracker (Preserved across route dispatches)
+global.creditApplications = global.creditApplications || [];
+
+// Persistent File-System Database
 const DB_FILE = path.join(__dirname, 'database.json');
 
 function loadAccounts() {
@@ -31,7 +38,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️ DB Load Exception:', e.message);
+        console.error('⚠️ DB Read Error. Initializing fresh merchant storage:', e.message);
     }
     return {};
 }
@@ -40,13 +47,13 @@ function saveAccounts(accounts) {
     try {
         fs.writeFileSync(DB_FILE, JSON.stringify(accounts, null, 2), 'utf8');
     } catch (e) {
-        console.error('❌ DB Save Exception:', e.message);
+        console.error('❌ DB Save Error:', e.message);
     }
 }
 
 let merchantAccounts = loadAccounts();
 
-// 🚀 Robust Port 587 Transporter Configuration
+// 🚀 Robust Port 587 STARTTLS Transporter Configuration
 const smtpUser = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
 const rawPass = process.env.SMTP_PASS || 'vgdkarqhxtcqdtsc';
 const cleanPass = rawPass.replace(/\s+/g, '');
@@ -69,7 +76,7 @@ transporter.verify((error) => {
     if (error) {
         console.error('❌ SMTP Verification Error:', error.message);
     } else {
-        console.log('🚀 SMTP Server Ready! Email dispatch operational.');
+        console.log('🚀 Universal SMTP Engine Connected & Ready!');
     }
 });
 
@@ -94,7 +101,7 @@ async function dispatchEmail(targetEmail, subject, htmlContent) {
     } catch (error) {
         console.error(`❌ Email dispatch failed for [${recipient}]:`, error.message);
         if (recipient !== defaultSender) {
-            console.log(`🔄 Retrying delivery copy to corporate admin [${defaultSender}]...`);
+            console.log(`🔄 Retrying backup delivery copy to corporate admin [${defaultSender}]...`);
             mailOptions.to = defaultSender;
             try {
                 await transporter.sendMail(mailOptions);
@@ -117,6 +124,51 @@ function calculateInvoiceSplit(targetAmount) {
         totalCustomerPayment: Math.ceil(target + grossPlatformFee),
         grossPlatformFee: grossPlatformFee
     };
+}
+
+// Universal ClubKonnect Fulfillment Engine
+async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, amount) {
+    try {
+        const service = serviceType.toLowerCase();
+        let endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
+        let params = { UserID: CLUBKONNECT_USERID, APIKey: CLUBKONNECT_API_KEY, RequestID: orderRef };
+
+        if (['sportybet', 'bet9ja', '1xbet', 'betking', 'msport', 'betway'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/BettingWalletTopupV1.asp';
+            params.BettingCompany = service;
+            params.CustomerId = targetInput;
+            params.Amount = amount;
+        } else if (service.includes('data') || service.includes('smile')) {
+            endpoint = 'https://www.clubkonnect.com/API/APIDatabundleV1.asp';
+            params.MobileNetwork = service.replace('_data', '').replace('smile', '05');
+            params.DataPlan = targetInput;
+            params.MobileNumber = targetInput;
+        } else if (['dstv', 'gotv', 'startimes'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/APICableTVV1.asp';
+            params.CableTV = service;
+            params.SmartCardNo = targetInput;
+            params.Amount = amount;
+        } else if (['ikedc', 'ekedc', 'ibedc', 'aedc', 'phedc'].includes(service)) {
+            endpoint = 'https://www.clubkonnect.com/API/APIElectricityV1.asp';
+            params.ElectricCompany = service;
+            params.MeterNo = targetInput;
+            params.Amount = amount;
+        } else if (service.includes('waec') || service.includes('jamb')) {
+            endpoint = 'https://www.clubkonnect.com/API/APIEducationV1.asp';
+            params.ExamType = service;
+            params.Amount = amount;
+        } else {
+            endpoint = 'https://www.clubkonnect.com/API/APIAirtimeV1.asp';
+            params.MobileNetwork = service;
+            params.Amount = amount;
+            params.MobileNumber = targetInput;
+        }
+
+        const response = await axios.get(endpoint, { params });
+        return response.data;
+    } catch (error) {
+        console.error('❌ Dispatch Failure:', error.message);
+    }
 }
 
 // 🧪 Diagnostic Test Endpoint
@@ -146,14 +198,14 @@ app.get('/api/v1/test-email', async (req, res) => {
         if (success) {
             return res.status(200).json({ status: 'success', message: `Test email successfully sent to ${testTarget}` });
         } else {
-            return res.status(500).json({ status: 'error', message: 'Mail delivery failed. Check Railway server logs for detailed error.' });
+            return res.status(500).json({ status: 'error', message: 'Mail delivery failed. Check Railway server logs.' });
         }
     } catch (err) {
         return res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
-// Page Routes
+// Navigation Page Routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -163,8 +215,9 @@ app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'pub
 app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
 app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
 app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
+app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
 
-// Onboarding Route
+// Merchant Onboarding Route
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
@@ -246,7 +299,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
     }
 });
 
-// Sign In Route
+// Merchant Sign In Route
 app.post('/api/v1/auth/signin', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
@@ -290,10 +343,28 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     }
 });
 
-// SAIL Credit Route
+// SAIL Credit Application Route
 app.post('/api/v1/credit/apply', async (req, res) => {
     try {
         const { merchantName, creditAmount, interest, insurance, upfrontTotal, dailyTarget, tenor, turnover, merchantEmail } = req.body;
+
+        const appId = `SAIL-${Date.now()}`;
+        const newApp = {
+            appId,
+            merchantName,
+            merchantEmail,
+            creditAmount,
+            interest: interest || (creditAmount * 0.15),
+            insurance: insurance || (creditAmount * 0.01),
+            upfrontTotal: upfrontTotal || (creditAmount * 0.16),
+            dailyTarget: dailyTarget || (creditAmount * 0.05),
+            tenor: tenor || '20 Working Days (Commencing Day 2 Post-Disbursement)',
+            turnover,
+            status: 'PENDING',
+            createdAt: new Date().toISOString()
+        };
+
+        global.creditApplications.push(newApp);
 
         const creditMailHtml = `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
@@ -307,10 +378,10 @@ app.post('/api/v1/credit/apply', async (req, res) => {
                 <div style="background:#1e293b; padding:18px; border-radius:10px; margin:20px 0; border-left:4px solid #38bdf8;">
                     <p style="margin:6px 0;"><strong>👤 Merchant Name:</strong> ${merchantName}</p>
                     <p style="margin:6px 0;"><strong>💰 Facility Credited:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Interest (15%):</strong> ₦${parseFloat(interest || (creditAmount*0.15)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Insurance (1%):</strong> ₦${parseFloat(insurance || (creditAmount*0.01)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#f59e0b;"><strong>⚠️ Total Upfront Fee Collected:</strong> ₦${parseFloat(upfrontTotal || (creditAmount*0.16)).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#34d399;"><strong>🟩 Daily Repayment Target (5%):</strong> ₦${parseFloat(dailyTarget || (creditAmount*0.05)).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
+                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Interest (15%):</strong> ₦${parseFloat(newApp.interest).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Insurance (1%):</strong> ₦${parseFloat(newApp.insurance).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#f59e0b;"><strong>⚠️ Total Upfront Fee Collected:</strong> ₦${parseFloat(newApp.upfrontTotal).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin:6px 0; color:#34d399;"><strong>🟩 Daily Repayment Target (5%):</strong> ₦${parseFloat(newApp.dailyTarget).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
                     <p style="margin:6px 0;"><strong>⏳ Repayment Schedule:</strong> 20 Working Days (Commencing Day 2 Post-Disbursement)</p>
                 </div>
                 
@@ -354,5 +425,121 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
     }
 });
 
+// =========================================================================
+// 🔒 ADMIN COMMAND CENTER ENDPOINTS (private.html)
+// =========================================================================
+
+// 1. Fetch Complete Ecosystem Metrics & Credit Queue
+app.get('/api/v1/admin/overview', (req, res) => {
+    try {
+        const accounts = loadAccounts();
+        const merchantsList = Object.values(accounts);
+        
+        const totalMerchants = merchantsList.length;
+        const totalWalletBalance = merchantsList.reduce((acc, curr) => acc + (curr.balance || 0), 0);
+
+        // Fetch Credit Applications Array
+        const creditApps = global.creditApplications || [];
+
+        return res.status(200).json({
+            status: 'success',
+            metrics: {
+                totalMerchants,
+                totalWalletBalance,
+                activeCreditAppsCount: creditApps.length
+            },
+            merchants: merchantsList.map(m => ({
+                merchantName: m.merchantName,
+                phone: m.phone,
+                email: m.email,
+                virtualNuban: m.virtualNuban,
+                bankName: m.bankName,
+                settlementAccount: m.settlementAccount,
+                balance: m.balance
+            })),
+            creditApplications: creditApps
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to retrieve admin analytics.' });
+    }
+});
+
+// 2. Process Loan Decision (Approve / Reject)
+app.post('/api/v1/admin/credit/action', async (req, res) => {
+    try {
+        const { appId, action, merchantEmail, merchantName, creditAmount } = req.body;
+
+        const isApproved = action === 'APPROVE';
+        const statusColor = isApproved ? '#10b981' : '#ef4444';
+        const statusText = isApproved ? 'APPROVED & DISBURSED' : 'DECLINED';
+
+        // Update application state in array
+        const appObj = global.creditApplications.find(a => a.appId === appId);
+        if (appObj) {
+            appObj.status = statusText;
+        }
+
+        const decisionMailHtml = `
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
+                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
+                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY | SAIL CREDIT RISK DESK</p>
+                <hr style="border-color:#334155; margin:20px 0;">
+                <h3 style="color:${statusColor};">SAIL Credit Application ${statusText}</h3>
+                <p style="line-height:1.6; color:#cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
+                <p style="line-height:1.6; color:#cbd5e1;">Your request for a SAIL Working Capital Facility of <strong>₦${parseFloat(creditAmount).toLocaleString('en-NG')}</strong> has been evaluated by our underwriting desk.</p>
+                
+                <div style="background:#1e293b; padding:18px; border-radius:10px; margin:20px 0; border-left:4px solid ${statusColor};">
+                    <p style="margin:6px 0;"><strong>Decision Status:</strong> <span style="color:${statusColor}; font-weight:800;">${statusText}</span></p>
+                    <p style="margin:6px 0;"><strong>Facility Amount:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG')}</p>
+                    ${isApproved ? '<p style="margin:6px 0; color:#34d399;"><strong>Repayment Schedule:</strong> 20 Working Days (Starts Day 2 Post-Disbursement via daily 5% settlement deductions)</p>' : '<p style="margin:6px 0; color:#cbd5e1;">Reason: Daily gateway settlement turnover does not currently meet underwriting threshold.</p>'}
+                </div>
+            </div>
+        `;
+
+        await dispatchEmail(merchantEmail, `💳 SAIL Credit Decision: ${statusText} - All Time Business Ltd`, decisionMailHtml);
+
+        return res.status(200).json({ status: 'success', message: `Application ${action.toLowerCase()}d and notification email dispatched.` });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to process credit decision.' });
+    }
+});
+
+// 3. Broadcast Newsletter to All Onboarded Merchants
+app.post('/api/v1/admin/newsletter/broadcast', async (req, res) => {
+    try {
+        const { subject, contentHtml } = req.body;
+        const accounts = loadAccounts();
+        const emails = Object.values(accounts).map(a => a.email).filter(e => e && e.includes('@'));
+
+        if (emails.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'No registered merchant emails found.' });
+        }
+
+        let sentCount = 0;
+        for (const email of emails) {
+            const formattedBody = `
+                <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:600px; margin:0 auto; border:1px solid #38bdf8;">
+                    <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
+                    <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY BROADCAST</p>
+                    <hr style="border-color:#334155; margin:20px 0;">
+                    ${contentHtml}
+                    <hr style="border-color:#334155; margin:20px 0;">
+                    <p style="text-align:center; font-size:0.75rem; color:#94a3b8;">www.alltimebusiness.com.ng | Corporate Office: Access Bank Tower, Nigeria</p>
+                </div>
+            `;
+            const dispatched = await dispatchEmail(email, subject, formattedBody);
+            if (dispatched) sentCount++;
+        }
+
+        return res.status(200).json({ status: 'success', message: `Newsletter broadcast dispatched to ${sentCount} merchants.` });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to broadcast newsletter.' });
+    }
+});
+
+// Admin Route Page
+app.get('/private', (req, res) => res.sendFile(path.join(__dirname, 'public', 'private.html')));
+
+// Start Server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => console.log(`Master Server Engine LIVE on port ${PORT}`));
