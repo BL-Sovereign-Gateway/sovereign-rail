@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Desk | @BL SOVEREIGN GATEWAY</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0b132b; color: #fff; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #38bdf8; padding-bottom: 15px; margin-bottom: 25px; }
+        .header h1 { font-size: 1.4rem; color: #38bdf8; font-weight: 800; }
+        
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .metric-card { background: #1c2541; border: 1px solid #3a506b; border-radius: 12px; padding: 18px; text-align: center; }
+        .metric-card h4 { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
+        .metric-card .val { font-size: 1.5rem; font-weight: 800; color: #10b981; }
+
+        .section-box { background: #1c2541; border: 1px solid #3a506b; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+        .section-box h3 { color: #38bdf8; margin-bottom: 15px; font-size: 1.1rem; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #3a506b; }
+        th { color: #38bdf8; background: #0b132b; }
+
+        .btn-act { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.75rem; margin-right: 4px; }
+        .btn-approve { background: #10b981; color: #fff; }
+        .btn-reject { background: #ef4444; color: #fff; }
+
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; background: #0b132b; border: 1px solid #3a506b; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>⚡ ALL TIME BUSINESS LTD — ADMIN COMMAND CENTER</h1>
+    <span style="color:#10b981; font-size:0.85rem; font-weight:700;">@BL SOVEREIGN GATEWAY LIVE</span>
+</div>
+
+<!-- Metrics Row -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <h4>Onboarded Merchants</h4>
+        <div class="val" id="metricMerchants">0</div>
+    </div>
+    <div class="metric-card">
+        <h4>Total System Float (₦)</h4>
+        <div class="val" id="metricFloat">₦0.00</div>
+    </div>
+    <div class="metric-card">
+        <h4>Active Credit Requests</h4>
+        <div class="val" id="metricCredits" style="color:#f59e0b;">0</div>
+    </div>
+</div>
+
+<!-- Merchant Database Table -->
+<div class="section-box">
+    <h3>📋 Registered Merchant Database</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Merchant Name</th>
+                <th>Phone (Username)</th>
+                <th>Email</th>
+                <th>Collection NUBAN</th>
+                <th>Settlement Account</th>
+                <th>Balance (₦)</th>
+            </tr>
+        </thead>
+        <tbody id="merchantTableBody">
+            <tr><td colspan="6">Loading merchant data...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Newsletter Broadcast Studio -->
+<div class="section-box">
+    <h3>📢 Broadcast Newsletter & Announcements</h3>
+    <input type="text" id="newsSubject" placeholder="Broadcast Subject (e.g. New Feature Announcement)">
+    <textarea id="newsContent" rows="4" placeholder="Type broadcast message (HTML allowed)..."></textarea>
+    <button onclick="sendBroadcast()" style="padding:10px 20px; background:#10b981; color:#fff; border:none; border-radius:6px; font-weight:800; cursor:pointer;">Dispatch Mass Newsletter Email</button>
+</div>
+
+<script>
+async function fetchAdminData() {
+    try {
+        const res = await fetch('/api/v1/admin/overview');
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            document.getElementById('metricMerchants').textContent = data.metrics.totalMerchants;
+            document.getElementById('metricFloat').textContent = `₦${data.metrics.totalWalletBalance.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+            document.getElementById('metricCredits').textContent = data.metrics.activeCreditAppsCount;
+
+            const tbody = document.getElementById('merchantTableBody');
+            tbody.innerHTML = '';
+            data.merchants.forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${m.merchantName}</strong></td>
+                        <td>${m.phone}</td>
+                        <td>${m.email}</td>
+                        <td style="color:#f59e0b; font-weight:700;">${m.virtualNuban || 'N/A'}</td>
+                        <td>${m.bankName} (${m.settlementAccount})</td>
+                        <td style="color:#10b981; font-weight:700;">₦${(m.balance || 0).toLocaleString('en-NG')}</td>
+                    </tr>
+                `;
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load admin metrics:', err);
+    }
+}
+
+async function sendBroadcast() {
+    const subject = document.getElementById('newsSubject').value;
+    const contentHtml = document.getElementById('newsContent').value;
+
+    if (!subject || !contentHtml) {
+        alert('Please complete all newsletter fields.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/v1/admin/newsletter/broadcast', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ subject, contentHtml })
+        });
+        const data = await res.json();
+        alert(data.message);
+    } catch (err) {
+        alert('Failed to dispatch broadcast.');
+    }
+}
+
+window.onload = fetchAdminData;
+</script>
+
+</body>
+</html>
