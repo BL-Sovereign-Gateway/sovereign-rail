@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem: Persistent DB | Universal SMTP | SAIL Credit | Admin Command Desk
+ * Full Ecosystem: Persistent DB | Universal SMTP | Dynamic Pricing | Admin Command Desk
  * ============================================================================
  */
 
@@ -113,6 +113,54 @@ async function dispatchEmail(targetEmail, subject, htmlContent) {
         return false;
     }
 }
+
+// =========================================================================
+// 🔄 DYNAMIC CLUBKONNECT LIVE PRICE SYNCHRONIZATION ENGINE
+// =========================================================================
+
+let livePricingCache = {
+    dataPlans: [],
+    cablePackages: [],
+    electricityDiscos: [],
+    lastUpdated: null
+};
+
+// Auto-Sync Function for ClubKonnect Rates
+async function syncLiveClubKonnectPricing() {
+    try {
+        console.log('🔄 Fetching live pricing from ClubKonnect APIs...');
+        
+        // 1. Fetch Live Data Bundle Plans
+        const dataRes = await axios.get('https://www.nellobytesystems.com/APIDatabundlePlansV2.asp');
+        if (dataRes.data && dataRes.data.MOBILE_DATA) {
+            livePricingCache.dataPlans = dataRes.data.MOBILE_DATA;
+        }
+
+        // 2. Fetch Live Cable TV Packages
+        const cableRes = await axios.get('https://www.nellobytesystems.com/APICableTVPackagesV2.asp');
+        if (cableRes.data && cableRes.data.TV_PACKAGE) {
+            livePricingCache.cablePackages = cableRes.data.TV_PACKAGE;
+        }
+
+        livePricingCache.lastUpdated = new Date().toISOString();
+        console.log(`✅ Live pricing synchronized successfully at ${livePricingCache.lastUpdated}`);
+    } catch (err) {
+        console.error('⚠️ Price sync failed. Retaining fallback rate card:', err.message);
+    }
+}
+
+// Initial Sync on Server Startup & Auto-Refresh every 30 minutes
+syncLiveClubKonnectPricing();
+setInterval(syncLiveClubKonnectPricing, 30 * 60 * 1000);
+
+// Endpoint to serve live dynamic pricing to frontend forms & admin panel
+app.get('/api/v1/pricing/live', (req, res) => {
+    return res.status(200).json({
+        status: 'success',
+        lastUpdated: livePricingCache.lastUpdated,
+        pricing: livePricingCache
+    });
+});
 
 function calculateInvoiceSplit(targetAmount) {
     const target = parseFloat(targetAmount);
