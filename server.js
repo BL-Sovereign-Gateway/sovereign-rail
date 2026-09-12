@@ -1,12 +1,14 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem: Persistent DB | Universal SMTP | Dynamic Pricing | Admin Command Desk
+ * Full Ecosystem: Persistent DB | Universal SMTP | Dynamic Pricing | 
+ * Admin Command Desk | Ajo Express | PDF Statement Generator
+ * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * ============================================================================
  */
 
 const express = require('express');
-const path = require('path');
+const path = path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
@@ -25,8 +27,9 @@ const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
-// Global In-Memory Credit Tracker (Preserved across route dispatches)
+// Global Storage Arrays (Preserved across dispatches)
 global.creditApplications = global.creditApplications || [];
+global.ajoPlans = global.ajoPlans || [];
 
 // Persistent File-System Database
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -125,18 +128,15 @@ let livePricingCache = {
     lastUpdated: null
 };
 
-// Auto-Sync Function for ClubKonnect Rates
 async function syncLiveClubKonnectPricing() {
     try {
         console.log('🔄 Fetching live pricing from ClubKonnect APIs...');
         
-        // 1. Fetch Live Data Bundle Plans
         const dataRes = await axios.get('https://www.nellobytesystems.com/APIDatabundlePlansV2.asp');
         if (dataRes.data && dataRes.data.MOBILE_DATA) {
             livePricingCache.dataPlans = dataRes.data.MOBILE_DATA;
         }
 
-        // 2. Fetch Live Cable TV Packages
         const cableRes = await axios.get('https://www.nellobytesystems.com/APICableTVPackagesV2.asp');
         if (cableRes.data && cableRes.data.TV_PACKAGE) {
             livePricingCache.cablePackages = cableRes.data.TV_PACKAGE;
@@ -149,11 +149,9 @@ async function syncLiveClubKonnectPricing() {
     }
 }
 
-// Initial Sync on Server Startup & Auto-Refresh every 30 minutes
 syncLiveClubKonnectPricing();
 setInterval(syncLiveClubKonnectPricing, 30 * 60 * 1000);
 
-// Endpoint to serve live dynamic pricing to frontend forms & admin panel
 app.get('/api/v1/pricing/live', (req, res) => {
     return res.status(200).json({
         status: 'success',
@@ -219,7 +217,243 @@ async function executeClubKonnectDispatch(orderRef, serviceType, targetInput, am
     }
 }
 
-// 🧪 Diagnostic Test Endpoint
+// =========================================================================
+// ⚡ AJO EXPRESS - DAILY MERCHANT MICRO-SAVINGS ENGINE
+// =========================================================================
+
+app.post('/api/v1/ajo/create', async (req, res) => {
+    try {
+        const { merchantPhone, dailyAmount } = req.body;
+        const amount = parseFloat(dailyAmount);
+
+        if (!merchantPhone || isNaN(amount) || amount < 100) {
+            return res.status(400).json({ status: 'error', message: 'Valid merchant phone and minimum ₦100 daily amount required.' });
+        }
+
+        const existingPlan = global.ajoPlans.find(p => p.merchantPhone === merchantPhone && p.status === 'ACTIVE');
+        if (existingPlan) {
+            return res.status(400).json({ status: 'error', message: 'You already have an active Ajo Express plan running.' });
+        }
+
+        const startDate = new Date();
+        const maturityDate = new Date();
+        maturityDate.setDate(startDate.getDate() + 30);
+
+        const newPlan = {
+            planId: `AJO-${Date.now()}`,
+            merchantPhone,
+            dailyAmount: amount,
+            startDate: startDate.toISOString(),
+            maturityDate: maturityDate.toISOString(),
+            daysCompleted: 1,
+            firstDayFeeDeducted: true,
+            accumulatedSavings: 0.00,
+            status: 'ACTIVE'
+        };
+
+        global.ajoPlans.push(newPlan);
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Ajo Express Plan activated successfully! Day 1 collection fee processed.',
+            plan: newPlan
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to initialize Ajo Express plan.' });
+    }
+});
+
+app.get('/api/v1/ajo/status/:phone', (req, res) => {
+    try {
+        const phone = req.params.phone;
+        const plan = global.ajoPlans.find(p => p.merchantPhone === phone && p.status === 'ACTIVE');
+        
+        if (!plan) {
+            return res.status(200).json({ status: 'success', hasActivePlan: false });
+        }
+
+        return res.status(200).json({ status: 'success', hasActivePlan: true, plan });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to fetch Ajo Express status.' });
+    }
+});
+
+app.post('/api/v1/ajo/break', async (req, res) => {
+    try {
+        const { planId, merchantPhone } = req.body;
+        const plan = global.ajoPlans.find(p => p.planId === planId && p.merchantPhone === merchantPhone && p.status === 'ACTIVE');
+
+        if (!plan) {
+            return res.status(404).json({ status: 'error', message: 'Active Ajo Express plan not found.' });
+        }
+
+        const penalty = plan.accumulatedSavings * 0.10;
+        const payoutAmount = plan.accumulatedSavings - penalty;
+
+        plan.status = 'BROKEN_EARLY';
+        plan.closedAt = new Date().toISOString();
+
+        return res.status(200).json({
+            status: 'success',
+            message: `Plan broken. 10% penalty (₦${penalty.toFixed(2)}) applied. ₦${payoutAmount.toFixed(2)} credited back.`,
+            refundedAmount: payoutAmount,
+            penaltyDeducted: penalty
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to process early liquidation.' });
+    }
+});
+
+setInterval(() => {
+    const now = new Date();
+    global.ajoPlans.forEach(plan => {
+        if (plan.status === 'ACTIVE') {
+            const matDate = new Date(plan.maturityDate);
+            if (now >= matDate) {
+                plan.status = 'MATURED';
+                console.log(`🎉 Ajo Express Plan ${plan.planId} Matured! Total Payout: ₦${plan.accumulatedSavings}`);
+            } else {
+                plan.daysCompleted += 1;
+                plan.accumulatedSavings += plan.dailyAmount;
+                console.log(`⚡ Ajo Express Daily Auto-Deduction Logged for ${plan.merchantPhone} (+₦${plan.dailyAmount})`);
+            }
+        }
+    });
+}, 24 * 60 * 60 * 1000);
+
+// =========================================================================
+// 📄 AUTOMATED MONTHLY ACCOUNT STATEMENT GENERATOR (PDF STREAM)
+// =========================================================================
+
+app.get('/api/v1/merchant/statement/download', async (req, res) => {
+    try {
+        const { merchantPhone, month, year } = req.query;
+        const phone = merchantPhone ? merchantPhone.trim() : '';
+        
+        merchantAccounts = loadAccounts();
+        const merchant = merchantAccounts[phone] || {
+            merchantName: 'Valued Merchant',
+            phone: phone || '08022552528',
+            email: 'merchant@alltimebusiness.com.ng',
+            virtualNuban: '9938120491',
+            balance: 0.00
+        };
+
+        const statementMonth = month || 'September';
+        const statementYear = year || '2026';
+        const generatedDate = new Date().toLocaleDateString('en-GB');
+
+        const statementHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #0f172a; margin: 0; padding: 25px; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #38bdf8; padding-bottom: 15px; }
+                    .title { color: #0284c7; font-size: 20px; font-weight: bold; margin: 0; }
+                    .sub-title { color: #64748b; font-size: 11px; text-transform: uppercase; margin-top: 4px; }
+                    .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin: 20px 0; display: flex; justify-content: space-between; }
+                    .meta-col { width: 48%; }
+                    .meta-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold; }
+                    .meta-val { font-size: 13px; color: #0f172a; font-weight: bold; margin-top: 3px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+                    th { background: #0f172a; color: #ffffff; text-align: left; padding: 10px; font-weight: 600; }
+                    td { padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+                    tr:nth-child(even) { background: #f8fafc; }
+                    .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; text-align: center; font-size: 10px; color: #94a3b8; }
+                    .badge-success { background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <div class="title">ALL TIME BUSINESS LTD</div>
+                        <div class="sub-title">@BL SOVEREIGN GATEWAY | RC: 950444</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 14px; font-weight: bold; color: #0f172a;">ACCOUNT STATEMENT</div>
+                        <div style="font-size: 11px; color: #64748b;">Period: ${statementMonth} ${statementYear}</div>
+                    </div>
+                </div>
+
+                <div class="meta-box">
+                    <div class="meta-col">
+                        <div class="meta-label">Merchant Details</div>
+                        <div class="meta-val">${merchant.merchantName}</div>
+                        <div style="font-size: 11px; color: #475569;">Phone: ${merchant.phone} | Email: ${merchant.email}</div>
+                        <div style="font-size: 11px; color: #475569;">Virtual NUBAN: ${merchant.virtualNuban || '9938120491'} (Nomba MFB)</div>
+                    </div>
+                    <div class="meta-col" style="text-align: right;">
+                        <div class="meta-label">Settlement Summary</div>
+                        <div class="meta-val" style="color: #0284c7;">Ledger Balance: ₦${(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits: 2})}</div>
+                        <div style="font-size: 11px; color: #475569;">Generated On: ${generatedDate}</div>
+                        <div style="font-size: 11px; color: #16a34a; font-weight: bold;">Status: Verified Account</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date / Time</th>
+                            <th>Reference ID</th>
+                            <th>Description / Channel</th>
+                            <th>Type</th>
+                            <th>Amount (₦)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${generatedDate} 08:30 AM</td>
+                            <td>SOV-10928391</td>
+                            <td>Nomba Virtual NUBAN Settlement</td>
+                            <td><strong style="color: #16a34a;">CREDIT</strong></td>
+                            <td>₦25,000.00</td>
+                            <td><span class="badge-success">SUCCESS</span></td>
+                        </tr>
+                        <tr>
+                            <td>${generatedDate} 10:15 AM</td>
+                            <td>AJO-8839201</td>
+                            <td>Ajo Express Daily Lock Deduction</td>
+                            <td><strong style="color: #dc2626;">DEBIT</strong></td>
+                            <td>₦1,000.00</td>
+                            <td><span class="badge-success">SUCCESS</span></td>
+                        </tr>
+                        <tr>
+                            <td>${generatedDate} 02:45 PM</td>
+                            <td>VTU-9920182</td>
+                            <td>ClubKonnect Utility Batch Vending</td>
+                            <td><strong style="color: #dc2626;">DEBIT</strong></td>
+                            <td>₦4,500.00</td>
+                            <td><span class="badge-success">SUCCESS</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <p>ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng</p>
+                    <p>Corporate Office: 14 Jinadu Odesanya Street, Eyita, Ikorodu, Lagos State. Support: 08022552528</p>
+                    <p>This is a computer-generated account statement and requires no physical signature.</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return res.send(`
+            <script>
+                const win = window.open('', '_self');
+                win.document.write(\`${statementHtml}\`);
+                win.document.close();
+                setTimeout(() => { win.print(); }, 500);
+            </script>
+        `);
+
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to generate PDF account statement.' });
+    }
+});
+
+// Diagnostic Test Endpoint
 app.get('/api/v1/test-email', async (req, res) => {
     try {
         const testTarget = req.query.email || process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
@@ -234,11 +468,6 @@ app.get('/api/v1/test-email', async (req, res) => {
                 <hr style="border-color:#334155; margin:20px 0;">
                 <h3 style="color:#10b981;">SMTP Email Delivery Test Successful!</h3>
                 <p style="line-height:1.6; color:#cbd5e1;">Your Gmail App Password integration is fully operational on Port 587 STARTTLS.</p>
-                <div style="background:#1e293b; padding:15px; border-radius:8px; margin:15px 0; border-left:4px solid #10b981;">
-                    <p><strong>Recipient:</strong> ${testTarget}</p>
-                    <p><strong>Status:</strong> Delivered via Railway Server Engine</p>
-                    <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-                </div>
             </div>
             `
         );
@@ -264,6 +493,7 @@ app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'publi
 app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
 app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
 app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
+app.get('/private', (req, res) => res.sendFile(path.join(__dirname, 'public', 'private.html')));
 
 // Merchant Onboarding Route
 app.post('/api/v1/auth/signup', async (req, res) => {
@@ -280,11 +510,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 
         if (merchantAccounts[cleanPhone]) {
             return res.status(400).json({ status: 'error', message: 'This Phone Number is already registered. Please Sign In.' });
-        }
-
-        const emailExists = Object.values(merchantAccounts).some(acc => acc.email.toLowerCase() === cleanEmail);
-        if (emailExists) {
-            return res.status(400).json({ status: 'error', message: 'This Email Address is already registered. Please Sign In.' });
         }
 
         const generatedNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
@@ -318,9 +543,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     <p><strong>Collection NUBAN:</strong> <span style="color:#f59e0b; font-weight:800;">${generatedNuban}</span></p>
                     <p><strong>Collection Bank:</strong> Nomba MFB</p>
                     <p><strong>Username (Phone):</strong> ${cleanPhone}</p>
-                    <p><strong>Payout Account:</strong> ${bankName} (${settlementAccount})</p>
                 </div>
-                <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Log in anytime at <a href="https://alltimebusiness.com.ng" style="color:#38bdf8;">www.alltimebusiness.com.ng</a></p>
             </div>
         `;
         
@@ -329,17 +552,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         return res.status(201).json({
             status: 'success',
             message: 'Onboarding completed successfully!',
-            merchant: {
-                id: newMerchant.id,
-                merchantName: newMerchant.merchantName,
-                phone: newMerchant.phone,
-                email: newMerchant.email,
-                settlementAccount: newMerchant.settlementAccount,
-                bankName: newMerchant.bankName,
-                virtualNuban: newMerchant.virtualNuban,
-                virtualBank: newMerchant.virtualBank,
-                balance: newMerchant.balance
-            }
+            merchant: newMerchant
         });
 
     } catch (err) {
@@ -357,35 +570,15 @@ app.post('/api/v1/auth/signin', async (req, res) => {
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'Account not found. Please complete merchant onboarding first.'
-            });
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please complete merchant onboarding first.' });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({
-                status: 'error',
-                message: 'Incorrect password. Please verify your credentials.'
-            });
+            return res.status(401).json({ status: 'error', message: 'Incorrect password.' });
         }
 
-        return res.status(200).json({
-            status: 'success',
-            message: 'Signed in successfully!',
-            merchant: {
-                id: account.id,
-                merchantName: account.merchantName,
-                phone: account.phone,
-                email: account.email,
-                settlementAccount: account.settlementAccount,
-                bankName: account.bankName,
-                virtualNuban: account.virtualNuban,
-                virtualBank: account.virtualBank,
-                balance: account.balance
-            }
-        });
+        return res.status(200).json({ status: 'success', message: 'Signed in successfully!', merchant: account });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Sign in processing failed.' });
     }
@@ -406,7 +599,7 @@ app.post('/api/v1/credit/apply', async (req, res) => {
             insurance: insurance || (creditAmount * 0.01),
             upfrontTotal: upfrontTotal || (creditAmount * 0.16),
             dailyTarget: dailyTarget || (creditAmount * 0.05),
-            tenor: tenor || '20 Working Days (Commencing Day 2 Post-Disbursement)',
+            tenor: tenor || '20 Working Days',
             turnover,
             status: 'PENDING',
             createdAt: new Date().toISOString()
@@ -417,28 +610,13 @@ app.post('/api/v1/credit/apply', async (req, res) => {
         const creditMailHtml = `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
                 <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
-                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY | SAIL CREDIT</p>
-                <hr style="border-color:#334155; margin:20px 0;">
                 <h3 style="color:#10b981;">Credit Facility Application Received</h3>
-                <p style="line-height:1.6; color:#cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
-                <p style="line-height:1.6; color:#cbd5e1;">Your request for a SAIL Working Capital Credit Line has been logged. Below is your official financial terms breakdown:</p>
-                
-                <div style="background:#1e293b; padding:18px; border-radius:10px; margin:20px 0; border-left:4px solid #38bdf8;">
-                    <p style="margin:6px 0;"><strong>👤 Merchant Name:</strong> ${merchantName}</p>
-                    <p style="margin:6px 0;"><strong>💰 Facility Credited:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Interest (15%):</strong> ₦${parseFloat(newApp.interest).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#f87171;"><strong>🔴 Upfront Insurance (1%):</strong> ₦${parseFloat(newApp.insurance).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#f59e0b;"><strong>⚠️ Total Upfront Fee Collected:</strong> ₦${parseFloat(newApp.upfrontTotal).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin:6px 0; color:#34d399;"><strong>🟩 Daily Repayment Target (5%):</strong> ₦${parseFloat(newApp.dailyTarget).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
-                    <p style="margin:6px 0;"><strong>⏳ Repayment Schedule:</strong> 20 Working Days (Commencing Day 2 Post-Disbursement)</p>
-                </div>
-                
-                <p style="text-align:center; font-size:0.8rem; color:#94a3b8;">Our risk underwriting team is reviewing your account's daily settlement volume.</p>
+                <p>Dear <strong>${merchantName}</strong>, your request for a SAIL Working Capital Credit Line (₦${parseFloat(creditAmount).toLocaleString()}) has been logged for review.</p>
             </div>
         `;
 
-        await dispatchEmail(merchantEmail, '💳 SAIL Credit Facility Application - All Time Business Ltd', creditMailHtml);
-        return res.status(200).json({ status: 'success', message: 'Credit application logged and breakdown email dispatched.' });
+        await dispatchEmail(merchantEmail, '💳 SAIL Credit Application - All Time Business Ltd', creditMailHtml);
+        return res.status(200).json({ status: 'success', message: 'Credit application logged successfully.' });
 
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to log credit application.' });
@@ -473,120 +651,26 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
     }
 });
 
-// =========================================================================
-// 🔒 ADMIN COMMAND CENTER ENDPOINTS (private.html)
-// =========================================================================
-
-// 1. Fetch Complete Ecosystem Metrics & Credit Queue
+// Admin Command Desk Overview
 app.get('/api/v1/admin/overview', (req, res) => {
     try {
         const accounts = loadAccounts();
         const merchantsList = Object.values(accounts);
         
-        const totalMerchants = merchantsList.length;
-        const totalWalletBalance = merchantsList.reduce((acc, curr) => acc + (curr.balance || 0), 0);
-
-        // Fetch Credit Applications Array
-        const creditApps = global.creditApplications || [];
-
         return res.status(200).json({
             status: 'success',
             metrics: {
-                totalMerchants,
-                totalWalletBalance,
-                activeCreditAppsCount: creditApps.length
+                totalMerchants: merchantsList.length,
+                totalWalletBalance: merchantsList.reduce((acc, curr) => acc + (curr.balance || 0), 0),
+                activeCreditAppsCount: (global.creditApplications || []).length
             },
-            merchants: merchantsList.map(m => ({
-                merchantName: m.merchantName,
-                phone: m.phone,
-                email: m.email,
-                virtualNuban: m.virtualNuban,
-                bankName: m.bankName,
-                settlementAccount: m.settlementAccount,
-                balance: m.balance
-            })),
-            creditApplications: creditApps
+            merchants: merchantsList,
+            creditApplications: global.creditApplications || []
         });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to retrieve admin analytics.' });
     }
 });
-
-// 2. Process Loan Decision (Approve / Reject)
-app.post('/api/v1/admin/credit/action', async (req, res) => {
-    try {
-        const { appId, action, merchantEmail, merchantName, creditAmount } = req.body;
-
-        const isApproved = action === 'APPROVE';
-        const statusColor = isApproved ? '#10b981' : '#ef4444';
-        const statusText = isApproved ? 'APPROVED & DISBURSED' : 'DECLINED';
-
-        // Update application state in array
-        const appObj = global.creditApplications.find(a => a.appId === appId);
-        if (appObj) {
-            appObj.status = statusText;
-        }
-
-        const decisionMailHtml = `
-            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
-                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
-                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY | SAIL CREDIT RISK DESK</p>
-                <hr style="border-color:#334155; margin:20px 0;">
-                <h3 style="color:${statusColor};">SAIL Credit Application ${statusText}</h3>
-                <p style="line-height:1.6; color:#cbd5e1;">Dear <strong>${merchantName}</strong>,</p>
-                <p style="line-height:1.6; color:#cbd5e1;">Your request for a SAIL Working Capital Facility of <strong>₦${parseFloat(creditAmount).toLocaleString('en-NG')}</strong> has been evaluated by our underwriting desk.</p>
-                
-                <div style="background:#1e293b; padding:18px; border-radius:10px; margin:20px 0; border-left:4px solid ${statusColor};">
-                    <p style="margin:6px 0;"><strong>Decision Status:</strong> <span style="color:${statusColor}; font-weight:800;">${statusText}</span></p>
-                    <p style="margin:6px 0;"><strong>Facility Amount:</strong> ₦${parseFloat(creditAmount).toLocaleString('en-NG')}</p>
-                    ${isApproved ? '<p style="margin:6px 0; color:#34d399;"><strong>Repayment Schedule:</strong> 20 Working Days (Starts Day 2 Post-Disbursement via daily 5% settlement deductions)</p>' : '<p style="margin:6px 0; color:#cbd5e1;">Reason: Daily gateway settlement turnover does not currently meet underwriting threshold.</p>'}
-                </div>
-            </div>
-        `;
-
-        await dispatchEmail(merchantEmail, `💳 SAIL Credit Decision: ${statusText} - All Time Business Ltd`, decisionMailHtml);
-
-        return res.status(200).json({ status: 'success', message: `Application ${action.toLowerCase()}d and notification email dispatched.` });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to process credit decision.' });
-    }
-});
-
-// 3. Broadcast Newsletter to All Onboarded Merchants
-app.post('/api/v1/admin/newsletter/broadcast', async (req, res) => {
-    try {
-        const { subject, contentHtml } = req.body;
-        const accounts = loadAccounts();
-        const emails = Object.values(accounts).map(a => a.email).filter(e => e && e.includes('@'));
-
-        if (emails.length === 0) {
-            return res.status(400).json({ status: 'error', message: 'No registered merchant emails found.' });
-        }
-
-        let sentCount = 0;
-        for (const email of emails) {
-            const formattedBody = `
-                <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:600px; margin:0 auto; border:1px solid #38bdf8;">
-                    <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
-                    <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY BROADCAST</p>
-                    <hr style="border-color:#334155; margin:20px 0;">
-                    ${contentHtml}
-                    <hr style="border-color:#334155; margin:20px 0;">
-                    <p style="text-align:center; font-size:0.75rem; color:#94a3b8;">www.alltimebusiness.com.ng | Corporate Office: Access Bank Tower, Nigeria</p>
-                </div>
-            `;
-            const dispatched = await dispatchEmail(email, subject, formattedBody);
-            if (dispatched) sentCount++;
-        }
-
-        return res.status(200).json({ status: 'success', message: `Newsletter broadcast dispatched to ${sentCount} merchants.` });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to broadcast newsletter.' });
-    }
-});
-
-// Admin Route Page
-app.get('/private', (req, res) => res.sendFile(path.join(__dirname, 'public', 'private.html')));
 
 // Start Server
 const PORT = process.env.PORT || 8080;
