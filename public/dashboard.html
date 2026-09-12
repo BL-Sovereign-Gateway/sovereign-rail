@@ -3,323 +3,371 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | @BL SOVEREIGN GATEWAY</title>
+    <title>Merchant Command Center | @BL SOVEREIGN GATEWAY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #0b132b; color: #fff; min-height: 100vh; padding: 0; }
-        
-        /* Multi-Partner & ₦2.00 Cashback Marquee */
-        .top-marquee { background: #1c2541; padding: 8px 0; border-bottom: 1px solid #3a506b; font-size: 0.8rem; color: #5bc0be; font-weight: 700; white-space: nowrap; overflow: hidden; }
-        .nav-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #0b132b; border-bottom: 1px solid #1c2541; }
-        .nav-logo { font-size: 1.2rem; font-weight: 800; color: #38bdf8; text-decoration: none; }
-        .nav-user { font-size: 0.85rem; color: #cbd5e1; }
-        
-        .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
-        
-        /* Account Overview Card */
-        .merchant-card { background: linear-gradient(135deg, #1c2541 0%, #0b132b 100%); border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
-        .merchant-main-info { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 16px; }
-        
-        .merchant-info h3 { font-size: 1.4rem; color: #38bdf8; margin-bottom: 4px; font-weight: 800; }
-        .merchant-info p { font-size: 0.85rem; color: #94a3b8; }
-        
-        .wallet-stat-box { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .balance-card { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 10px 18px; border-radius: 10px; text-align: right; }
-        .balance-card .val { font-size: 1.3rem; font-weight: 800; color: #10b981; }
-        
-        .nuban-box { background: rgba(56, 189, 248, 0.1); border: 1px dashed #38bdf8; padding: 10px 18px; border-radius: 10px; text-align: right; }
-        .nuban-box .num { font-size: 1.3rem; font-weight: 800; color: #f59e0b; }
+        :root {
+            --bg-main: #0f172a;
+            --card-bg: #1e293b;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-blue: #38bdf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --danger-red: #ef4444;
+        }
 
-        .softpos-capability-bar { background: #0f172a; border: 1px solid #3a506b; border-radius: 10px; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-        .softpos-status { font-size: 0.85rem; color: #cbd5e1; }
-        .softpos-status strong { color: #10b981; }
-        .softpos-tag { font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight: 700; }
-        
-        .action-btns { display: flex; gap: 8px; width: 100%; border-top: 1px solid #3a506b; padding-top: 12px; }
-        .act-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.85rem; text-align: center; }
-        .btn-fund { background: #38bdf8; color: #0f172a; }
-        .btn-withdraw { background: #ef4444; color: #fff; }
-        .btn-qr { background: #10b981; color: #fff; }
-        
-        /* Product Grid */
-        .section-title { font-size: 0.95rem; color: #38bdf8; font-weight: 800; text-transform: uppercase; margin: 20px 0 12px 0; letter-spacing: 1px; }
-        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 25px; }
-        
-        .product-card { background: #1c2541; border: 1px solid #3a506b; border-radius: 14px; padding: 20px; transition: 0.3s; cursor: pointer; text-decoration: none; color: #fff; }
-        .product-card:hover { border-color: #38bdf8; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(56, 189, 248, 0.15); }
-        .product-card .icon { font-size: 1.8rem; margin-bottom: 10px; display: block; }
-        .product-card h4 { font-size: 1rem; color: #38bdf8; margin-bottom: 6px; }
-        .product-card p { font-size: 0.8rem; color: #94a3b8; line-height: 1.4; }
-        .product-card .badge { display: inline-block; margin-top: 10px; font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 6px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
 
-        .btn-logout { background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.8rem; }
-        
-        /* Modals & Funding Options Styling */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1c2541; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
-        .modal-box input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; background: #0b132b; border: 1px solid #3a506b; color: #fff; }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-        .fund-tab-group { display: flex; gap: 8px; margin: 12px 0; }
-        .fund-tab { flex: 1; padding: 10px; background: #0b132b; border: 1px solid #3a506b; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; }
-        .fund-tab.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.15); }
+        /* Top Navigation Header */
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--accent-blue);
+            letter-spacing: -0.5px;
+        }
+
+        .brand-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* Header Stock Badge */
+        .stock-header-badge {
+            background: linear-gradient(135deg, #064e3b 0%, #059669 100%);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            animation: pulseGlow 2.5s infinite alternate;
+            border: 1px solid #34d399;
+            user-select: none;
+        }
+
+        .stock-svg-icon {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: #34d399;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px rgba(16, 185, 129, 0.3); transform: scale(1); }
+            100% { box-shadow: 0 0 18px rgba(16, 185, 129, 0.7); transform: scale(1.02); }
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 24px;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Grid Layout */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .card-header {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .card-subtext {
+            font-size: 0.8rem;
+            color: var(--accent-green);
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            background-color: var(--accent-green);
+            color: var(--bg-main);
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-green-hover);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--border-color);
+        }
+
+        /* Bottom-Right Pop-up Notification Ticker */
+        #stockTickerToast {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: #0f172a;
+            border: 1px solid #10b981;
+            color: #ffffff;
+            padding: 14px 18px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            max-width: 320px;
+        }
+
+        #stockTickerToast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .stock-popup-btn {
+            background: #10b981;
+            color: #0f172a;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
     </style>
-    <script src="/js/receipt-printer.js"></script>
 </head>
 <body>
 
-<!-- Running Marquee: ₦2.00 Cashback & Multi-Partner Ecosystem -->
-<div class="top-marquee">
-    <marquee scrollamount="6">
-        🎁 GUARANTEED ₦2.00 CASHBACK ON ALL TRANSACTIONS | ⚡ @BL SOVEREIGN GATEWAY POWERED BY: Nomba MFB | Access Bank Plc | ClubKonnect Technologies | VTPass Engine | WAEC | JAMB | Multichoice | Flutterwave | GitHub | Railway App | WAEC e-PIN: ₦3,420 | WAEC GCE Reg: ₦27,520 | JAMB UTME: ₦7,720
-    </marquee>
-</div>
-
-<!-- Navigation Bar -->
-<div class="nav-bar">
-    <a href="/dashboard" class="nav-logo">⚡ @BL SOVEREIGN GATEWAY</a>
-    <div class="nav-user">
-        <span id="merchantDisplayName">Hi, Tope Ogegbo</span>
-        <button class="btn-logout" onclick="logout()" style="margin-left:12px;">Sign Out</button>
-    </div>
-</div>
-
-<div class="container">
-    
-    <!-- Account Overview Card -->
-    <div class="merchant-card">
-        <div class="merchant-main-info">
-            <div class="merchant-info">
-                <h3 id="merchantBusiness">Tope Ogegbo</h3>
-                <p id="merchantPhone">Username: 08022552528</p>
-                <p id="merchantPayout">Payout Bank: Zenith Bank Plc (2417626017)</p>
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand-logo">
+            <div>
+                <div class="brand-title">@BL SOVEREIGN GATEWAY</div>
+                <div class="brand-sub">ALL TIME BUSINESS LTD (RC: 950444)</div>
             </div>
+        </div>
+
+        <!-- Glowing Stock Market Header Badge -->
+        <div class="stock-header-badge" onclick="triggerStockModal()">
+            <svg class="stock-svg-icon" viewBox="0 0 24 24">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                <polyline points="16 7 22 7 22 13"></polyline>
+            </svg>
+            <span>BUY STOCKS & YIELDS</span>
+            <span style="background:var(--danger-red); color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:10px; font-weight:900;">LIVE</span>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Body -->
+    <div class="main-container">
+        
+        <div style="margin-bottom: 24px;">
+            <h1 style="font-size: 1.5rem; font-weight: 800;" id="welcomeHeading">Merchant Command Center</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Automated Collection Wallet & Utility Engine</p>
+        </div>
+
+        <!-- Metrics Overview Grid -->
+        <div class="metrics-grid">
             
-            <div class="wallet-stat-box">
-                <div class="balance-card">
-                    <small style="font-size:0.75rem; color:#cbd5e1; display:block;">Gateway Wallet Balance</small>
-                    <div class="val" id="walletBalance">₦0.00</div>
+            <!-- Wallet Balance Card -->
+            <div class="card">
+                <div class="card-header">Main Wallet Balance</div>
+                <div class="card-value" id="merchantBalance">₦0.00</div>
+                <div class="card-subtext">🟢 Auto-Settlement Active</div>
+                <div class="btn-group">
+                    <a href="/bill-payments" class="btn">Pay Bills</a>
+                    <a href="/credit-support" class="btn btn-outline">SAIL Credit</a>
                 </div>
+            </div>
 
-                <div class="nuban-box">
-                    <small style="font-size:0.75rem; color:#cbd5e1; display:block;">Dedicated Collection NUBAN</small>
-                    <div class="num" id="merchantNuban">9995647631</div>
-                    <small style="color:#38bdf8; font-weight:700;">Nomba MFB / Auto-Settlement</small>
+            <!-- Virtual NUBAN Account Card -->
+            <div class="card">
+                <div class="card-header">Virtual Collection Account</div>
+                <div class="card-value" id="merchantNuban" style="font-size: 1.5rem; color: var(--accent-blue);">---</div>
+                <div class="card-subtext" id="merchantBank">Bank: Nomba / MFB</div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">Transfers to this NUBAN automatically fund your wallet instant 24/7.</p>
+            </div>
+
+            <!-- SAIL Credit Working Capital Card -->
+            <div class="card">
+                <div class="card-header">SAIL Working Capital</div>
+                <div class="card-value" style="color: #f59e0b;">Overdraft Ready</div>
+                <div class="card-subtext" style="color: #f59e0b;">Up to ₦50,000 Facility</div>
+                <div class="btn-group">
+                    <a href="/credit-support" class="btn" style="background: #f59e0b; color: #000;">Apply Facility</a>
                 </div>
+            </div>
+
+        </div>
+
+        <!-- Quick Access Services -->
+        <div class="card" style="margin-bottom: 32px;">
+            <div class="card-header">Core Gateway Utilities</div>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;">
+                <a href="/vtu-support" class="btn btn-outline">VTU Airtime & Data</a>
+                <a href="/bill-payments" class="btn btn-outline">Cable TV & Electricity</a>
+                <a href="/education-support" class="btn btn-outline">WAEC & JAMB e-PINs</a>
+                <a href="/betting-support" class="btn btn-outline">Betting Wallet TopUp</a>
+                <button onclick="triggerStockModal()" class="btn" style="background: #059669; color: #fff;">📈 Stock Trading Desk</button>
             </div>
         </div>
 
-        <div class="softpos-capability-bar">
-            <div class="softpos-status">
-                📲 <strong>SoftPOS Terminal & Dynamic QR:</strong> ELIGIBLE & ACTIVE (Linked to NUBAN <span id="softposNuban" style="color:#f59e0b; font-weight:800;">9995647631</span>)
-            </div>
-            <div class="softpos-tag">Available on Request / Merchant App</div>
-        </div>
-
-        <div class="action-btns">
-            <button class="act-btn btn-fund" onclick="openFundModal()">💳 Fund Wallet</button>
-            <button class="act-btn btn-qr" onclick="openQrModal()">🔳 Generate Dynamic QR</button>
-            <button class="act-btn btn-withdraw" onclick="openWithdrawModal()">🏧 Withdraw Balance</button>
-        </div>
     </div>
 
-    <!-- Core Gateway Services Grid -->
-    <div class="section-title">Core Gateway Services</div>
-    
-    <div class="products-grid">
-        
-        <!-- 1. Airtime & Data Hub -->
-        <a href="/vtu-support" class="product-card">
-            <span class="icon">📱</span>
-            <h4>Airtime & Data Hub</h4>
-            <p>MTN, Airtel, Glo, 9mobile VTU & SME Data Bundles.</p>
-            <span class="badge">DISPATCH ACTIVE</span>
-        </a>
-
-        <!-- 2. Cable TV Subscriptions -->
-        <a href="/bill-payments" class="product-card">
-            <span class="icon">📺</span>
-            <h4>Cable TV Subscriptions</h4>
-            <p>GOTV, DSTV & Startimes Instant Decoder Top-Up.</p>
-            <span class="badge">OFFICIAL BOUQUETS</span>
-        </a>
-
-        <!-- 3. Utility Bills Payment -->
-        <a href="/bill-payments" class="product-card">
-            <span class="icon">⚡</span>
-            <h4>Utility Bills Payment</h4>
-            <p>Prepaid Meter Token Generator (IKEDC, EKEDC, IBEDC, AEDC).</p>
-            <span class="badge">AUTO TOKEN GENERATOR</span>
-        </a>
-
-        <!-- 4. Education Support & e-PINs -->
-        <a href="/education-support" class="product-card">
-            <span class="icon">🎓</span>
-            <h4>Education Support & e-PINs</h4>
-            <p>WAEC SSCE, WAEC GCE Registration, JAMB UTME & Direct Entry.</p>
-            <span class="badge">OFFICIAL WAEC / JAMB</span>
-        </a>
-
-        <!-- 5. Betting Account Top-Up -->
-        <a href="/betting-support" class="product-card">
-            <span class="icon">🎰</span>
-            <h4>Betting Account Top-Up</h4>
-            <p>Instant funding for SportyBet, Bet9ja, 1xBet, BetKing, MSport.</p>
-            <span class="badge">24/7 INSTANT CREDIT</span>
-        </a>
-
-        <!-- 6. SAIL Credit Support & Financing -->
-        <a href="/credit-support" class="product-card">
-            <span class="icon">💼</span>
-            <h4>SAIL Credit Support</h4>
-            <p>Merchant floating overdrafts and automated daily payout settlements.</p>
-            <span class="badge">ACCESS BANK CORPORATE</span>
-        </a>
-
-    </div>
-</div>
-
-<!-- Dynamic QR Code Modal -->
-<div class="modal-overlay" id="qrModal">
-    <div class="modal-box">
-        <h3 style="color:#10b981; margin-bottom:10px;">🔳 Dynamic Merchant QR Code</h3>
-        <p style="font-size:0.85rem; color:#cbd5e1;">Scan with any banking app to pay directly into your collection NUBAN:</p>
-        <div style="background:#fff; padding:15px; border-radius:12px; margin:15px 0; display:inline-block;">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=0037323182_AccessBank_AllTimeBusiness" alt="Dynamic Merchant QR">
+    <!-- Bottom-Right Pop-up Notification Ticker -->
+    <div id="stockTickerToast">
+        <svg class="stock-svg-icon" viewBox="0 0 24 24" style="width:24px; height:24px;">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+        </svg>
+        <div>
+            <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; letter-spacing:0.5px;">INVESTMENT PORTAL</div>
+            <div id="tickerMsg" style="font-size:0.85rem; font-weight:700; color:#34d399;">Buy NGX Stocks & Earn Yields</div>
         </div>
-        <p style="font-size:0.8rem; color:#38bdf8;">Collection NUBAN: <strong id="qrModalNuban">9995647631</strong> (Nomba MFB)</p>
-        <button onclick="closeModals()" style="margin-top:12px; padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;">Close</button>
+        <button class="stock-popup-btn" onclick="triggerStockModal()">Invest</button>
     </div>
-</div>
 
-<!-- Fund Gateway Wallet Modal -->
-<div class="modal-overlay" id="fundModal">
-    <div class="modal-box">
-        <h3 style="color:#38bdf8; margin-bottom:8px;">💳 Fund Gateway Wallet</h3>
-        <p style="font-size:0.8rem; color:#cbd5e1;">Select your preferred payment channel:</p>
-        
-        <div class="fund-tab-group">
-            <div class="fund-tab active" id="fundTabTransfer" onclick="switchFundMethod('TRANSFER')">🏦 Bank Transfer</div>
-            <div class="fund-tab" id="fundTabCard" onclick="switchFundMethod('CARD')">💳 Card / USSD</div>
-        </div>
+    <!-- Footer -->
+    <footer>
+        &copy; 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL SOVEREIGN GATEWAY<br>
+        Headquarters: Ikorodu, Lagos State, Nigeria | www.alltimebusiness.com.ng
+    </footer>
 
-        <!-- Channel 1: Dedicated Virtual NUBAN Bank Transfer -->
-        <div id="transferMethodBox" style="background:#0b132b; padding:15px; border-radius:10px; margin:15px 0; border:1px dashed #38bdf8;">
-            <p style="font-size:0.8rem; color:#94a3b8;">Transfer funds to your dedicated account number below:</p>
-            <p style="font-size:0.8rem; color:#cbd5e1; margin-top:8px;">Bank Name: <strong>Nomba MFB</strong></p>
-            <p style="font-size:1.4rem; font-weight:800; color:#f59e0b; margin:6px 0;" id="modalNuban">9995647631</p>
-            <p style="font-size:0.8rem; color:#38bdf8;" id="modalAccountName">Tope Ogegbo / All Time Business Ltd</p>
-            <small style="color:#10b981; display:block; margin-top:8px; font-weight:700;">⚡ Instant Automated Settlement & Wallet Top-up</small>
-        </div>
-
-        <!-- Channel 2: Online Card / USSD Checkout -->
-        <div id="cardMethodBox" style="display:none; background:#0b132b; padding:15px; border-radius:10px; margin:15px 0; border:1px dashed #38bdf8;">
-            <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Enter amount to fund via Debit Card or USSD:</p>
-            <input type="number" id="cardFundAmount" placeholder="Enter amount (e.g. 5000)" style="margin-bottom:12px;">
-            <button onclick="processCardFunding()" style="width:100%; padding:10px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:800; cursor:pointer;">Proceed to Card Checkout</button>
-        </div>
-
-        <button onclick="closeModals()" style="padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer; width:100%;">Close</button>
-    </div>
-</div>
-
-<!-- Withdraw Funds Modal -->
-<div class="modal-overlay" id="withdrawModal">
-    <div class="modal-box">
-        <h3 style="color:#ef4444; margin-bottom:10px;">🏧 Withdraw Wallet Funds</h3>
-        <p style="font-size:0.85rem; color:#cbd5e1;">Transfer funds directly to your registered settlement bank account:</p>
-        <input type="number" id="withdrawAmount" placeholder="Enter amount (₦)">
-        <button onclick="processWithdrawal()" style="width:100%; padding:12px; background:#10b981; color:#fff; border:none; border-radius:8px; font-weight:800; cursor:pointer;">Initiate Settlement Payout</button>
-        <button onclick="closeModals()" style="margin-top:10px; padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer; width:100%;">Cancel</button>
-    </div>
-</div>
-
-<script>
-function checkSession() {
-    const sessionData = localStorage.getItem('merchantSession');
-    if (sessionData) {
-        const merchant = JSON.parse(sessionData);
-        document.getElementById('merchantDisplayName').textContent = `Hi, ${merchant.merchantName}`;
-        document.getElementById('merchantBusiness').textContent = merchant.merchantName;
-        document.getElementById('merchantPhone').textContent = `Username: ${merchant.phone}`;
-        document.getElementById('merchantPayout').textContent = `Payout Bank: ${merchant.bankName || 'Zenith Bank Plc'} (${merchant.settlementAccount || '2417626017'})`;
-        document.getElementById('merchantNuban').textContent = merchant.virtualNuban || "9995647631";
-        document.getElementById('softposNuban').textContent = merchant.virtualNuban || "9995647631";
-        document.getElementById('modalNuban').textContent = merchant.virtualNuban || "9995647631";
-        document.getElementById('qrModalNuban').textContent = merchant.virtualNuban || "9995647631";
-        document.getElementById('modalAccountName').textContent = merchant.merchantName;
-        document.getElementById('walletBalance').textContent = `₦${(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-    }
-}
-
-function switchFundMethod(method) {
-    if (method === 'TRANSFER') {
-        document.getElementById('fundTabTransfer').classList.add('active');
-        document.getElementById('fundTabCard').classList.remove('active');
-        document.getElementById('transferMethodBox').style.display = 'block';
-        document.getElementById('cardMethodBox').style.display = 'none';
-    } else {
-        document.getElementById('fundTabCard').classList.add('active');
-        document.getElementById('fundTabTransfer').classList.remove('active');
-        document.getElementById('cardMethodBox').style.display = 'block';
-        document.getElementById('transferMethodBox').style.display = 'none';
-    }
-}
-
-async function processCardFunding() {
-    const amount = document.getElementById('cardFundAmount').value;
-    if (!amount || amount <= 0) {
-        alert('Please enter a valid amount.');
-        return;
-    }
-    
-    try {
-        const res = await fetch('/api/v1/checkout/initialize', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                serviceType: 'WALLET_TOPUP',
-                targetInput: 'MERCHANT_WALLET',
-                amount: parseFloat(amount),
-                paymentMethod: 'CARD'
-            })
+    <!-- Dashboard JavaScript Engine -->
+    <script>
+        // Load Merchant Session Data
+        document.addEventListener('DOMContentLoaded', () => {
+            const activeMerchant = JSON.parse(localStorage.getItem('atb_merchant') || '{}');
+            if (activeMerchant && activeMerchant.merchantName) {
+                document.getElementById('welcomeHeading').innerText = `Welcome, ${activeMerchant.merchantName}`;
+                document.getElementById('merchantBalance').innerText = `₦${parseFloat(activeMerchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+                document.getElementById('merchantNuban').innerText = activeMerchant.virtualNuban || 'Pending Generation';
+                document.getElementById('merchantBank').innerText = `Bank: ${activeMerchant.virtualBank || 'Nomba / MFB'}`;
+            }
         });
-        const data = await res.json();
-        if (data.status === 'success' && data.checkoutUrl) {
-            window.location.href = data.checkoutUrl;
-        } else {
-            alert('Unable to initialize card checkout. Please try again.');
+
+        // Dynamic Merchant Notification Ticker Messages
+        const tickerAlerts = [
+            "Buy NGX Stocks directly from your wallet!",
+            "MTNN & AIRTELAFRI Yields updated live!",
+            "Sweep daily settlements into Money Market Funds!",
+            "Earn up to 18% p.a. on Eurobond Assets!",
+            "One-click stock trading via @BL Gateway!"
+        ];
+
+        let currentMsgIndex = 0;
+        const toastEl = document.getElementById('stockTickerToast');
+        const msgEl = document.getElementById('tickerMsg');
+
+        // Popup triggers every 12 seconds, remains visible for 5 seconds
+        setInterval(() => {
+            msgEl.innerText = tickerAlerts[currentMsgIndex];
+            toastEl.classList.add('show');
+            
+            setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 5000);
+
+            currentMsgIndex = (currentMsgIndex + 1) % tickerAlerts.length;
+        }, 12000);
+
+        function triggerStockModal() {
+            alert("🚀 Stock & Investment Desk powered by @BL SOVEREIGN GATEWAY!\n\nBrokerage API integration (Cowrywise Embed) is being finalized. Live stock purchases and automated yield sweeps will unlock directly on your wallet profile.");
         }
-    } catch (err) {
-        alert('❌ Network connection error. Please try again.');
-    }
-}
-
-function openFundModal() { document.getElementById('fundModal').style.display = 'flex'; }
-function openWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
-function openQrModal() { document.getElementById('qrModal').style.display = 'flex'; }
-function closeModals() {
-    document.getElementById('fundModal').style.display = 'none';
-    document.getElementById('withdrawModal').style.display = 'none';
-    document.getElementById('qrModal').style.display = 'none';
-}
-
-function processWithdrawal() {
-    const amount = document.getElementById('withdrawAmount').value;
-    if (!amount || amount <= 0) {
-        alert('Please enter a valid amount.');
-        return;
-    }
-    alert(`🎉 Settlement payout request for ₦${amount} submitted! Processing to registered payout bank.`);
-    closeModals();
-}
-
-function logout() {
-    localStorage.removeItem('merchantSession');
-    window.location.href = '/login';
-}
-
-window.onload = checkSession;
-</script>
-
+    </script>
 </body>
 </html>
