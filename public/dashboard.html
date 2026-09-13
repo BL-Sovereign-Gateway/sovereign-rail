@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | @BL SOVEREIGN GATEWAY - All Time Business Ltd</title>
-    <!-- Master CSS Preservation -->
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* =========================================================================
            🔄 ALL TIME BUSINESS LTD | MASTER DASHBOARD TEMPLATE - (NON-BREAKING)
-           Includes: Ajo Express, SAIL Credit, VTU Portal, PDF Statements, Pricing Engine
+           Includes: Ajo Express (with Mandatory T&C Toggle), PDF Statements, VTU, Credit
            ========================================================================= */
         :root {
             --bg-dark: #0f172a; --bg-card: #1e293b; --bg-input: #0f172a;
@@ -21,7 +20,6 @@
         body { background-color: var(--bg-dark); color: var(--text-main); font-size: 15px; line-height: 1.6; }
         .master-layout { display: flex; min-height: 100vh; }
         
-        /* Sidebar Preservation */
         .sidebar { width: 260px; background-color: var(--bg-card); border-right: 1px solid var(--border); padding: 30px 20px; display: flex; flex-direction: column; }
         .logo-area { text-align: center; margin-bottom: 40px; }
         .logo-text { font-size: 1.2rem; font-weight: 800; color: var(--cyan-main); letter-spacing: -0.5px; }
@@ -33,46 +31,36 @@
         .logout-btn { background: none; border: 1px solid var(--border); color: var(--red-main); width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s; }
         .logout-btn:hover { background-color: rgba(239, 68, 68, 0.1); border-color: var(--red-main); }
 
-        /* Main Content Preservation */
         .content { flex-grow: 1; padding: 40px; }
         .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
         .welcome-text { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
         
-        /* Unified Card Styling */
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 30px; }
         .card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; position: relative; }
         .card-label { font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); font-weight: 700; margin-bottom: 8px; }
         .card-val { font-size: 1.8rem; font-weight: 800; color: var(--cyan-main); }
         .card-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; }
 
-        /* Wallet & Statements Preservation */
         .wallet-card { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* 📄 Account Statement Download Button (PDF) Styling - One Fit For All */
         .statement-btn { background-color: #0284c7; color: #ffffff; border: 1px solid #38bdf8; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
         .statement-btn:hover { background-color: #0ea5e9; transform: translateY(-1px); }
 
-        /* ⚡ Ajo Express Button Styling - Preservation */
         .ajo-btn { background: linear-gradient(135deg, var(--emerald-main), #059669); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
         .ajo-btn:hover { opacity: 0.9; }
 
-        /* Quick Actions Preservation */
         .actions-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
         .action-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-decoration: none; color: var(--text-main); display: flex; align-items: center; gap: 15px; font-weight: 700; transition: 0.2s; }
         .action-card:hover { border-color: var(--cyan-main); transform: translateY(-3px); }
         
-        /* Modals Preservation - (Ajo & Pricing) */
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 480px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; }
         .input-group { margin-bottom: 15px; }
         .input-label { display: block; font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); margin-bottom: 6px; }
-        .form-control, .form-select { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 1rem; }
-        .form-select { appearance: none; cursor: pointer; }
-        .btn-confirm { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; }
-        .btn-confirm:hover { background: var(--cyan-hover); }
-        
-        /* Utilities */
+        .form-select { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 1rem; appearance: none; cursor: pointer; }
+        .btn-confirm { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; transition: 0.2s; }
+        .btn-confirm:hover:not(:disabled) { background: var(--cyan-hover); }
+
         .flex { display: flex; align-items: center; }
         .gap-10 { gap: 10px; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
@@ -83,7 +71,6 @@
 <body>
 
     <div class="master-layout">
-        <!-- Sidebar Preservation -->
         <aside class="sidebar">
             <div class="logo-area">
                 <div class="logo-text">@BL SOVEREIGN GATEWAY</div>
@@ -95,12 +82,11 @@
                 <li class="nav-item"><a href="/bill-payments" class="nav-link"><span>💡</span> Bill Payments</a></li>
                 <li class="nav-item"><a href="/betting-support" class="nav-link"><span>🎮</span> Betting Topup</a></li>
                 <li class="nav-item"><a href="/credit-support" class="nav-link"><span>💳</span> SAIL Credit</a></li>
-                <li class="nav-item"><a href="/privat" class="nav-link"><span>🔒</span> Admin Desk</a></li>
+                <li class="nav-item"><a href="/private" class="nav-link"><span>🔒</span> Admin Desk</a></li>
             </ul>
             <button class="logout-btn" onclick="terminateSession()">Sign Out (MCH-OFF)</button>
         </aside>
 
-        <!-- Main Content Preservation -->
         <main class="content">
             <header class="content-header">
                 <div>
@@ -108,28 +94,21 @@
                     <div class="welcome-text" id="welcomeMerchant">Welcome back, ...</div>
                 </div>
                 <div class="flex gap-10">
-                    <!-- 📄 Monthly PDF Account Statement Download Button (One Fit For All) -->
-                    <button onclick="downloadMonthlyStatement()" class="statement-btn">
-                        📄 DOWNLOAD MONTHLY STATEMENT (PDF)
-                    </button>
-                    <!-- ⚡ Ajo Express Trigger Button -->
+                    <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 DOWNLOAD MONTHLY STATEMENT (PDF)</button>
                     <button onclick="openAjoModal()" class="ajo-btn">⚡ START AJO EXPRESS</button>
                 </div>
             </header>
 
-            <!-- Status Badges Preservation -->
             <div style="margin-bottom: 25px; display: flex; gap: 15px;">
                 <span class="badge badge-active">Gateway Operational</span>
                 <span class="badge badge-active">SMTP Verified</span>
                 <span id="priceSyncStatus" class="badge badge-pending">ClubKonnect Pricing: Syncing...</span>
             </div>
 
-            <!-- Merchant Account Status preservation -->
             <div id="noPlanStatus" class="card" style="margin-bottom: 30px; border-color: var(--emerald-main); background: rgba(16, 185, 129, 0.05); display: none;">
                 <strong>⚡ Account Status:</strong> Complete merchant onboarding. Add liquidity to your Nomba Virtual NUBAN to commence gateway transactions.
             </div>
 
-            <!-- Active Ajo Express Status Card Preservation -->
             <div id="activeAjoStatus" class="card" style="margin-bottom: 30px; display: none; border-color: var(--amber-main); border-style: dashed; background: rgba(245, 158, 11, 0.05);">
                 <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Daily Lock</div>
                 <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -147,7 +126,6 @@
                 </div>
             </div>
 
-            <!-- Global Master Metrics Preservation -->
             <div class="grid-3">
                 <div class="card wallet-card">
                     <div>
@@ -166,7 +144,6 @@
                 </div>
             </div>
 
-            <!-- VTU Quick Actions Preservation -->
             <h2 style="font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px;">VTU & Bill Quick Actions</h2>
             <div class="actions-list">
                 <a href="/vtu-support" class="action-card"><span>📶</span> Buy Data Bundle</a>
@@ -177,25 +154,20 @@
                 <a href="/bill-payments" class="action-card"><span>📺</span> Cable TV (DSTV/GOtv)</a>
             </div>
 
-            <!-- Footer preservation -->
             <footer style="margin-top: 50px; border-top: 1px solid var(--border); padding-top: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
                 © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway | Access Bank Tower, Nigeria
             </footer>
         </main>
     </div>
 
-    <!-- Modals Preservation -->
-
-    <!-- Ajo Express Modal Backdrop & Box -->
+    <!-- Modal with Updated Terms & Conditions Form -->
     <div id="ajoModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.2rem;">⚡ Start Ajo Express Daily Lock</h3>
                 <span onclick="closeAjoModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 15px;">
-                Automate disciplined daily savings. Day 1 contribution is collected as the @BL SOVEREIGN GATEWAY management fee. Days 2–30 savings automatically sweep to your bank account at month-end.
-            </p>
+            
             <form id="ajoForm" onsubmit="submitAjoPlan(event)">
                 <div class="input-group">
                     <label class="input-label">Select Fixed Daily Contribution (₦)</label>
@@ -207,42 +179,57 @@
                         <option value="10000">₦10,000 / day (Target Payout: ₦290,000)</option>
                     </select>
                 </div>
-                <div style="background: rgba(245, 158, 11, 0.05); border-left: 4px solid var(--amber-main); padding: 12px; border-radius: 6px; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 20px;">
-                    ⚠️ <strong>Commitment Terms:</strong> Contributions auto-deduct daily from your collection balance. Breaking plan before 30 days incurs a <strong>10% liquidation penalty</strong> on accumulated funds.
+
+                <div style="background: rgba(245, 158, 11, 0.05); border-left: 4px solid var(--amber-main); padding: 12px; border-radius: 6px; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 15px;">
+                    ⚠️ <strong>Key Rules:</strong> Day 1 contribution is retained by @BL SOVEREIGN GATEWAY as the management fee. Early withdrawal before 30 days incurs a strict <strong>10% penalty</strong> on accumulated savings.
                 </div>
-                <button type="submit" class="btn-confirm">Activate & Collect Day 1 Fee (₦2,000)</button>
+
+                <!-- 🔒 Mandatory Terms & Conditions Checkbox -->
+                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
+                    <input type="checkbox" id="ajoTermsCheck" required style="width: 18px; height: 18px; accent-color: var(--cyan-main); cursor: pointer; margin-top: 2px;">
+                    <label for="ajoTermsCheck" style="font-size: 0.8rem; color: var(--text-sub); cursor: pointer; line-height: 1.4;">
+                        I have read and agree to the <strong style="color: var(--cyan-main);">Ajo Express Terms & Conditions</strong>, including the Day 1 retention fee and 10% early withdrawal penalty.
+                    </label>
+                </div>
+
+                <button type="submit" id="ajoSubmitBtn" class="btn-confirm" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    Activate & Collect Day 1 Fee
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- ClubKonnect Price Sync Modal preservation (Triggered from Private/Private.html) -->
-    <div id="priceSyncModal" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin: 0; color: var(--cyan-main);">🔄 Dynamic Price Sync Engaged</h3>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-sub);">All gateway VTU/Data/Bill pricing has been synchronized with live ClubKonnect (CK101290548) wholesale rate cards.</p>
-        </div>
-    </div>
-
-    <!-- Master Scripts Preservation (Fully Merged) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             authenticateSession();
             loadMasterMetrics();
-            syncClubKonnectPricing(); // Preservation
-            checkAjoExpressStatus(); // Preservation
+            syncClubKonnectPricing();
+            checkAjoExpressStatus();
+
+            // Terms Checkbox Listener Engine
+            const termsCheck = document.getElementById('ajoTermsCheck');
+            const submitBtn = document.getElementById('ajoSubmitBtn');
+            if (termsCheck && submitBtn) {
+                termsCheck.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+                    } else {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                    }
+                });
+            }
         });
 
         function authenticateSession() {
-            const mchId = localStorage.getItem('merchantId') || 'MCH-DEMO';
             const mchName = localStorage.getItem('merchantName') || 'Valued Merchant';
-            const mchPhone = localStorage.getItem('merchantPhone') || '08022552528';
             document.getElementById('welcomeMerchant').textContent = `Welcome back, ${mchName}`;
         }
 
         function loadMasterMetrics() {
-            // Preservation: Load wallet, credit, and transaction data
             document.getElementById('walletBalance').textContent = `₦${(145000).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
             document.getElementById('creditBalance').textContent = `₦0.00`;
         }
@@ -252,53 +239,29 @@
             window.location.href = '/login';
         }
 
-        // =========================================================================
-        // 🔄 CLUBKONNECT DYNAMIC PRICING ENGINE - Preservation
-        // =========================================================================
         async function syncClubKonnectPricing() {
             const badge = document.getElementById('priceSyncStatus');
             try {
-                badge.textContent = 'Pricing: Initializing Sync...';
-                
-                // Fetch live cost prices from ClubKonnect backend
                 const res = await fetch('/api/v1/pricing/live');
                 const data = await res.json();
-                
                 if (data.status === 'success') {
-                    console.log('✅ ClubKonnect Dynamic pricing synchronized successfully.');
-                    badge.textContent = `Pricing: Live Cost Active (Capped @BL Gross Fee)`;
+                    badge.textContent = `Pricing: Live Cost Active`;
                     badge.classList.remove('badge-pending');
                     badge.classList.add('badge-active');
-                    
-                    // Display non-interruptive confirmation modal if requested by Privat Desk
-                    if(localStorage.getItem('ckSyncAlert') === 'true') {
-                        document.getElementById('priceSyncModal').style.display = 'flex';
-                        setTimeout(() => document.getElementById('priceSyncModal').style.display = 'none', 3000);
-                        localStorage.setItem('ckSyncAlert', 'false');
-                    }
                 }
             } catch (err) {
-                console.error('⚠️ ClubKonnect Price sync failed. Retaining fallback rate card:', err.message);
                 badge.textContent = 'Pricing: Fallback Rate Card';
                 badge.style.color = 'var(--red-main)';
             }
         }
 
-        // =========================================================================
-        // ⚡ AJO EXPRESS MICRO-SAVINGS ENGINE - Preservation
-        // =========================================================================
-        
-        // Modal Handlers Preservation
         function openAjoModal() { document.getElementById('ajoModal').style.display = 'flex'; }
         function closeAjoModal() { document.getElementById('ajoModal').style.display = 'none'; }
 
-        // 1. Submit New Plan Preservation
         async function submitAjoPlan(e) {
             e.preventDefault();
             const dailyAmount = document.getElementById('ajoDailyAmount').value;
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-
-            if(!confirm(`Confirm ⚡ Ajo Express activation at ₦${parseFloat(dailyAmount).toLocaleString()}/day? Day 1 fee is collected now.`)) return;
 
             try {
                 const res = await fetch('/api/v1/ajo/create', {
@@ -311,7 +274,7 @@
                 if (data.status === 'success') {
                     alert(`🎉 ${data.message}`);
                     closeAjoModal();
-                    checkAjoExpressStatus(); // Refreshes UI immediately
+                    checkAjoExpressStatus();
                 } else {
                     alert(`⚠️ ${data.message}`);
                 }
@@ -320,7 +283,6 @@
             }
         }
 
-        // 2. Load Status Preservation
         async function checkAjoExpressStatus() {
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
             const ajoActiveCard = document.getElementById('activeAjoStatus');
@@ -334,79 +296,48 @@
                     const plan = data.plan;
                     ajoActiveCard.style.display = 'block';
                     ajoNoPlanCard.style.display = 'none';
-                    
                     document.getElementById('ajoBalance').textContent = `₦${plan.accumulatedSavings.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
                     document.getElementById('ajoDays').textContent = `${plan.daysCompleted}/30`;
                     document.getElementById('nextAjoDeduction').textContent = `₦${plan.dailyAmount.toLocaleString()}`;
-                    
-                    // Format dates preservation
                     const matDate = new Date(plan.maturityDate);
                     document.getElementById('ajoMaturity').textContent = `${matDate.getDate()} ${matDate.toLocaleString('default', { month: 'short' })}, ${matDate.getFullYear()}`;
-                    
-                    // Status badge preservation
-                    const badge = document.getElementById('ajoStatus');
-                    if(plan.daysCompleted === 1) {
-                        badge.textContent = 'LOCKED (DAY 1 FEE COLLECTED)';
-                        badge.classList.remove('badge-active');
-                        badge.classList.add('badge-pending');
-                    } else {
-                        badge.textContent = 'ACTIVE SAVING CYCLE';
-                        badge.classList.remove('badge-pending');
-                        badge.classList.add('badge-active');
-                    }
                 } else {
-                    // No plan running preservation
                     ajoActiveCard.style.display = 'none';
                     ajoNoPlanCard.style.display = 'block';
                 }
             } catch (err) {
-                console.error('❌ Failed to fetch Ajo Express status:', err.message);
                 ajoNoPlanCard.style.display = 'block';
             }
         }
 
-        // 3. Request Early Break Preservation
         async function requestAjoBreak() {
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-            const planId = 'AJO-CURRENT'; // Endpoint handles lookup by active status
-
-            if(!confirm('⚠️ Are you sure you want to break your Ajo Express Daily Lock early? A strict 10% penalty fee will be applied to your accumulated funds immediately. This action is irreversible.')) return;
+            if(!confirm('⚠️ Confirm early plan break? A 10% penalty fee will apply immediately.')) return;
 
             try {
                 const res = await fetch('/api/v1/ajo/break', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ planId, merchantPhone })
+                    body: JSON.stringify({ planId: 'AJO-CURRENT', merchantPhone })
                 });
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    alert(`⚠️ ${data.message} ${parseFloat(data.refundedAmount).toLocaleString()} credited.`);
-                    checkAjoExpressStatus(); // UI resets immediately
+                    alert(`⚠️ ${data.message}`);
+                    checkAjoExpressStatus();
                 } else {
                     alert(`❌ ${data.message}`);
                 }
             } catch (err) {
-                alert('❌ Error breaking Ajo Express plan.');
+                alert('❌ Error breaking plan.');
             }
         }
 
-        // =========================================================================
-        // 📄 MONTHLY PDF ACCOUNT STATEMENT GENERATOR - One Fit For All Script
-        // =========================================================================
         function downloadMonthlyStatement() {
-            // Retrieve session data Preservation
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-            
-            // Format current month preservation
             const currentDate = new Date();
             const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
             const currentYear = currentDate.getFullYear();
-
-            console.log(`📄 Triggering Monthly Account Statement Download for ${currentMonth} ${currentYear}...`);
-
-            // Trigger direct stream download from Backend PDF Engine Preservation
-            // Uses standard window.open to prompt browser save dialog
             window.open(`/api/v1/merchant/statement/download?merchantPhone=${merchantPhone}&month=${currentMonth}&year=${currentYear}`, '_blank');
         }
     </script>
