@@ -8,7 +8,7 @@
     <style>
         /* =========================================================================
            🔄 ALL TIME BUSINESS LTD | MASTER DASHBOARD TEMPLATE - (NON-BREAKING)
-           Includes: Ajo Express (with Mandatory T&C Toggle), PDF Statements, VTU, Credit
+           Includes: Bank Withdrawals (PIN Secured), Ajo Express (T&C), PDF Statements
            ========================================================================= */
         :root {
             --bg-dark: #0f172a; --bg-card: #1e293b; --bg-input: #0f172a;
@@ -45,7 +45,10 @@
         .statement-btn { background-color: #0284c7; color: #ffffff; border: 1px solid #38bdf8; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
         .statement-btn:hover { background-color: #0ea5e9; transform: translateY(-1px); }
 
-        .ajo-btn { background: linear-gradient(135deg, var(--emerald-main), #059669); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .withdraw-btn { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
+        .withdraw-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .ajo-btn { background: linear-gradient(135deg, var(--emerald-main), #059669); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; }
         .ajo-btn:hover { opacity: 0.9; }
 
         .actions-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -57,8 +60,9 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; }
         .input-group { margin-bottom: 15px; }
         .input-label { display: block; font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); margin-bottom: 6px; }
-        .form-select { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 1rem; appearance: none; cursor: pointer; }
-        .btn-confirm { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; transition: 0.2s; }
+        .form-select, .form-control { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 1rem; }
+        .form-select { appearance: none; cursor: pointer; }
+        .btn-confirm { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; transition: 0.2s; cursor: pointer; }
         .btn-confirm:hover:not(:disabled) { background: var(--cyan-hover); }
 
         .flex { display: flex; align-items: center; }
@@ -94,7 +98,8 @@
                     <div class="welcome-text" id="welcomeMerchant">Welcome back, ...</div>
                 </div>
                 <div class="flex gap-10">
-                    <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 DOWNLOAD MONTHLY STATEMENT (PDF)</button>
+                    <button onclick="openWithdrawModal()" class="withdraw-btn">💸 WITHDRAW FUNDS</button>
+                    <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 DOWNLOAD STATEMENT (PDF)</button>
                     <button onclick="openAjoModal()" class="ajo-btn">⚡ START AJO EXPRESS</button>
                 </div>
             </header>
@@ -134,7 +139,7 @@
                         <div class="card-sub">Nomba MFB / Virtual NUBAN 9938120491</div>
                     </div>
                     <div>
-                        <button class="nav-link active"><span>💳</span> View Transactions</button>
+                        <button onclick="openWithdrawModal()" class="withdraw-btn">💸 Transfer Out</button>
                     </div>
                 </div>
                 <div class="card">
@@ -160,7 +165,54 @@
         </main>
     </div>
 
-    <!-- Modal with Updated Terms & Conditions Form -->
+    <!-- 1. BANK WITHDRAWAL MODAL (PIN SECURED) -->
+    <div id="withdrawModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.2rem;">💸 Withdraw to Bank Account</h3>
+                <span onclick="closeWithdrawModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
+            </div>
+            
+            <form id="withdrawForm" onsubmit="submitBankWithdrawal(event)">
+                <div class="input-group">
+                    <label class="input-label">Select Destination Bank</label>
+                    <select id="wthBank" required class="form-select">
+                        <option value="">Select Bank...</option>
+                        <option value="Access Bank Plc">Access Bank Plc</option>
+                        <option value="First Bank Nigeria Limited">First Bank Nigeria Limited</option>
+                        <option value="GTBank Plc">Guaranty Trust Bank Plc</option>
+                        <option value="Zenith Bank Plc">Zenith Bank Plc</option>
+                        <option value="UBA Plc">United Bank For Africa Plc</option>
+                        <option value="Moniepoint MFB">Moniepoint Microfinance Bank</option>
+                        <option value="OPay Digital Services">OPay Digital Services</option>
+                        <option value="PalmPay Limited">PalmPay Limited</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Account Number (10 Digits)</label>
+                    <input type="text" id="wthAccountNo" maxlength="10" pattern="\d{10}" required placeholder="0123456789" class="form-control">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Amount (₦)</label>
+                    <input type="number" id="wthAmount" min="100" required placeholder="5000" class="form-control">
+                </div>
+
+                <!-- 🔒 Security PIN Field -->
+                <div class="input-group" style="background: rgba(239, 68, 68, 0.05); border-left: 4px solid var(--red-main); padding: 10px; border-radius: 6px; margin-bottom: 20px;">
+                    <label class="input-label" style="color: var(--red-main); font-weight: bold;">Enter 4-Digit Security PIN</label>
+                    <input type="password" id="wthPin" maxlength="4" pattern="\d{4}" required placeholder="••••" style="width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--red-main); border-radius: 8px; color: #fff; font-size: 1.5rem; text-align: center; letter-spacing: 8px;">
+                </div>
+
+                <button type="submit" class="btn-confirm" style="background: var(--emerald-main);">
+                    Authorize & Transfer Funds
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. AJO EXPRESS MODAL (WITH T&C CHECKBOX) -->
     <div id="ajoModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
@@ -184,7 +236,6 @@
                     ⚠️ <strong>Key Rules:</strong> Day 1 contribution is retained by @BL SOVEREIGN GATEWAY as the management fee. Early withdrawal before 30 days incurs a strict <strong>10% penalty</strong> on accumulated savings.
                 </div>
 
-                <!-- 🔒 Mandatory Terms & Conditions Checkbox -->
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
                     <input type="checkbox" id="ajoTermsCheck" required style="width: 18px; height: 18px; accent-color: var(--cyan-main); cursor: pointer; margin-top: 2px;">
                     <label for="ajoTermsCheck" style="font-size: 0.8rem; color: var(--text-sub); cursor: pointer; line-height: 1.4;">
@@ -206,7 +257,7 @@
             syncClubKonnectPricing();
             checkAjoExpressStatus();
 
-            // Terms Checkbox Listener Engine
+            // Terms Checkbox Toggle Listener
             const termsCheck = document.getElementById('ajoTermsCheck');
             const submitBtn = document.getElementById('ajoSubmitBtn');
             if (termsCheck && submitBtn) {
@@ -255,6 +306,48 @@
             }
         }
 
+        // =========================================================================
+        // 💸 WITHDRAWAL ENGINE HANDLERS
+        // =========================================================================
+        function openWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
+        function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
+
+        async function submitBankWithdrawal(e) {
+            e.preventDefault();
+            const destinationBank = document.getElementById('wthBank').value;
+            const accountNumber = document.getElementById('wthAccountNo').value.trim();
+            const amount = document.getElementById('wthAmount').value;
+            const withdrawalPin = document.getElementById('wthPin').value.trim();
+            const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
+
+            if (withdrawalPin.length !== 4) {
+                alert('⚠️ Please enter a valid 4-digit security PIN.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/v1/merchant/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ merchantPhone, amount, destinationBank, accountNumber, withdrawalPin })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    alert(`🎉 ${data.message}`);
+                    closeWithdrawModal();
+                    location.reload();
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+            } catch (err) {
+                alert('❌ Error processing bank withdrawal.');
+            }
+        }
+
+        // =========================================================================
+        // ⚡ AJO EXPRESS SAVINGS HANDLERS
+        // =========================================================================
         function openAjoModal() { document.getElementById('ajoModal').style.display = 'flex'; }
         function closeAjoModal() { document.getElementById('ajoModal').style.display = 'none'; }
 
@@ -333,6 +426,9 @@
             }
         }
 
+        // =========================================================================
+        // 📄 PDF STATEMENT DOWNLOAD HANDLER
+        // =========================================================================
         function downloadMonthlyStatement() {
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
             const currentDate = new Date();
