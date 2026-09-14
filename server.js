@@ -2,13 +2,13 @@
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Full Ecosystem: Persistent DB | Universal SMTP | Dynamic Pricing | 
- * Admin Command Desk | Ajo Express | PDF Statement Generator
+ * Admin Command Desk | Ajo Express | PDF Generator | PIN Secured Withdrawals
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * ============================================================================
  */
 
 const express = require('express');
-const path = path = require('path');
+const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
@@ -116,6 +116,72 @@ async function dispatchEmail(targetEmail, subject, htmlContent) {
         return false;
     }
 }
+
+// =========================================================================
+// 💸 MERCHANT BANK WITHDRAWAL ENGINE (WITH 4-DIGIT PIN SECURITY)
+// =========================================================================
+
+app.post('/api/v1/merchant/withdraw', async (req, res) => {
+    try {
+        const { merchantPhone, amount, destinationBank, accountNumber, withdrawalPin } = req.body;
+        const withdrawAmount = parseFloat(amount);
+
+        // 1. Basic Validation
+        if (!merchantPhone || isNaN(withdrawAmount) || withdrawAmount < 100 || !destinationBank || !accountNumber || !withdrawalPin) {
+            return res.status(400).json({ status: 'error', message: 'All fields including bank details, valid amount (min ₦100), and 4-digit PIN are required.' });
+        }
+
+        // 2. PIN Format Check (Must be exactly 4 digits)
+        if (!/^\d{4}$/.test(withdrawalPin.trim())) {
+            return res.status(400).json({ status: 'error', message: 'Security PIN must be a valid 4-digit number.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[merchantPhone.trim()];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        // 3. Balance Check
+        if ((account.balance || 0) < withdrawAmount) {
+            return res.status(400).json({ status: 'error', message: 'Insufficient gateway balance for this withdrawal.' });
+        }
+
+        // 4. Verification Check (Compares PIN against registered account PIN or default '1234')
+        const setPin = account.withdrawalPin || '1234'; 
+        if (withdrawalPin.trim() !== setPin) {
+            return res.status(401).json({ status: 'error', message: 'Unauthorized: Invalid 4-Digit Withdrawal Security PIN.' });
+        }
+
+        // 5. Debit Merchant Balance & Save Record
+        account.balance -= withdrawAmount;
+        saveAccounts(merchantAccounts);
+
+        const withdrawalRef = `WTH-${Date.now()}`;
+
+        // Send Email Confirmation
+        const mailHtml = `
+            <div style="background:#0f172a; color:#fff; padding:25px; font-family:'Segoe UI',sans-serif; border-radius:10px; border:1px solid #38bdf8;">
+                <h3 style="color:#38bdf8;">ALL TIME BUSINESS LTD</h3>
+                <h4 style="color:#10b981;">Withdrawal Debit Alert</h4>
+                <p>A withdrawal of <strong>₦${withdrawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}</strong> has been dispatched to <strong>${destinationBank} (${accountNumber})</strong>.</p>
+                <p>Ref: ${withdrawalRef}</p>
+            </div>
+        `;
+        dispatchEmail(account.email, '💸 Debit Alert: Bank Withdrawal Successful', mailHtml);
+
+        return res.status(200).json({
+            status: 'success',
+            message: `Withdrawal of ₦${withdrawAmount.toLocaleString()} to ${destinationBank} (${accountNumber}) initiated successfully!`,
+            newBalance: account.balance,
+            reference: withdrawalRef
+        });
+
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to process bank withdrawal.' });
+    }
+});
 
 // =========================================================================
 // 🔄 DYNAMIC CLUBKONNECT LIVE PRICE SYNCHRONIZATION ENGINE
@@ -499,7 +565,7 @@ app.get('/private', (req, res) => res.sendFile(path.join(__dirname, 'public', 'p
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
-        const { merchantName, phone, email, password, settlementAccount, bankName } = req.body;
+        const { merchantName, phone, email, password, settlementAccount, bankName, withdrawalPin } = req.body;
 
         if (!merchantName || !phone || !email || !password || !settlementAccount || !bankName) {
             return res.status(400).json({ status: 'error', message: 'All onboarding fields are required.' });
@@ -521,6 +587,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             phone: cleanPhone,
             email: cleanEmail,
             password: hashedPassword,
+            withdrawalPin: (withdrawalPin && /^\d{4}$/.test(withdrawalPin.trim())) ? withdrawalPin.trim() : '1234',
             settlementAccount,
             bankName,
             virtualNuban: generatedNuban,
