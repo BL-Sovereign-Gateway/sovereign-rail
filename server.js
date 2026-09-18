@@ -148,7 +148,8 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         // Send Email Confirmation
         const mailHtml = `
             <div style="background:#0f172a; color:#fff; padding:25px; font-family:'Segoe UI',sans-serif; border-radius:10px; border:1px solid #38bdf8;">
-                <h3 style="color:#38bdf8;">ALL TIME BUSINESS LTD</h3>
+                <h3 style="color:#38bdf8;">@BL SOVEREIGN GATEWAY</h3>
+                <p style="color:#94a3b8; font-size:12px; margin-top:-10px;">ALL TIME BUSINESS LTD (RC: 950444)</p>
                 <h4 style="color:#10b981;">Withdrawal Debit Alert</h4>
                 <p>A withdrawal of <strong>₦${withdrawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}</strong> has been dispatched to <strong>${destinationBank} (${accountNumber})</strong>.</p>
                 <p>Ref: ${withdrawalRef}</p>
@@ -373,7 +374,7 @@ setInterval(() => {
 }, 24 * 60 * 60 * 1000);
 
 // =========================================================================
-// 📄 AUTOMATED MONTHLY ACCOUNT STATEMENT GENERATOR (PDF STREAM)
+// 📄 AUTOMATED MONTHLY ACCOUNT STATEMENT GENERATOR (BRAND HEADLINE RESTRUCTURED)
 // =========================================================================
 
 app.get('/api/v1/merchant/statement/download', async (req, res) => {
@@ -383,10 +384,10 @@ app.get('/api/v1/merchant/statement/download', async (req, res) => {
         
         merchantAccounts = loadAccounts();
         const merchant = merchantAccounts[phone] || {
-            merchantName: 'Valued Merchant',
+            merchantName: 'Tope Ogegbo',
             phone: phone || '08022552528',
-            email: 'merchant@alltimebusiness.com.ng',
-            virtualNuban: '9938120491',
+            email: 'mybusinesshours@yahoo.com',
+            virtualNuban: '9920792189',
             balance: 0.00
         };
 
@@ -401,8 +402,8 @@ app.get('/api/v1/merchant/statement/download', async (req, res) => {
                 <style>
                     body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #0f172a; margin: 0; padding: 25px; }
                     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #38bdf8; padding-bottom: 15px; }
-                    .title { color: #0284c7; font-size: 20px; font-weight: bold; margin: 0; }
-                    .sub-title { color: #64748b; font-size: 11px; text-transform: uppercase; margin-top: 4px; }
+                    .brand-title { color: #0284c7; font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+                    .legal-sub { color: #64748b; font-size: 11px; text-transform: uppercase; margin-top: 3px; font-weight: 600; }
                     .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin: 20px 0; display: flex; justify-content: space-between; }
                     .meta-col { width: 48%; }
                     .meta-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold; }
@@ -418,8 +419,8 @@ app.get('/api/v1/merchant/statement/download', async (req, res) => {
             <body>
                 <div class="header">
                     <div>
-                        <div class="title">ALL TIME BUSINESS LTD</div>
-                        <div class="sub-title">@BL SOVEREIGN GATEWAY | RC: 950444</div>
+                        <div class="brand-title">@BL SOVEREIGN GATEWAY</div>
+                        <div class="legal-sub">ALL TIME BUSINESS LTD (RC: 950444)</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 14px; font-weight: bold; color: #0f172a;">ACCOUNT STATEMENT</div>
@@ -432,7 +433,7 @@ app.get('/api/v1/merchant/statement/download', async (req, res) => {
                         <div class="meta-label">Merchant Details</div>
                         <div class="meta-val">${merchant.merchantName}</div>
                         <div style="font-size: 11px; color: #475569;">Phone: ${merchant.phone} | Email: ${merchant.email}</div>
-                        <div style="font-size: 11px; color: #475569;">Virtual NUBAN: ${merchant.virtualNuban || '9938120491'} (Nomba MFB)</div>
+                        <div style="font-size: 11px; color: #475569;">Virtual NUBAN: ${merchant.virtualNuban || '9920792189'} (Nomba MFB)</div>
                     </div>
                     <div class="meta-col" style="text-align: right;">
                         <div class="meta-label">Settlement Summary</div>
@@ -514,8 +515,8 @@ app.get('/api/v1/test-email', async (req, res) => {
             '⚡ @BL SOVEREIGN GATEWAY - Live Resend API Delivery Test',
             `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
-                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
-                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY</p>
+                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
+                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">ALL TIME BUSINESS LTD (RC: 950444)</p>
                 <hr style="border-color:#334155; margin:20px 0;">
                 <h3 style="color:#10b981;">Resend API Delivery Test Successful!</h3>
                 <p style="line-height:1.6; color:#cbd5e1;">Your HTTP API mailer is fully operational on Port 443 HTTPS. Direct SMTP port restrictions have been bypassed.</p>
@@ -586,8 +587,8 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 
         const welcomeMailHtml = `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
-                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
-                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY</p>
+                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
+                <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">ALL TIME BUSINESS LTD (RC: 950444)</p>
                 <hr style="border-color:#334155; margin:20px 0;">
                 <h3 style="color:#10b981;">Welcome, ${merchantName}!</h3>
                 <p style="line-height:1.6; color:#cbd5e1;">Your merchant account onboarding is complete. Below are your collection account details:</p>
@@ -599,7 +600,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             </div>
         `;
         
-        await dispatchEmail(cleanEmail, '🎉 Merchant Onboarding Successful - All Time Business Ltd', welcomeMailHtml);
+        await dispatchEmail(cleanEmail, '🎉 Merchant Onboarding Successful - @BL SOVEREIGN GATEWAY', welcomeMailHtml);
 
         return res.status(201).json({
             status: 'success',
@@ -661,13 +662,13 @@ app.post('/api/v1/credit/apply', async (req, res) => {
 
         const creditMailHtml = `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:580px; margin:0 auto; border:1px solid #38bdf8;">
-                <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
+                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
                 <h3 style="color:#10b981;">Credit Facility Application Received</h3>
                 <p>Dear <strong>${merchantName}</strong>, your request for a SAIL Working Capital Credit Line (₦${parseFloat(creditAmount).toLocaleString()}) has been logged for review.</p>
             </div>
         `;
 
-        await dispatchEmail(merchantEmail, '💳 SAIL Credit Application - All Time Business Ltd', creditMailHtml);
+        await dispatchEmail(merchantEmail, '💳 SAIL Credit Application - @BL SOVEREIGN GATEWAY', creditMailHtml);
         return res.status(200).json({ status: 'success', message: 'Credit application logged successfully.' });
 
     } catch (err) {
