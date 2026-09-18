@@ -11,10 +11,12 @@
             --text-main: #f8fafc; --text-sub: #94a3b8; --text-muted: #64748b;
             --cyan-main: #38bdf8; --cyan-hover: #0ea5e9; --emerald-main: #10b981;
             --amber-main: #f59e0b; --red-main: #ef4444; --border: #334155;
+            --purple-main: #a855f7;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); font-size: 15px; line-height: 1.6; }
         .master-layout { display: flex; min-height: 100vh; }
+        
         .sidebar { width: 260px; background-color: var(--bg-card); border-right: 1px solid var(--border); padding: 30px 20px; display: flex; flex-direction: column; }
         .logo-area { text-align: center; margin-bottom: 40px; }
         .logo-text { font-size: 1.2rem; font-weight: 800; color: var(--cyan-main); letter-spacing: -0.5px; }
@@ -25,24 +27,35 @@
         .nav-link:hover, .nav-link.active { background-color: rgba(56, 189, 248, 0.1); color: var(--cyan-main); }
         .logout-btn { background: none; border: 1px solid var(--border); color: var(--red-main); width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s; }
         .logout-btn:hover { background-color: rgba(239, 68, 68, 0.1); border-color: var(--red-main); }
+
         .content { flex-grow: 1; padding: 40px; }
         .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
         .welcome-text { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
+        
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 30px; }
         .card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; position: relative; }
         .card-label { font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); font-weight: 700; margin-bottom: 8px; }
         .card-val { font-size: 1.8rem; font-weight: 800; color: var(--cyan-main); }
         .card-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; }
+
         .wallet-card { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; }
+        
+        .fund-btn { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
+        .fund-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        
         .statement-btn { background-color: #0284c7; color: #ffffff; border: 1px solid #38bdf8; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
         .statement-btn:hover { background-color: #0ea5e9; transform: translateY(-1px); }
+
         .withdraw-btn { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
         .withdraw-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .ajo-btn { background: linear-gradient(135deg, var(--emerald-main), #059669); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+
+        .ajo-btn { background: linear-gradient(135deg, var(--amber-main), #d97706); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; }
         .ajo-btn:hover { opacity: 0.9; }
-        .actions-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        .action-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-decoration: none; color: var(--text-main); display: flex; align-items: center; gap: 15px; font-weight: 700; transition: 0.2s; }
+
+        .actions-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .action-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-decoration: none; color: var(--text-main); display: flex; align-items: center; gap: 15px; font-weight: 700; transition: 0.2s; cursor: pointer; }
         .action-card:hover { border-color: var(--cyan-main); transform: translateY(-3px); }
+        
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 480px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; }
@@ -52,6 +65,7 @@
         .form-select { appearance: none; cursor: pointer; }
         .btn-confirm { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; transition: 0.2s; cursor: pointer; }
         .btn-confirm:hover:not(:disabled) { background: var(--cyan-hover); }
+
         .flex { display: flex; align-items: center; }
         .gap-10 { gap: 10px; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
@@ -60,7 +74,9 @@
     </style>
 </head>
 <body>
+
     <div class="master-layout">
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo-area">
                 <div class="logo-text">@BL SOVEREIGN GATEWAY</div>
@@ -70,6 +86,7 @@
                 <li class="nav-item"><a href="/dashboard" class="nav-link active"><span>📊</span> Dashboard</a></li>
                 <li class="nav-item"><a href="/vtu-support" class="nav-link"><span>📲</span> VTU & Data</a></li>
                 <li class="nav-item"><a href="/bill-payments" class="nav-link"><span>💡</span> Bill Payments</a></li>
+                <li class="nav-item"><a href="/education-support" class="nav-link"><span>🎓</span> Education Support</a></li>
                 <li class="nav-item"><a href="/betting-support" class="nav-link"><span>🎮</span> Betting Topup</a></li>
                 <li class="nav-item"><a href="/credit-support" class="nav-link"><span>💳</span> SAIL Credit</a></li>
                 <li class="nav-item"><a href="/private" class="nav-link"><span>🔒</span> Admin Desk</a></li>
@@ -77,29 +94,34 @@
             <button class="logout-btn" onclick="terminateSession()">Sign Out (MCH-OFF)</button>
         </aside>
 
+        <!-- Main Workspace -->
         <main class="content">
             <header class="content-header">
                 <div>
                     <div class="sub-logo">RC: 950444</div>
-                    <div class="welcome-text" id="welcomeMerchant">Welcome back, ...</div>
+                    <div class="welcome-text" id="welcomeMerchant">Welcome back, Tope Ogegbo</div>
                 </div>
                 <div class="flex gap-10">
+                    <button onclick="openFundModal()" class="fund-btn">➕ FUND WALLET</button>
                     <button onclick="openWithdrawModal()" class="withdraw-btn">💸 WITHDRAW FUNDS</button>
-                    <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 DOWNLOAD STATEMENT (PDF)</button>
-                    <button onclick="openAjoModal()" class="ajo-btn">⚡ START AJO EXPRESS</button>
+                    <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 STATEMENT (PDF)</button>
+                    <button onclick="openAjoModal()" class="ajo-btn">⚡ AJO EXPRESS</button>
                 </div>
             </header>
 
+            <!-- Verification Status Badges -->
             <div style="margin-bottom: 25px; display: flex; gap: 15px;">
                 <span class="badge badge-active">Gateway Operational</span>
                 <span class="badge badge-active">SMTP Verified</span>
                 <span id="priceSyncStatus" class="badge badge-pending">ClubKonnect Pricing: Syncing...</span>
             </div>
 
+            <!-- Onboarding Alert Status -->
             <div id="noPlanStatus" class="card" style="margin-bottom: 30px; border-color: var(--emerald-main); background: rgba(16, 185, 129, 0.05); display: none;">
                 <strong>⚡ Account Status:</strong> Complete merchant onboarding. Add liquidity to your Nomba Virtual NUBAN to commence gateway transactions.
             </div>
 
+            <!-- Active Ajo Express Plan Card -->
             <div id="activeAjoStatus" class="card" style="margin-bottom: 30px; display: none; border-color: var(--amber-main); border-style: dashed; background: rgba(245, 158, 11, 0.05);">
                 <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Daily Lock</div>
                 <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -117,14 +139,16 @@
                 </div>
             </div>
 
+            <!-- Financial Balances Grid -->
             <div class="grid-3">
                 <div class="card wallet-card">
                     <div>
                         <div class="card-label">Gateway Ledger Balance</div>
-                        <div class="card-val" id="walletBalance">₦...,000.00</div>
-                        <div class="card-sub">Nomba MFB / Virtual NUBAN 9938120491</div>
+                        <div class="card-val" id="walletBalance">₦145,000.00</div>
+                        <div class="card-sub">Nomba MFB / Virtual NUBAN: <strong style="color: var(--cyan-main);">9920792189</strong></div>
                     </div>
-                    <div>
+                    <div class="flex gap-10">
+                        <button onclick="openFundModal()" class="fund-btn">➕ Deposit</button>
                         <button onclick="openWithdrawModal()" class="withdraw-btn">💸 Transfer Out</button>
                     </div>
                 </div>
@@ -135,14 +159,18 @@
                 </div>
             </div>
 
-            <h2 style="font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px;">VTU & Bill Quick Actions</h2>
+            <!-- VTU & Utility Quick Actions -->
+            <h2 style="font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px;">VTU, Bills & Financial Products</h2>
             <div class="actions-list">
                 <a href="/vtu-support" class="action-card"><span>📶</span> Buy Data Bundle</a>
                 <a href="/vtu-support" class="action-card"><span>📞</span> Buy Airtime</a>
-                <a href="/betting-support" class="action-card"><span>🎰</span> Betting Topup</a>
+                <a href="/education-support" class="action-card"><span>🎓</span> WAEC / JAMB Result PINs</a>
                 <a href="/bill-payments" class="action-card"><span>💡</span> Electricity (Disco)</a>
-                <a href="/education-support" class="action-card"><span>🎓</span> WAEC / JAMB PINs</a>
                 <a href="/bill-payments" class="action-card"><span>📺</span> Cable TV (DSTV/GOtv)</a>
+                <a href="/betting-support" class="action-card"><span>🎮</span> Betting Wallet Topup</a>
+                <div onclick="openStockModal()" class="action-card" style="border-color: var(--purple-main);">
+                    <span>📈</span> Buy Stocks (T&C Apply)
+                </div>
             </div>
 
             <footer style="margin-top: 50px; border-top: 1px solid var(--border); padding-top: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
@@ -151,7 +179,24 @@
         </main>
     </div>
 
-    <!-- Modals -->
+    <!-- 1. FUND WALLET MODAL -->
+    <div id="fundModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--emerald-main); font-size: 1.2rem;">➕ Fund Gateway Balance</h3>
+                <span onclick="closeFundModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid var(--emerald-main); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px;">Make a direct bank transfer to your dedicated collection NUBAN to fund your wallet instantly:</p>
+                <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);">Bank Name: <span style="color: var(--cyan-main);">Nomba MFB</span></div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: var(--emerald-main); margin-top: 4px;">Account No: 9920792189</div>
+                <div style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">Account Name: @BL SOVEREIGN / Tope Ogegbo</div>
+            </div>
+            <button onclick="closeFundModal()" class="btn-confirm" style="background: var(--emerald-main);">Done / I Have Transferred</button>
+        </div>
+    </div>
+
+    <!-- 2. BANK WITHDRAWAL MODAL (PIN SECURED) -->
     <div id="withdrawModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
@@ -192,6 +237,7 @@
         </div>
     </div>
 
+    <!-- 3. AJO EXPRESS MODAL -->
     <div id="ajoModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
@@ -225,6 +271,43 @@
         </div>
     </div>
 
+    <!-- 4. BUY STOCKS MODAL (WITH TERMS & CONDITIONS) -->
+    <div id="stockModal" class="modal-backdrop">
+        <div class="modal-content" style="border-color: var(--purple-main);">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--purple-main); font-size: 1.2rem;">📈 Commercial Stock Desk</h3>
+                <span onclick="closeStockModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
+            </div>
+            <form id="stockForm" onsubmit="submitStockPurchase(event)">
+                <div class="input-group">
+                    <label class="input-label">Select Equity / Stock Asset</label>
+                    <select id="stockAsset" required class="form-select">
+                        <option value="NGX_BANKING">NGX Banking Index Portfolio (Nigeria)</option>
+                        <option value="US_TECH">US Tech Equity Basket (S&P 500)</option>
+                        <option value="ATB_COMMERCIAL">All Time Business Corporate Note</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Investment Amount (₦)</label>
+                    <input type="number" id="stockAmount" min="5000" required placeholder="10000" class="form-control">
+                </div>
+                <div style="background: rgba(168, 85, 247, 0.08); border-left: 4px solid var(--purple-main); padding: 12px; border-radius: 6px; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 15px;">
+                    📜 <strong>Stock Market Risk Terms:</strong> Equities and financial market investments are subject to market volatility. Returns are non-guaranteed and past performance is not an indicator of future results. ALL TIME BUSINESS LTD acts as a execution desk under registered SEC compliance guidelines.
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
+                    <input type="checkbox" id="stockTermsCheck" required style="width: 18px; height: 18px; accent-color: var(--purple-main); cursor: pointer; margin-top: 2px;">
+                    <label for="stockTermsCheck" style="font-size: 0.8rem; color: var(--text-sub); cursor: pointer; line-height: 1.4;">
+                        I confirm that I understand the market risk disclosures and accept the <strong style="color: var(--purple-main);">Stock Trading Terms & Conditions</strong>.
+                    </label>
+                </div>
+                <button type="submit" id="stockSubmitBtn" class="btn-confirm" disabled style="background: var(--purple-main); opacity: 0.5; cursor: not-allowed; color: #fff;">
+                    Authorize Equity Order
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Engine -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             authenticateSession();
@@ -232,25 +315,31 @@
             syncClubKonnectPricing();
             checkAjoExpressStatus();
 
+            // Ajo Express T&C Checkbox Listener
             const termsCheck = document.getElementById('ajoTermsCheck');
             const submitBtn = document.getElementById('ajoSubmitBtn');
             if (termsCheck && submitBtn) {
                 termsCheck.addEventListener('change', (e) => {
-                    if (e.target.checked) {
-                        submitBtn.disabled = false;
-                        submitBtn.style.opacity = '1';
-                        submitBtn.style.cursor = 'pointer';
-                    } else {
-                        submitBtn.disabled = true;
-                        submitBtn.style.opacity = '0.5';
-                        submitBtn.style.cursor = 'not-allowed';
-                    }
+                    submitBtn.disabled = !e.target.checked;
+                    submitBtn.style.opacity = e.target.checked ? '1' : '0.5';
+                    submitBtn.style.cursor = e.target.checked ? 'pointer' : 'not-allowed';
+                });
+            }
+
+            // Buy Stocks T&C Checkbox Listener
+            const stockCheck = document.getElementById('stockTermsCheck');
+            const stockBtn = document.getElementById('stockSubmitBtn');
+            if (stockCheck && stockBtn) {
+                stockCheck.addEventListener('change', (e) => {
+                    stockBtn.disabled = !e.target.checked;
+                    stockBtn.style.opacity = e.target.checked ? '1' : '0.5';
+                    stockBtn.style.cursor = e.target.checked ? 'pointer' : 'not-allowed';
                 });
             }
         });
 
         function authenticateSession() {
-            const mchName = localStorage.getItem('merchantName') || 'Valued Merchant';
+            const mchName = localStorage.getItem('merchantName') || 'Tope Ogegbo';
             document.getElementById('welcomeMerchant').textContent = 'Welcome back, ' + mchName;
         }
 
@@ -280,6 +369,11 @@
             }
         }
 
+        // Fund Wallet Handlers
+        function openFundModal() { document.getElementById('fundModal').style.display = 'flex'; }
+        function closeFundModal() { document.getElementById('fundModal').style.display = 'none'; }
+
+        // Bank Withdrawal Handlers
         function openWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
         function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
 
@@ -316,6 +410,7 @@
             }
         }
 
+        // Ajo Express Savings Handlers
         function openAjoModal() { document.getElementById('ajoModal').style.display = 'flex'; }
         function closeAjoModal() { document.getElementById('ajoModal').style.display = 'none'; }
 
@@ -394,6 +489,19 @@
             }
         }
 
+        // Buy Stocks Handlers
+        function openStockModal() { document.getElementById('stockModal').style.display = 'flex'; }
+        function closeStockModal() { document.getElementById('stockModal').style.display = 'none'; }
+
+        function submitStockPurchase(e) {
+            e.preventDefault();
+            const asset = document.getElementById('stockAsset').value;
+            const amount = document.getElementById('stockAmount').value;
+            alert('📈 Stock Purchase Order of ₦' + parseFloat(amount).toLocaleString() + ' logged successfully under T&C agreement!');
+            closeStockModal();
+        }
+
+        // PDF Statement Download
         function downloadMonthlyStatement() {
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
             const currentDate = new Date();
