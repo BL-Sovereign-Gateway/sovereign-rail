@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
- * Full Ecosystem: Persistent DB | Universal SMTP | Dynamic Pricing | 
+ * Full Ecosystem: Persistent DB | Resend HTTP Mailer | Dynamic Pricing | 
  * Admin Command Desk | Ajo Express | PDF Generator | PIN Secured Withdrawals
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * ============================================================================
@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const app = express();
 
@@ -56,58 +56,43 @@ function saveAccounts(accounts) {
 
 let merchantAccounts = loadAccounts();
 
-// 🚀 Robust Port 587 STARTTLS Transporter Configuration
-const smtpUser = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
-const rawPass = process.env.SMTP_PASS || 'vgdkarqhxtcqdtsc';
-const cleanPass = rawPass.replace(/\s+/g, '');
+// 🚀 Resend HTTP Client Configuration (Loaded securely from Environment Variables)
+const resendApiKey = process.env.RESEND_API_KEY;
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: smtpUser,
-        pass: cleanPass
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    connectionTimeout: 15000
-});
+if (!resendApiKey) {
+    console.warn('⚠️ RESEND_API_KEY is missing from environment variables. Set it on Railway dashboard.');
+}
 
-transporter.verify((error) => {
-    if (error) {
-        console.error('❌ SMTP Verification Error:', error.message);
-    } else {
-        console.log('🚀 Universal SMTP Engine Connected & Ready!');
-    }
-});
+const resend = new Resend(resendApiKey);
 
-// Universal Email Dispatch Engine
+// Universal Email Dispatch Engine (HTTP Port 443 API)
 async function dispatchEmail(targetEmail, subject, htmlContent) {
     const defaultSender = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
     const recipient = (targetEmail && targetEmail.includes('@')) 
         ? targetEmail.trim() 
         : defaultSender;
 
-    const mailOptions = {
-        from: `"All Time Business Ltd | Gateway" <${defaultSender}>`,
-        to: recipient,
-        subject: subject,
-        html: htmlContent
-    };
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email dispatched to [${recipient}] | Message ID: ${info.messageId}`);
+        const response = await resend.emails.send({
+            from: 'ALL TIME BUSINESS LTD <onboarding@resend.dev>',
+            to: [recipient],
+            subject: subject,
+            html: htmlContent
+        });
+
+        console.log(`✅ Email dispatched successfully via Resend API to [${recipient}] | ID: ${response.id || 'SUCCESS'}`);
         return true;
     } catch (error) {
         console.error(`❌ Email dispatch failed for [${recipient}]:`, error.message);
         if (recipient !== defaultSender) {
             console.log(`🔄 Retrying backup delivery copy to corporate admin [${defaultSender}]...`);
-            mailOptions.to = defaultSender;
             try {
-                await transporter.sendMail(mailOptions);
+                await resend.emails.send({
+                    from: 'ALL TIME BUSINESS LTD <onboarding@resend.dev>',
+                    to: [defaultSender],
+                    subject: `[ADMIN COPY] ${subject}`,
+                    html: htmlContent
+                });
                 return true;
             } catch (fallbackErr) {
                 console.error(`❌ Admin backup delivery failed:`, fallbackErr.message);
@@ -526,14 +511,14 @@ app.get('/api/v1/test-email', async (req, res) => {
         
         const success = await dispatchEmail(
             testTarget,
-            '⚡ @BL SOVEREIGN GATEWAY - Live SMTP Delivery Test',
+            '⚡ @BL SOVEREIGN GATEWAY - Live Resend API Delivery Test',
             `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; max-width:550px; margin:0 auto; border:1px solid #38bdf8;">
                 <h2 style="color:#38bdf8; text-align:center;">ALL TIME BUSINESS LTD</h2>
                 <p style="text-align:center; color:#cbd5e1; font-size:0.8rem; text-transform:uppercase;">@BL SOVEREIGN GATEWAY</p>
                 <hr style="border-color:#334155; margin:20px 0;">
-                <h3 style="color:#10b981;">SMTP Email Delivery Test Successful!</h3>
-                <p style="line-height:1.6; color:#cbd5e1;">Your Gmail App Password integration is fully operational on Port 587 STARTTLS.</p>
+                <h3 style="color:#10b981;">Resend API Delivery Test Successful!</h3>
+                <p style="line-height:1.6; color:#cbd5e1;">Your HTTP API mailer is fully operational on Port 443 HTTPS. Direct SMTP port restrictions have been bypassed.</p>
             </div>
             `
         );
