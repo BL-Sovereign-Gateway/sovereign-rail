@@ -29,14 +29,14 @@
         .logout-btn:hover { background-color: rgba(239, 68, 68, 0.1); border-color: var(--red-main); }
 
         .content { flex-grow: 1; padding: 35px 40px; }
-        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
         .welcome-text { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); }
         
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
         .card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .card-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-sub); font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
         .card-val { font-size: 1.75rem; font-weight: 800; color: var(--cyan-main); }
-        .card-sub { font-size: 0.82rem; color: var(--text-muted); margin-top: 6px; }
+        .card-sub { font-size: 0.85rem; color: var(--text-sub); margin-top: 6px; }
 
         .wallet-card { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--cyan-main); }
         
@@ -53,7 +53,7 @@
         .action-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; text-decoration: none; color: var(--text-main); display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 0.9rem; transition: 0.2s; cursor: pointer; }
         .action-card:hover { border-color: var(--cyan-main); transform: translateY(-2px); background-color: rgba(56, 189, 248, 0.03); }
         
-        .eye-toggle { cursor: pointer; font-size: 0.9rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; transition: 0.2s; }
+        .eye-toggle { cursor: pointer; font-size: 0.85rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; transition: 0.2s; }
         .eye-toggle:hover { background: rgba(56, 189, 248, 0.2); }
         
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
@@ -69,14 +69,13 @@
         .flex { display: flex; align-items: center; }
         .gap-10 { gap: 10px; }
         .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .badge-active { background-color: rgba(16, 185, 129, 0.12); color: var(--emerald-main); border: 1px solid rgba(16, 185, 129, 0.3); }
         .badge-pending { background-color: rgba(245, 158, 11, 0.12); color: var(--amber-main); border: 1px solid rgba(245, 158, 11, 0.3); }
     </style>
 </head>
 <body>
 
     <div class="master-layout">
-        <!-- 🏢 Brand Sidebar Navigation -->
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo-area">
                 <div class="logo-text">@BL SOVEREIGN GATEWAY</div>
@@ -94,7 +93,7 @@
             <button class="logout-btn" onclick="terminateSession()">Sign Out</button>
         </aside>
 
-        <!-- 🖥️ Workspace -->
+        <!-- Main Workspace -->
         <main class="content">
             <header class="content-header">
                 <div>
@@ -104,16 +103,11 @@
                     <button onclick="openFundModal()" class="fund-btn">➕ FUND WALLET</button>
                     <button onclick="openWithdrawModal()" class="withdraw-btn">💸 WITHDRAW FUNDS</button>
                     <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 STATEMENT (PDF)</button>
-                    <button onclick="openAjoModal()" class="ajo-btn">⚡ AJO</button>
+                    <button onclick="openAjoModal()" class="ajo-btn">⚡ AJO Express</button>
                 </div>
             </header>
 
-            <!-- Status Banner -->
-            <div id="noPlanStatus" class="card" style="margin-bottom: 25px; border-color: var(--emerald-main); background: rgba(16, 185, 129, 0.05);">
-                <strong>⚡ Active:</strong> Fund your account to process automated transactions.
-            </div>
-
-            <!-- Active Ajo Express Card -->
+            <!-- Active Ajo Express Status Card -->
             <div id="activeAjoStatus" class="card" style="margin-bottom: 25px; display: none; border-color: var(--amber-main); border-style: dashed; background: rgba(245, 158, 11, 0.04);">
                 <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Savings Lock</div>
                 <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -131,7 +125,7 @@
                 </div>
             </div>
 
-            <!-- 💳 Financial Ledger Cards with Dual Reveal/Hide Toggles -->
+            <!-- Financial Balances Grid -->
             <div class="grid-3">
                 <!-- Gateway Ledger Balance -->
                 <div class="card wallet-card">
@@ -141,7 +135,7 @@
                             <span class="eye-toggle" id="toggleWalletEye" onclick="toggleWalletVisibility()">👁️ Hide</span>
                         </div>
                         <div class="card-val" id="walletBalance">₦••••••••</div>
-                        <div class="card-sub">Nomba MFB, Account no. <strong style="color: var(--cyan-main);">9920792189</strong></div>
+                        <div class="card-sub">Account Number <strong style="color: var(--cyan-main);">9920792189</strong>. Nomba MFB.</div>
                     </div>
                     <div class="flex gap-10">
                         <button onclick="openFundModal()" class="fund-btn">➕ Deposit</button>
@@ -160,7 +154,7 @@
                 </div>
             </div>
 
-            <!-- 🛒 Quick Services -->
+            <!-- Quick Services Grid -->
             <h2 style="font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px;">VTU, Bills & Financial Products</h2>
             <div class="actions-list">
                 <a href="/vtu-support" class="action-card"><span>📞</span> Buy Airtime</a>
@@ -185,7 +179,7 @@
                 <span onclick="closeFundModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
             </div>
             <div style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid var(--emerald-main); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px;">Transfer directly to your dedicated collection NUBAN to topup your ledger balance automatically:</p>
+                <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px;">Transfer directly to your dedicated collection NUBAN to top up your ledger balance automatically:</p>
                 <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);">Bank Name: <span style="color: var(--cyan-main);">Nomba MFB</span></div>
                 <div style="font-size: 1.3rem; font-weight: 800; color: var(--emerald-main); margin-top: 4px;">Account No: 9920792189</div>
                 <div style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">Account Name: @BL SOVEREIGN / Tope Ogegbo</div>
@@ -194,7 +188,7 @@
         </div>
     </div>
 
-    <!-- 2. BANK WITHDRAWAL MODAL (4-DIGIT PIN SECURED) -->
+    <!-- 2. BANK WITHDRAWAL MODAL -->
     <div id="withdrawModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
@@ -269,7 +263,7 @@
         </div>
     </div>
 
-    <!-- 4. BUY STOCKS & ONBOARDING LICENSE FEE MODAL (₦1,850 FEE) -->
+    <!-- 4. BUY STOCKS & LICENSE FEE MODAL -->
     <div id="stockModal" class="modal-backdrop">
         <div class="modal-content" style="border-color: var(--purple-main);">
             <div class="modal-header">
@@ -309,11 +303,9 @@
 
     <!-- JavaScript Engine -->
     <script>
-        // Actual Numeric Balances
         let walletRawAmount = 145000;
         let creditRawAmount = 0;
 
-        // Privacy Visibility States
         let isWalletHidden = true;
         let isCreditHidden = true;
 
@@ -343,7 +335,6 @@
             }
         });
 
-        // Independent Privacy Toggle: Gateway Ledger Balance
         function toggleWalletVisibility() {
             isWalletHidden = !isWalletHidden;
             const balElem = document.getElementById('walletBalance');
@@ -358,7 +349,6 @@
             }
         }
 
-        // Independent Privacy Toggle: SAIL Credit Line
         function toggleCreditVisibility() {
             isCreditHidden = !isCreditHidden;
             const creditElem = document.getElementById('creditBalance');
@@ -458,7 +448,6 @@
         async function checkAjoExpressStatus() {
             const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
             const ajoActiveCard = document.getElementById('activeAjoStatus');
-            const ajoNoPlanCard = document.getElementById('noPlanStatus');
             
             try {
                 const res = await fetch('/api/v1/ajo/status/' + merchantPhone);
@@ -467,7 +456,6 @@
                 if (data.status === 'success' && data.hasActivePlan) {
                     const plan = data.plan;
                     ajoActiveCard.style.display = 'block';
-                    ajoNoPlanCard.style.display = 'none';
                     document.getElementById('ajoBalance').textContent = '₦' + plan.accumulatedSavings.toLocaleString('en-NG', {minimumFractionDigits: 2});
                     document.getElementById('ajoDays').textContent = plan.daysCompleted + '/30';
                     document.getElementById('nextAjoDeduction').textContent = '₦' + plan.dailyAmount.toLocaleString();
@@ -475,10 +463,9 @@
                     document.getElementById('ajoMaturity').textContent = matDate.getDate() + ' ' + matDate.toLocaleString('default', { month: 'short' }) + ', ' + matDate.getFullYear();
                 } else {
                     ajoActiveCard.style.display = 'none';
-                    ajoNoPlanCard.style.display = 'block';
                 }
             } catch (err) {
-                ajoNoPlanCard.style.display = 'block';
+                ajoActiveCard.style.display = 'none';
             }
         }
 
