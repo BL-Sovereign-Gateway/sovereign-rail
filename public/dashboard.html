@@ -32,9 +32,9 @@
         .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
         .welcome-text { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); }
 
-        /* 🔄 Cashback & Partner Ticker Bar */
+        /* 🔄 Synchronized Ticker Engine */
         .ticker-wrapper { width: 100%; overflow: hidden; background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 25px; padding: 10px 0; }
-        .ticker-content { display: inline-block; whitespace: nowrap; animation: ticker 25s linear infinite; }
+        .ticker-content { display: inline-block; whitespace: nowrap; animation: ticker 20s linear infinite; }
         .ticker-item { display: inline-block; padding: 0 30px; font-size: 0.85rem; font-weight: 700; color: var(--cyan-main); }
         @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
         
@@ -62,7 +62,7 @@
         .eye-toggle { cursor: pointer; font-size: 0.85rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; transition: 0.2s; }
         .eye-toggle:hover { background: rgba(56, 189, 248, 0.2); }
 
-        /* 🔔 Recurring Pop-up Toast */
+        /* 🔔 Synchronized Promotional Pop-up Toast */
         .promo-toast { position: fixed; bottom: 30px; right: 30px; background: var(--bg-card); border: 1px solid var(--cyan-main); border-radius: 12px; padding: 16px 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); display: none; z-index: 99999; max-width: 340px; animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
@@ -117,13 +117,11 @@
                 </div>
             </header>
 
-            <!-- 🎁 Ticker Banner -->
+            <!-- 🎁 Partners & Cashback Ticker Bar -->
             <div class="ticker-wrapper">
-                <div class="ticker-content">
-                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
-                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
-                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
-                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
+                <div class="ticker-content" id="tickerContent">
+                    <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
+                    <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
                 </div>
             </div>
 
@@ -187,7 +185,7 @@
         </main>
     </div>
 
-    <!-- 🔔 Recurring Promotional Pop-Up Toast -->
+    <!-- 🔔 RECURRING PROMOTIONAL POP-UP TOAST -->
     <div id="promoToast" class="promo-toast">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <strong id="toastTitle" style="color: var(--cyan-main); font-size: 0.9rem;">⚡ Ajo Express Micro-Savings</strong>
@@ -343,7 +341,7 @@
             authenticateSession();
             renderBalances();
             checkAjoExpressStatus();
-            startRecurringPopups();
+            setupSynchronizedPopups();
 
             const termsCheck = document.getElementById('ajoTermsCheck');
             const submitBtn = document.getElementById('ajoSubmitBtn');
@@ -366,14 +364,23 @@
             }
         });
 
-        // Recurring Promotional Pop-up Engine (Ajo Express & Stocks)
+        // 🔄 Synchronized Pop-up Engine (Triggers pop-up immediately at end of each 20-second scroll cycle)
         let promoState = 0;
-        function startRecurringPopups() {
-            setTimeout(showPromoToast, 5000);
-            setInterval(showPromoToast, 25000);
+        function setupSynchronizedPopups() {
+            const tickerElem = document.getElementById('tickerContent');
+            
+            // Fires pop-up immediately at the end of every animation iteration (20 seconds)
+            if (tickerElem) {
+                tickerElem.addEventListener('animationiteration', () => {
+                    triggerScrollEndPopup();
+                });
+            }
+            
+            // Initial trigger after first scroll cycle completes
+            setTimeout(triggerScrollEndPopup, 20000);
         }
 
-        function showPromoToast() {
+        function triggerScrollEndPopup() {
             const toast = document.getElementById('promoToast');
             const title = document.getElementById('toastTitle');
             const body = document.getElementById('toastBody');
@@ -398,6 +405,11 @@
             }
 
             toast.style.display = 'block';
+
+            // Auto-hide pop-up after 8 seconds if ignored
+            setTimeout(() => {
+                closeToast();
+            }, 8000);
         }
 
         function closeToast() {
