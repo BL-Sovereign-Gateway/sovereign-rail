@@ -49,11 +49,12 @@
         .ajo-btn { background: linear-gradient(135deg, var(--amber-main), #d97706); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; }
         .ajo-btn:hover { opacity: 0.9; }
 
-        .actions-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .actions-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .action-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; text-decoration: none; color: var(--text-main); display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 0.9rem; transition: 0.2s; cursor: pointer; }
         .action-card:hover { border-color: var(--cyan-main); transform: translateY(-2px); background-color: rgba(56, 189, 248, 0.03); }
         
-        .eye-toggle { cursor: pointer; font-size: 1rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; }
+        .eye-toggle { cursor: pointer; font-size: 0.9rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; transition: 0.2s; }
+        .eye-toggle:hover { background: rgba(56, 189, 248, 0.2); }
         
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 500px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
@@ -75,11 +76,11 @@
 <body>
 
     <div class="master-layout">
-        <!-- 🏢 Standalone Brand Sidebar -->
+        <!-- 🏢 Brand Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo-area">
                 <div class="logo-text">@BL SOVEREIGN GATEWAY</div>
-                <div class="sub-logo">All Time Business Ltd (RC: 950444)</div>
+                <div class="sub-logo">All Time Business Ltd</div>
             </div>
             <ul class="nav-links">
                 <li class="nav-item"><a href="/dashboard" class="nav-link active"><span>📊</span> Dashboard Desk</a></li>
@@ -90,44 +91,36 @@
                 <li class="nav-item"><a href="/credit-support" class="nav-link"><span>💳</span> SAIL Credit Line</a></li>
                 <li class="nav-item"><a href="/private" class="nav-link"><span>🔒</span> Admin Command Desk</a></li>
             </ul>
-            <button class="logout-btn" onclick="terminateSession()">Sign Out (MCH-OFF)</button>
+            <button class="logout-btn" onclick="terminateSession()">Sign Out</button>
         </aside>
 
-        <!-- 🖥️ Central Command Workspace -->
+        <!-- 🖥️ Workspace -->
         <main class="content">
             <header class="content-header">
                 <div>
-                    <div class="sub-logo">RC: 950444 | Portal v1.05 Live</div>
-                    <div class="welcome-text" id="welcomeMerchant">Welcome back, Tope Ogegbo</div>
+                    <div class="welcome-text" id="welcomeMerchant">Hi, Tope Ogegbo</div>
                 </div>
                 <div class="flex gap-10">
                     <button onclick="openFundModal()" class="fund-btn">➕ FUND WALLET</button>
                     <button onclick="openWithdrawModal()" class="withdraw-btn">💸 WITHDRAW FUNDS</button>
                     <button onclick="downloadMonthlyStatement()" class="statement-btn">📄 STATEMENT (PDF)</button>
-                    <button onclick="openAjoModal()" class="ajo-btn">⚡ AJO EXPRESS</button>
+                    <button onclick="openAjoModal()" class="ajo-btn">⚡ AJO</button>
                 </div>
             </header>
 
-            <!-- Status Badges Bar -->
-            <div style="margin-bottom: 25px; display: flex; gap: 15px;">
-                <span class="badge badge-active">🟢 Gateway Live</span>
-                <span class="badge badge-active">🟢 Resend API Active</span>
-                <span id="priceSyncStatus" class="badge badge-pending">🟡 Pricing: Syncing...</span>
-            </div>
-
-            <!-- Onboarding Alert Banner -->
-            <div id="noPlanStatus" class="card" style="margin-bottom: 25px; border-color: var(--emerald-main); background: rgba(16, 185, 129, 0.05); display: none;">
-                <strong>⚡ Account Status Active:</strong> Complete liquidity setup. Fund your Nomba Virtual NUBAN to process automated transactions.
+            <!-- Status Banner -->
+            <div id="noPlanStatus" class="card" style="margin-bottom: 25px; border-color: var(--emerald-main); background: rgba(16, 185, 129, 0.05);">
+                <strong>⚡ Active:</strong> Fund your account to process automated transactions.
             </div>
 
             <!-- Active Ajo Express Card -->
             <div id="activeAjoStatus" class="card" style="margin-bottom: 25px; display: none; border-color: var(--amber-main); border-style: dashed; background: rgba(245, 158, 11, 0.04);">
-                <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Micro-Savings Lock</div>
+                <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Savings Lock</div>
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                     <div>
                         <div class="card-val" id="ajoBalance">₦0.00</div>
                         <div class="card-sub">Next Daily Lock: <strong id="nextAjoDeduction">₦...,000.00</strong> | Days Completed: <strong id="ajoDays">.../30</strong></div>
-                        <div class="card-sub">Maturity Date: <strong id="ajoMaturity">..., 2026</strong> (Auto-sweeps to payout bank)</div>
+                        <div class="card-sub">Maturity Date: <strong id="ajoMaturity">..., 2026</strong> (Auto-sweeps to payout account)</div>
                     </div>
                     <div style="text-align: right;">
                         <span class="badge badge-pending" id="ajoStatus">LOCKED (DAY 1 FEE)</span>
@@ -138,45 +131,48 @@
                 </div>
             </div>
 
-            <!-- 💳 Primary Ledger & Financial Balances Deck -->
+            <!-- 💳 Financial Ledger Cards with Dual Reveal/Hide Toggles -->
             <div class="grid-3">
+                <!-- Gateway Ledger Balance -->
                 <div class="card wallet-card">
                     <div>
                         <div class="card-label">
                             <span>Gateway Ledger Balance</span>
-                            <span class="eye-toggle" id="toggleEyeBtn" onclick="toggleBalanceVisibility()">👁️ Hide</span>
+                            <span class="eye-toggle" id="toggleWalletEye" onclick="toggleWalletVisibility()">👁️ Hide</span>
                         </div>
-                        <div class="card-val" id="walletBalance">₦145,000.00</div>
-                        <div class="card-sub">Nomba MFB / Collection NUBAN: <strong style="color: var(--cyan-main);">9920792189</strong></div>
+                        <div class="card-val" id="walletBalance">₦••••••••</div>
+                        <div class="card-sub">Nomba MFB, Account no. <strong style="color: var(--cyan-main);">9920792189</strong></div>
                     </div>
                     <div class="flex gap-10">
                         <button onclick="openFundModal()" class="fund-btn">➕ Deposit</button>
                         <button onclick="openWithdrawModal()" class="withdraw-btn">💸 Transfer Out</button>
                     </div>
                 </div>
+
+                <!-- SAIL Credit Line -->
                 <div class="card">
-                    <div class="card-label">SAIL Credit Line</div>
-                    <div class="card-val" id="creditBalance">₦0.00</div>
+                    <div class="card-label">
+                        <span>SAIL Credit Line</span>
+                        <span class="eye-toggle" id="toggleCreditEye" onclick="toggleCreditVisibility()">👁️ Hide</span>
+                    </div>
+                    <div class="card-val" id="creditBalance">₦••••••••</div>
                     <div class="card-sub">Status: <span class="badge badge-pending">Awaiting Volume</span></div>
                 </div>
             </div>
 
-            <!-- 🛒 Commercial Vending & Financial Services Deck -->
+            <!-- 🛒 Quick Services -->
             <h2 style="font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px;">VTU, Bills & Financial Products</h2>
             <div class="actions-list">
-                <a href="/vtu-support" class="action-card"><span>📶</span> Buy Data Bundle</a>
                 <a href="/vtu-support" class="action-card"><span>📞</span> Buy Airtime</a>
                 <a href="/education-support" class="action-card"><span>🎓</span> WAEC / JAMB Result PINs</a>
-                <a href="/bill-payments" class="action-card"><span>💡</span> Electricity Tokens (Disco)</a>
                 <a href="/bill-payments" class="action-card"><span>📺</span> Cable TV (DSTV/GOtv)</a>
-                <a href="/betting-support" class="action-card"><span>🎮</span> Betting Wallet Topup</a>
                 <div onclick="openStockModal()" class="action-card" style="border-color: var(--purple-main);">
                     <span>📈</span> Buy Stocks & Equity (T&C Apply)
                 </div>
             </div>
 
             <footer style="margin-top: 50px; border-top: 1px solid var(--border); padding-top: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
-                © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway | Access Bank Tower, Nigeria
+                © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
             </footer>
         </main>
     </div>
@@ -273,7 +269,7 @@
         </div>
     </div>
 
-    <!-- 4. MERGED BUY STOCKS & ONBOARDING LICENSE FEE MODAL (₦1,850 ONE-TIME FEE) -->
+    <!-- 4. BUY STOCKS & ONBOARDING LICENSE FEE MODAL (₦1,850 FEE) -->
     <div id="stockModal" class="modal-backdrop">
         <div class="modal-content" style="border-color: var(--purple-main);">
             <div class="modal-header">
@@ -294,7 +290,6 @@
                     <input type="number" id="stockAmount" min="5000" required placeholder="10000" class="form-control">
                 </div>
 
-                <!-- One-Time Activation Notice -->
                 <div style="background: rgba(168, 85, 247, 0.08); border-left: 4px solid var(--purple-main); padding: 12px; border-radius: 6px; font-size: 0.78rem; color: var(--text-sub); margin-bottom: 15px;">
                     💳 <strong>One-Time Account Activation & License Fee:</strong> A statutory non-refundable fee of <strong>₦1,850</strong> will be debited alongside your order to complete your stock portal registration and SEC compliance onboarding.
                 </div>
@@ -314,13 +309,17 @@
 
     <!-- JavaScript Engine -->
     <script>
-        let rawBalanceText = '₦145,000.00';
-        let isBalanceHidden = false;
+        // Actual Numeric Balances
+        let walletRawAmount = 145000;
+        let creditRawAmount = 0;
+
+        // Privacy Visibility States
+        let isWalletHidden = true;
+        let isCreditHidden = true;
 
         document.addEventListener('DOMContentLoaded', () => {
             authenticateSession();
-            loadMasterMetrics();
-            syncClubKonnectPricing();
+            renderBalances();
             checkAjoExpressStatus();
 
             const termsCheck = document.getElementById('ajoTermsCheck');
@@ -344,54 +343,49 @@
             }
         });
 
-        // Toggle Hide/Reveal Balance Feature
-        function toggleBalanceVisibility() {
+        // Independent Privacy Toggle: Gateway Ledger Balance
+        function toggleWalletVisibility() {
+            isWalletHidden = !isWalletHidden;
             const balElem = document.getElementById('walletBalance');
-            const eyeBtn = document.getElementById('toggleEyeBtn');
+            const eyeBtn = document.getElementById('toggleWalletEye');
 
-            if (!isBalanceHidden) {
+            if (isWalletHidden) {
                 balElem.textContent = '₦••••••••';
                 eyeBtn.textContent = '👁️ Reveal';
-                isBalanceHidden = true;
             } else {
-                balElem.textContent = rawBalanceText;
+                balElem.textContent = '₦' + walletRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
                 eyeBtn.textContent = '👁️ Hide';
-                isBalanceHidden = false;
             }
+        }
+
+        // Independent Privacy Toggle: SAIL Credit Line
+        function toggleCreditVisibility() {
+            isCreditHidden = !isCreditHidden;
+            const creditElem = document.getElementById('creditBalance');
+            const eyeBtn = document.getElementById('toggleCreditEye');
+
+            if (isCreditHidden) {
+                creditElem.textContent = '₦••••••••';
+                eyeBtn.textContent = '👁️ Reveal';
+            } else {
+                creditElem.textContent = '₦' + creditRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
+                eyeBtn.textContent = '👁️ Hide';
+            }
+        }
+
+        function renderBalances() {
+            document.getElementById('walletBalance').textContent = isWalletHidden ? '₦••••••••' : '₦' + walletRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
+            document.getElementById('creditBalance').textContent = isCreditHidden ? '₦••••••••' : '₦' + creditRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
         }
 
         function authenticateSession() {
             const mchName = localStorage.getItem('merchantName') || 'Tope Ogegbo';
-            document.getElementById('welcomeMerchant').textContent = 'Welcome back, ' + mchName;
-        }
-
-        function loadMasterMetrics() {
-            rawBalanceText = '₦145,000.00';
-            if (!isBalanceHidden) {
-                document.getElementById('walletBalance').textContent = rawBalanceText;
-            }
-            document.getElementById('creditBalance').textContent = '₦0.00';
+            document.getElementById('welcomeMerchant').textContent = 'Hi, ' + mchName;
         }
 
         function terminateSession() {
             localStorage.clear();
             window.location.href = '/login';
-        }
-
-        async function syncClubKonnectPricing() {
-            const badge = document.getElementById('priceSyncStatus');
-            try {
-                const res = await fetch('/api/v1/pricing/live');
-                const data = await res.json();
-                if (data.status === 'success') {
-                    badge.textContent = '🟢 Pricing: Live Cost Active';
-                    badge.classList.remove('badge-pending');
-                    badge.classList.add('badge-active');
-                }
-            } catch (err) {
-                badge.textContent = '🔴 Pricing: Fallback Rate Card';
-                badge.style.color = 'var(--red-main)';
-            }
         }
 
         function openFundModal() { document.getElementById('fundModal').style.display = 'flex'; }
