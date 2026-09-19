@@ -32,10 +32,10 @@
         .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
         .welcome-text { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); }
 
-        /* 🔄 Animated Cashback & Partner Ticker Bar */
-        .ticker-wrapper { width: 100%; overflow: hidden; background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 25px; padding: 8px 0; }
-        .ticker-content { display: inline-block; whitespace: nowrap; animation: ticker 28s linear infinite; }
-        .ticker-item { display: inline-block; padding: 0 25px; font-size: 0.82rem; font-weight: 700; color: var(--cyan-main); }
+        /* 🔄 Cashback & Partner Ticker Bar */
+        .ticker-wrapper { width: 100%; overflow: hidden; background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 25px; padding: 10px 0; }
+        .ticker-content { display: inline-block; whitespace: nowrap; animation: ticker 25s linear infinite; }
+        .ticker-item { display: inline-block; padding: 0 30px; font-size: 0.85rem; font-weight: 700; color: var(--cyan-main); }
         @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
         
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
@@ -62,7 +62,7 @@
         .eye-toggle { cursor: pointer; font-size: 0.85rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; transition: 0.2s; }
         .eye-toggle:hover { background: rgba(56, 189, 248, 0.2); }
 
-        /* 🔔 Recurring Promotional Toast Pop-up */
+        /* 🔔 Recurring Pop-up Toast */
         .promo-toast { position: fixed; bottom: 30px; right: 30px; background: var(--bg-card); border: 1px solid var(--cyan-main); border-radius: 12px; padding: 16px 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); display: none; z-index: 99999; max-width: 340px; animation: slideUp 0.4s ease-out; }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
@@ -117,20 +117,13 @@
                 </div>
             </header>
 
-            <!-- 🔄 Continuous Cashback & Partner Ticker Bar -->
+            <!-- 🎁 Ticker Banner -->
             <div class="ticker-wrapper">
                 <div class="ticker-content">
-                    <span class="ticker-item">🎁 2% Instant Cashback on All Airtime & Utility Vending!</span>
-                    <span class="ticker-item">⚡ Nomba MFB Partner Settlement: Direct NUBAN Liquidity Active</span>
-                    <span class="ticker-item">📈 Commercial Stock Desk: SEC Compliant Equity Registration</span>
-                    <span class="ticker-item">📱 Termii DND SMS Route: Instant OE Alert Verification Active</span>
-                    <span class="ticker-item">🏦 Immediate Access Bank Auto-Sweep Configured for All Settlements</span>
-                    <!-- Loop duplication for seamless scroll -->
-                    <span class="ticker-item">🎁 2% Instant Cashback on All Airtime & Utility Vending!</span>
-                    <span class="ticker-item">⚡ Nomba MFB Partner Settlement: Direct NUBAN Liquidity Active</span>
-                    <span class="ticker-item">📈 Commercial Stock Desk: SEC Compliant Equity Registration</span>
-                    <span class="ticker-item">📱 Termii DND SMS Route: Instant OE Alert Verification Active</span>
-                    <span class="ticker-item">🏦 Immediate Access Bank Auto-Sweep Configured for All Settlements</span>
+                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
+                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
+                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
+                    <span class="ticker-item">🎁 #2 Instant Cashback on All transactions, strategic partners.....</span>
                 </div>
             </div>
 
@@ -154,7 +147,7 @@
 
             <!-- Financial Balances Grid -->
             <div class="grid-3">
-                <!-- Gateway Ledger Balance (Action buttons removed from inside card) -->
+                <!-- Gateway Ledger Balance -->
                 <div class="card wallet-card">
                     <div>
                         <div class="card-label">
@@ -194,14 +187,14 @@
         </main>
     </div>
 
-    <!-- 🔔 RECURRING PROMOTIONAL POP-UP TOAST -->
+    <!-- 🔔 Recurring Promotional Pop-Up Toast -->
     <div id="promoToast" class="promo-toast">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <strong id="toastTitle" style="color: var(--cyan-main); font-size: 0.9rem;">⚡ Ajo Express Micro-Savings</strong>
             <span onclick="closeToast()" style="cursor: pointer; color: var(--text-muted); font-size: 1.1rem;">&times;</span>
         </div>
         <p id="toastBody" style="font-size: 0.8rem; color: var(--text-sub); line-height: 1.4; margin-bottom: 12px;">
-            Lock daily profits automatically starting from ₦500/day. Early payout sweeps available!
+            Lock daily merchant profits starting at ₦500/day. Build capital effortlessly with automated sweeps!
         </p>
         <button id="toastActionBtn" onclick="openAjoModal(); closeToast();" class="btn-confirm" style="padding: 6px 12px; font-size: 0.8rem; background: var(--amber-main); color: #fff;">
             Explore Now
@@ -376,8 +369,8 @@
         // Recurring Promotional Pop-up Engine (Ajo Express & Stocks)
         let promoState = 0;
         function startRecurringPopups() {
-            setTimeout(showPromoToast, 5000); // Initial pop-up after 5 seconds
-            setInterval(showPromoToast, 25000); // Recurring pop-up every 25 seconds
+            setTimeout(showPromoToast, 5000);
+            setInterval(showPromoToast, 25000);
         }
 
         function showPromoToast() {
