@@ -3,36 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@BL SOVEREIGN GATEWAY | Merchant Newsletter & Announcements</title>
+    <title>@BL SOVEREIGN GATEWAY | Merchant Newsletter & Broadcasts</title>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f172a; --bg-card: #1e293b;
-            --text-main: #f8fafc; --text-sub: #94a3b8; --text-muted: #64748b;
-            --cyan-main: #38bdf8; --amber-main: #f59e0b; --border: #334155;
+            --bg-dark: #0d1322;
+            --bg-card: #162032;
+            --bg-input: #0d1322;
+            --border: #233148;
+            --text-main: #f1f5f9;
+            --text-sub: #8295b3;
+            --text-muted: #64748b;
+            --cyan-main: #38bdf8;
+            --emerald-main: #10b981;
+            --amber-main: #f59e0b;
+            --purple-main: #a855f7;
+            --red-main: #ef4444;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-size: 15px; line-height: 1.6; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); font-size: 14px; line-height: 1.6; }
+
         .master-layout { display: flex; min-height: 100vh; }
-        .sidebar { width: 270px; background-color: var(--bg-card); border-right: 1px solid var(--border); padding: 30px 20px; display: flex; flex-direction: column; }
-        .logo-area { text-align: left; margin-bottom: 35px; border-left: 4px solid var(--cyan-main); padding-left: 12px; }
-        .logo-text { font-size: 1.25rem; font-weight: 800; color: var(--cyan-main); letter-spacing: -0.5px; }
-        .sub-logo { font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+
+        /* Sidebar Navigation */
+        .sidebar { width: 250px; background-color: var(--bg-card); border-right: 1px solid var(--border); padding: 25px 18px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .logo-area { text-align: left; margin-bottom: 30px; border-left: 4px solid var(--cyan-main); padding-left: 10px; }
+        .logo-text { font-size: 1.15rem; font-weight: 800; color: var(--cyan-main); letter-spacing: -0.3px; }
+        .sub-logo { font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; }
+
         .nav-links { list-style: none; flex-grow: 1; }
-        .nav-item { margin-bottom: 8px; }
-        .nav-link { display: flex; align-items: center; gap: 12px; color: var(--text-sub); text-decoration: none; padding: 12px 15px; border-radius: 8px; font-weight: 600; transition: 0.2s; }
+        .nav-item { margin-bottom: 6px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; color: var(--text-sub); text-decoration: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; transition: 0.2s; }
         .nav-link:hover, .nav-link.active { background-color: rgba(56, 189, 248, 0.1); color: var(--cyan-main); border-left: 3px solid var(--cyan-main); }
-        .content { flex-grow: 1; padding: 35px 40px; max-width: 900px; }
-        .page-header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 30px; }
-        .page-title { font-size: 1.75rem; font-weight: 800; color: var(--text-main); }
-        .announcement-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 25px; margin-bottom: 25px; }
-        .announcement-title { font-size: 1.25rem; font-weight: 800; color: var(--cyan-main); margin-bottom: 8px; }
-        .announcement-date { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 15px; }
-        .announcement-media img, .announcement-media video { max-width: 100%; border-radius: 8px; margin-top: 15px; border: 1px solid var(--border); }
+        .logout-btn { background: none; border: 1px solid var(--border); color: var(--red-main); width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: 0.2s; }
+        .logout-btn:hover { background-color: rgba(239, 68, 68, 0.1); border-color: var(--red-main); }
+
+        /* Main Workspace Container */
+        .content { flex-grow: 1; padding: 30px 35px; max-width: 900px; margin: 0 auto; }
+        .page-header { border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 1.5rem; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; }
+
+        .announcement-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; margin-bottom: 22px; }
+        .announcement-title { font-size: 1.18rem; font-weight: 800; color: var(--cyan-main); margin-bottom: 6px; }
+        .announcement-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .announcement-body { color: var(--text-main); font-size: 0.92rem; white-space: pre-line; line-height: 1.6; }
+
+        /* Attached Media Display Area */
+        .media-container { margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); max-width: 100%; background: #000; }
+        .media-container img, .media-container video { width: 100%; max-height: 400px; object-fit: contain; display: block; }
+
+        .badge-new { background: rgba(16, 185, 129, 0.15); color: var(--emerald-main); border: 1px solid var(--emerald-main); padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 50px 20px; background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; }
     </style>
 </head>
 <body>
+
     <div class="master-layout">
+        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo-area">
                 <div class="logo-text">@BL SOVEREIGN GATEWAY</div>
@@ -41,21 +69,99 @@
             <ul class="nav-links">
                 <li class="nav-item"><a href="/dashboard" class="nav-link"><span>📊</span> Dashboard Desk</a></li>
                 <li class="nav-item"><a href="/newsletter" class="nav-link active"><span>📢</span> Newsletter & Updates</a></li>
+                <li class="nav-item"><a href="/vtu-support" class="nav-link"><span>📲</span> VTU & Data Hub</a></li>
+                <li class="nav-item"><a href="/bill-payments" class="nav-link"><span>💡</span> Utility & Discos</a></li>
+                <li class="nav-item"><a href="/education-support" class="nav-link"><span>🎓</span> Education Support</a></li>
+                <li class="nav-item"><a href="/private" class="nav-link"><span>🔒</span> Admin Command Desk</a></li>
             </ul>
+            <button class="logout-btn" onclick="terminateSession()">Sign Out</button>
         </aside>
+
+        <!-- Main Workspace -->
         <main class="content">
             <div class="page-header">
-                <h1 class="page-title">📢 Merchant Newsletter & Broadcasts</h1>
-                <p style="color: var(--text-sub); font-size: 0.88rem;">Stay updated with official business announcements, feature rollouts, and weekly offer highlights.</p>
+                <div>
+                    <h1 class="page-title">📢 Merchant Newsletter & Broadcasts</h1>
+                    <p style="color: var(--text-sub); font-size: 0.82rem; margin-top: 4px;">
+                        Stay updated with official business announcements, feature rollouts, and weekly offer highlights.
+                    </p>
+                </div>
+                <button onclick="fetchLiveBroadcasts()" style="background: rgba(56, 189, 248, 0.12); color: var(--cyan-main); border: 1px solid var(--cyan-main); padding: 6px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.78rem;">
+                    🔄 Refresh Feed
+                </button>
             </div>
+
+            <!-- Live Feed Display Area -->
             <div id="newsletterList">
-                <div class="announcement-card">
-                    <div class="announcement-title">🎁 ₦2.00 Cashback & Multi-Bank Funding Options Live</div>
-                    <div class="announcement-date">Published: September 2026</div>
-                    <p style="color: var(--text-sub);">We are excited to announce enhanced funding collection accounts across Nomba MFB, Access Bank, and Wema Bank / ALAT, alongside automated PDF transaction receipt generation for all merchant purchases!</p>
+                <div class="empty-state">
+                    ⏳ Loading live merchant announcements...
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- JavaScript Engine -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchLiveBroadcasts();
+        });
+
+        // 🔄 Fetch and Render Live Broadcasts from Backend Server
+        async function fetchLiveBroadcasts() {
+            const container = document.getElementById('newsletterList');
+            try {
+                const res = await fetch('/api/v1/broadcasts');
+                const data = await res.json();
+
+                if (data.status === 'success' && data.broadcasts && data.broadcasts.length > 0) {
+                    container.innerHTML = '';
+                    
+                    data.broadcasts.forEach((post, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'announcement-card';
+
+                        const pubDate = post.publishedAt ? new Date(post.publishedAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently Published';
+
+                        let mediaHtml = '';
+                        if (post.image) {
+                            mediaHtml += `<div class="media-container"><img src="${post.image}" alt="Broadcast Image"></div>`;
+                        }
+                        if (post.video) {
+                            mediaHtml += `<div class="media-container" style="margin-top:10px;"><video src="${post.video}" controls></video></div>`;
+                        }
+
+                        card.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div class="announcement-title">${post.title}</div>
+                                ${index === 0 ? '<span class="badge-new">LATEST BROADCAST</span>' : ''}
+                            </div>
+                            <div class="announcement-date">🗓️ Published: ${pubDate}</div>
+                            <div class="announcement-body">${post.body}</div>
+                            ${mediaHtml}
+                        `;
+
+                        container.appendChild(card);
+                    });
+                } else {
+                    // Default Fallback Notice
+                    container.innerHTML = `
+                        <div class="announcement-card">
+                            <div class="announcement-title">🎁 ₦2.00 Cashback & Multi-Bank Funding Options Live</div>
+                            <div class="announcement-date">🗓️ Published: September 2026</div>
+                            <div class="announcement-body">We are excited to announce enhanced funding collection accounts across Nomba MFB, Access Bank, and Wema Bank / ALAT, alongside automated PDF transaction receipt generation for all merchant purchases!</div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error fetching broadcasts:', err);
+                container.innerHTML = `<div class="empty-state" style="color: var(--red-main);">❌ Failed to load live broadcasts. Please check your server connection.</div>`;
+            }
+        }
+
+        function terminateSession() {
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+    </script>
 </body>
 </html>
