@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@BL SOVEREIGN GATEWAY | Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --bg-dark: #0f172a; --bg-card: #1e293b; --bg-input: #0f172a;
@@ -32,12 +34,17 @@
         .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
         .welcome-text { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-main); }
 
-        /* 🔄 Synchronized Ticker Engine */
-        .ticker-wrapper { width: 100%; overflow: hidden; background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 25px; padding: 10px 0; }
-        .ticker-content { display: inline-block; whitespace: nowrap; animation: ticker 20s linear infinite; }
-        .ticker-item { display: inline-block; padding: 0 30px; font-size: 0.85rem; font-weight: 700; color: var(--cyan-main); }
-        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
-        
+        /* Ticker Box */
+        .ticker-container { position: relative; width: 100%; background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 25px; overflow: hidden; height: 48px; display: flex; align-items: center; }
+        .ticker-wrapper { width: 100%; overflow: hidden; white-space: nowrap; }
+        .ticker-content { display: inline-block; white-space: nowrap; animation: singleLineScroll 22s linear infinite; }
+        .ticker-item { display: inline-block; padding: 0 50px; font-size: 0.85rem; font-weight: 700; color: var(--cyan-main); white-space: nowrap; line-height: 48px; }
+        @keyframes singleLineScroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
+
+        /* In-Box Overlay Pop-Up */
+        .inbox-popup-overlay { position: absolute; inset: 0; background: var(--bg-card); border-radius: 9px; display: none; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
         .card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .card-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-sub); font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
@@ -62,12 +69,8 @@
         .eye-toggle { cursor: pointer; font-size: 0.85rem; color: var(--cyan-main); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 6px; user-select: none; transition: 0.2s; }
         .eye-toggle:hover { background: rgba(56, 189, 248, 0.2); }
 
-        /* 🔔 Synchronized Promotional Pop-up Toast */
-        .promo-toast { position: fixed; bottom: 30px; right: 30px; background: var(--bg-card); border: 1px solid var(--cyan-main); border-radius: 12px; padding: 16px 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); display: none; z-index: 99999; max-width: 340px; animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
         .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 500px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 520px; border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px; }
         .input-group { margin-bottom: 15px; }
         .input-label { display: block; font-size: 0.8rem; text-transform: uppercase; color: var(--text-sub); margin-bottom: 6px; }
@@ -80,6 +83,9 @@
         .gap-10 { gap: 10px; }
         .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
         .badge-pending { background-color: rgba(245, 158, 11, 0.12); color: var(--amber-main); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        /* Multi-Bank Options Box */
+        .bank-option-card { background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -117,35 +123,34 @@
                 </div>
             </header>
 
-            <!-- 🎁 Partners & Cashback Ticker Bar -->
-            <div class="ticker-wrapper">
-                <div class="ticker-content" id="tickerContent">
-                    <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
-                    <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
-                </div>
-            </div>
-
-            <!-- Active Ajo Express Status Card -->
-            <div id="activeAjoStatus" class="card" style="margin-bottom: 25px; display: none; border-color: var(--amber-main); border-style: dashed; background: rgba(245, 158, 11, 0.04);">
-                <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Savings Lock</div>
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <div class="card-val" id="ajoBalance">₦0.00</div>
-                        <div class="card-sub">Next Daily Lock: <strong id="nextAjoDeduction">₦...,000.00</strong> | Days Completed: <strong id="ajoDays">.../30</strong></div>
-                        <div class="card-sub">Maturity Date: <strong id="ajoMaturity">..., 2026</strong> (Auto-sweeps to payout account)</div>
+            <!-- Ticker Box Container -->
+            <div class="ticker-container">
+                <div class="ticker-wrapper">
+                    <div class="ticker-content" id="tickerContent">
+                        <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Access Bank, Wema Bank, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
+                        <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Access Bank, Wema Bank, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
                     </div>
-                    <div style="text-align: right;">
-                        <span class="badge badge-pending" id="ajoStatus">LOCKED (DAY 1 FEE)</span>
-                        <div style="margin-top: 15px;">
-                            <button onclick="requestAjoBreak()" style="background: rgba(239, 68, 68, 0.1); color: var(--red-main); border: 1px solid var(--red-main); padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">Break Plan (-10%)</button>
-                        </div>
+                </div>
+
+                <!-- Embedded In-Box Pop-Up Overlay -->
+                <div id="inboxPopup" class="inbox-popup-overlay">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="popupBadge" style="background: var(--amber-main); color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.72rem;">HOT</span>
+                        <span id="popupText" style="font-size: 0.85rem; font-weight: 700; color: #fff;">
+                            ⚡ Ajo Express: Lock daily merchant savings from ₦500/day!
+                        </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button id="popupBtn" onclick="openAjoModal(); closeInboxPopup();" style="background: var(--amber-main); color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; cursor: pointer;">
+                            Open Desk
+                        </button>
+                        <span onclick="closeInboxPopup()" style="cursor: pointer; color: var(--text-muted); font-size: 1.2rem; font-weight: bold;">&times;</span>
                     </div>
                 </div>
             </div>
 
             <!-- Financial Balances Grid -->
             <div class="grid-3">
-                <!-- Gateway Ledger Balance -->
                 <div class="card wallet-card">
                     <div>
                         <div class="card-label">
@@ -157,7 +162,6 @@
                     </div>
                 </div>
 
-                <!-- SAIL Credit Line -->
                 <div class="card">
                     <div class="card-label">
                         <span>SAIL Credit Line</span>
@@ -185,42 +189,48 @@
         </main>
     </div>
 
-    <!-- 🔔 RECURRING PROMOTIONAL POP-UP TOAST -->
-    <div id="promoToast" class="promo-toast">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong id="toastTitle" style="color: var(--cyan-main); font-size: 0.9rem;">⚡ Ajo Express Micro-Savings</strong>
-            <span onclick="closeToast()" style="cursor: pointer; color: var(--text-muted); font-size: 1.1rem;">&times;</span>
-        </div>
-        <p id="toastBody" style="font-size: 0.8rem; color: var(--text-sub); line-height: 1.4; margin-bottom: 12px;">
-            Lock daily merchant profits starting at ₦500/day. Build capital effortlessly with automated sweeps!
-        </p>
-        <button id="toastActionBtn" onclick="openAjoModal(); closeToast();" class="btn-confirm" style="padding: 6px 12px; font-size: 0.8rem; background: var(--amber-main); color: #fff;">
-            Explore Now
-        </button>
-    </div>
-
-    <!-- 1. FUND WALLET MODAL -->
+    <!-- 1. MULTI-BANK FUND WALLET MODAL -->
     <div id="fundModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin: 0; color: var(--emerald-main); font-size: 1.2rem;">➕ Fund Gateway Balance</h3>
                 <span onclick="closeFundModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
             </div>
-            <div style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid var(--emerald-main); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px;">Transfer directly to your dedicated collection NUBAN to top up your ledger balance automatically:</p>
-                <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);">Bank Name: <span style="color: var(--cyan-main);">Nomba MFB</span></div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: var(--emerald-main); margin-top: 4px;">Account No: 9920792189</div>
-                <div style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">Account Name: @BL SOVEREIGN / Tope Ogegbo</div>
+            <p style="font-size: 0.82rem; color: var(--text-sub); margin-bottom: 15px;">Transfer directly to any of your dedicated collection accounts below to top up your ledger balance instantly:</p>
+            
+            <!-- Option 1: Nomba MFB -->
+            <div class="bank-option-card">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--cyan-main); font-weight: bold;">Option 1: Primary NUBAN</div>
+                <div style="font-size: 1rem; font-weight: bold; color: var(--text-main);">Nomba Microfinance Bank</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-main); margin-top: 2px;">9920792189</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Name: @BL SOVEREIGN / Tope Ogegbo</div>
             </div>
-            <button onclick="closeFundModal()" class="btn-confirm" style="background: var(--emerald-main);">I Have Transferred / Close</button>
+
+            <!-- Option 2: Access Bank Plc -->
+            <div class="bank-option-card">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--cyan-main); font-weight: bold;">Option 2: Corporate NUBAN</div>
+                <div style="font-size: 1rem; font-weight: bold; color: var(--text-main);">Access Bank Plc</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-main); margin-top: 2px;">0123456789</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Name: ALL TIME BUSINESS LTD</div>
+            </div>
+
+            <!-- Option 3: Wema Bank / ALAT -->
+            <div class="bank-option-card">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--cyan-main); font-weight: bold;">Option 3: Alternative Virtual NUBAN</div>
+                <div style="font-size: 1rem; font-weight: bold; color: var(--text-main);">Wema Bank / ALAT</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-main); margin-top: 2px;">8830192841</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Name: @BL SOVEREIGN GATEWAY</div>
+            </div>
+
+            <button onclick="closeFundModal()" class="btn-confirm" style="background: var(--emerald-main); margin-top: 10px;">I Have Transferred / Close</button>
         </div>
     </div>
 
-    <!-- 2. BANK WITHDRAWAL MODAL -->
+    <!-- 2. BANK WITHDRAWAL MODAL (ALL NIGERIAN BANKS SUPPORTED) -->
     <div id="withdrawModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.2rem;">💸 Withdraw to Bank Account</h3>
+                <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.2rem;">💸 Withdraw to Any Bank</h3>
                 <span onclick="closeWithdrawModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
             </div>
             <form id="withdrawForm" onsubmit="submitBankWithdrawal(event)">
@@ -230,12 +240,19 @@
                         <option value="">Select Bank...</option>
                         <option value="Access Bank Plc">Access Bank Plc</option>
                         <option value="First Bank Nigeria Limited">First Bank Nigeria Limited</option>
-                        <option value="GTBank Plc">Guaranty Trust Bank Plc</option>
+                        <option value="Guaranty Trust Bank Plc">Guaranty Trust Bank Plc (GTB)</option>
                         <option value="Zenith Bank Plc">Zenith Bank Plc</option>
-                        <option value="UBA Plc">United Bank For Africa Plc</option>
+                        <option value="United Bank For Africa Plc">United Bank For Africa Plc (UBA)</option>
+                        <option value="Fidelity Bank Plc">Fidelity Bank Plc</option>
+                        <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
                         <option value="Moniepoint MFB">Moniepoint Microfinance Bank</option>
                         <option value="OPay Digital Services">OPay Digital Services</option>
                         <option value="PalmPay Limited">PalmPay Limited</option>
+                        <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
+                        <option value="Wema Bank Plc">Wema Bank / ALAT</option>
+                        <option value="Sterling Bank Plc">Sterling Bank Plc</option>
+                        <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
+                        <option value="Ecobank Nigeria">Ecobank Nigeria</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -276,12 +293,12 @@
                     </select>
                 </div>
                 <div style="background: rgba(245, 158, 11, 0.05); border-left: 4px solid var(--amber-main); padding: 12px; border-radius: 6px; font-size: 0.75rem; color: var(--text-sub); margin-bottom: 15px;">
-                    ⚠️ <strong>Key Rules:</strong> Day 1 contribution is retained by @BL SOVEREIGN GATEWAY as the management fee. Early withdrawal before 30 days incurs a strict <strong>10% penalty</strong> on accumulated savings.
+                    ⚠️ Day 1 contribution is retained by @BL SOVEREIGN GATEWAY as the management fee. Early withdrawal before 30 days incurs a strict <strong>10% penalty</strong>.
                 </div>
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
                     <input type="checkbox" id="ajoTermsCheck" required style="width: 18px; height: 18px; accent-color: var(--cyan-main); cursor: pointer; margin-top: 2px;">
                     <label for="ajoTermsCheck" style="font-size: 0.8rem; color: var(--text-sub); cursor: pointer; line-height: 1.4;">
-                        I have read and agree to the <strong style="color: var(--cyan-main);">Ajo Express Terms & Conditions</strong>, including the Day 1 retention fee and 10% early withdrawal penalty.
+                        I accept the <strong style="color: var(--cyan-main);">Ajo Express Terms & Conditions</strong>.
                     </label>
                 </div>
                 <button type="submit" id="ajoSubmitBtn" class="btn-confirm" disabled style="opacity: 0.5; cursor: not-allowed;">
@@ -291,7 +308,7 @@
         </div>
     </div>
 
-    <!-- 4. BUY STOCKS & LICENSE FEE MODAL -->
+    <!-- 4. BUY STOCKS MODAL -->
     <div id="stockModal" class="modal-backdrop">
         <div class="modal-content" style="border-color: var(--purple-main);">
             <div class="modal-header">
@@ -313,19 +330,40 @@
                 </div>
 
                 <div style="background: rgba(168, 85, 247, 0.08); border-left: 4px solid var(--purple-main); padding: 12px; border-radius: 6px; font-size: 0.78rem; color: var(--text-sub); margin-bottom: 15px;">
-                    💳 <strong>One-Time Account Activation & License Fee:</strong> A statutory non-refundable fee of <strong>₦1,850</strong> will be debited alongside your order to complete your stock portal registration and SEC compliance onboarding.
+                    💳 <strong>One-Time Account Activation & License Fee:</strong> A statutory non-refundable fee of <strong>₦1,850</strong> will be debited alongside your order to complete your SEC compliance onboarding.
                 </div>
 
                 <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
                     <input type="checkbox" id="stockTermsCheck" required style="width: 18px; height: 18px; accent-color: var(--purple-main); cursor: pointer; margin-top: 2px;">
                     <label for="stockTermsCheck" style="font-size: 0.8rem; color: var(--text-sub); cursor: pointer; line-height: 1.4;">
-                        I agree to the <strong style="color: var(--purple-main);">Stock Terms & Conditions</strong> and authorize the <strong>₦1,850</strong> one-time onboarding fee debit.
+                        I agree to the <strong style="color: var(--purple-main);">Stock Terms & Conditions</strong> and authorize the <strong>₦1,850</strong> fee debit.
                     </label>
                 </div>
                 <button type="submit" id="stockSubmitBtn" class="btn-confirm" disabled style="background: var(--purple-main); opacity: 0.5; cursor: not-allowed; color: #fff;">
                     Pay ₦1,850 Fee & Authorize Order
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- 📄 HIDDEN PDF RECEIPT TEMPLATE CONTAINER -->
+    <div id="receiptTemplate" style="display: none; padding: 30px; background: #ffffff; color: #000000; font-family: sans-serif; border: 2px solid #0284c7; width: 600px;">
+        <div style="text-align: center; border-bottom: 2px solid #0284c7; padding-bottom: 15px; margin-bottom: 20px;">
+            <h2 style="color: #0284c7; margin: 0;">@BL SOVEREIGN GATEWAY</h2>
+            <p style="margin: 4px 0; font-size: 12px; color: #555;">ALL TIME BUSINESS LTD (RC: 950444)</p>
+            <p style="margin: 0; font-size: 14px; font-weight: bold; color: #10b981;">OFFICIAL TRANSACTION RECEIPT</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr><td style="padding: 8px 0; font-weight: bold;">Transaction Reference:</td><td id="rcpRef" style="text-align: right;">TXN-10293847</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Date & Time:</td><td id="rcpDate" style="text-align: right;">2026-09-19 12:43</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Merchant Name:</td><td id="rcpMerchant" style="text-align: right;">Tope Ogegbo</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Service / Product:</td><td id="rcpService" style="text-align: right;">VTU Airtime Topup</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Recipient / Account:</td><td id="rcpTarget" style="text-align: right;">08022552528</td></tr>
+            <tr style="border-top: 1px solid #ccc; border-bottom: 1px solid #ccc;"><td style="padding: 12px 0; font-size: 16px; font-weight: bold; color: #0284c7;">Total Amount Paid:</td><td id="rcpAmount" style="text-align: right; font-size: 16px; font-weight: bold; color: #0284c7;">₦5,000.00</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Payment Status:</td><td style="text-align: right; color: #10b981; font-weight: bold;">SUCCESSFUL</td></tr>
+        </table>
+        <div style="margin-top: 30px; text-align: center; font-size: 11px; color: #777; border-top: 1px dashed #ccc; padding-top: 15px;">
+            Thank you for transacting with @BL SOVEREIGN GATEWAY. For support, visit www.alltimebusiness.com.ng
         </div>
     </div>
 
@@ -341,7 +379,7 @@
             authenticateSession();
             renderBalances();
             checkAjoExpressStatus();
-            setupSynchronizedPopups();
+            setupInBoxPopups();
 
             const termsCheck = document.getElementById('ajoTermsCheck');
             const submitBtn = document.getElementById('ajoSubmitBtn');
@@ -364,56 +402,44 @@
             }
         });
 
-        // 🔄 Synchronized Pop-up Engine (Triggers pop-up immediately at end of each 20-second scroll cycle)
-        let promoState = 0;
-        function setupSynchronizedPopups() {
+        // In-Box Pop-Up Overlay Engine
+        let popupState = 0;
+        function setupInBoxPopups() {
             const tickerElem = document.getElementById('tickerContent');
-            
-            // Fires pop-up immediately at the end of every animation iteration (20 seconds)
             if (tickerElem) {
-                tickerElem.addEventListener('animationiteration', () => {
-                    triggerScrollEndPopup();
-                });
+                tickerElem.addEventListener('animationiteration', triggerInBoxPopup);
             }
-            
-            // Initial trigger after first scroll cycle completes
-            setTimeout(triggerScrollEndPopup, 20000);
+            setTimeout(triggerInBoxPopup, 22000);
         }
 
-        function triggerScrollEndPopup() {
-            const toast = document.getElementById('promoToast');
-            const title = document.getElementById('toastTitle');
-            const body = document.getElementById('toastBody');
-            const actionBtn = document.getElementById('toastActionBtn');
+        function triggerInBoxPopup() {
+            const popup = document.getElementById('inboxPopup');
+            const pBadge = document.getElementById('popupBadge');
+            const pText = document.getElementById('popupText');
+            const pBtn = document.getElementById('popupBtn');
 
-            if (promoState === 0) {
-                title.textContent = "⚡ Ajo Express Micro-Savings";
-                title.style.color = "var(--amber-main)";
-                body.textContent = "Lock daily merchant profits starting at ₦500/day. Build capital effortlessly with automated sweeps!";
-                actionBtn.textContent = "Start Daily Plan";
-                actionBtn.style.background = "var(--amber-main)";
-                actionBtn.onclick = () => { openAjoModal(); closeToast(); };
-                promoState = 1;
+            if (popupState === 0) {
+                pBadge.textContent = "⚡ AJO";
+                pBadge.style.background = "var(--amber-main)";
+                pText.textContent = "Ajo Express Savings: Lock daily merchant profits starting at ₦500/day!";
+                pBtn.style.background = "var(--amber-main)";
+                pBtn.onclick = () => { openAjoModal(); closeInboxPopup(); };
+                popupState = 1;
             } else {
-                title.textContent = "📈 Commercial Stock Desk";
-                title.style.color = "var(--purple-main)";
-                body.textContent = "Diversify into NGX Banking & US Tech equities with SEC-compliant onboarding!";
-                actionBtn.textContent = "Explore Equities";
-                actionBtn.style.background = "var(--purple-main)";
-                actionBtn.onclick = () => { openStockModal(); closeToast(); };
-                promoState = 0;
+                pBadge.textContent = "📈 STOCKS";
+                pBadge.style.background = "var(--purple-main)";
+                pText.textContent = "Commercial Stock Desk: Buy NGX & US Tech equities with ₦1,850 T&C!";
+                pBtn.style.background = "var(--purple-main)";
+                pBtn.onclick = () => { openStockModal(); closeInboxPopup(); };
+                popupState = 0;
             }
 
-            toast.style.display = 'block';
-
-            // Auto-hide pop-up after 8 seconds if ignored
-            setTimeout(() => {
-                closeToast();
-            }, 8000);
+            popup.style.display = 'flex';
+            setTimeout(closeInboxPopup, 6000);
         }
 
-        function closeToast() {
-            document.getElementById('promoToast').style.display = 'none';
+        function closeInboxPopup() {
+            document.getElementById('inboxPopup').style.display = 'none';
         }
 
         function toggleWalletVisibility() {
@@ -489,7 +515,7 @@
                 if (data.status === 'success') {
                     alert('🎉 ' + data.message);
                     closeWithdrawModal();
-                    location.reload();
+                    generatePDFReceipt('Bank Withdrawal Transfer', accountNumber + ' (' + destinationBank + ')', amount);
                 } else {
                     alert('❌ ' + data.message);
                 }
@@ -517,7 +543,7 @@
                 if (data.status === 'success') {
                     alert('🎉 ' + data.message);
                     closeAjoModal();
-                    checkAjoExpressStatus();
+                    generatePDFReceipt('Ajo Express Daily Lock Activation', 'Management Plan', dailyAmount);
                 } else {
                     alert('⚠️ ' + data.message);
                 }
@@ -536,40 +562,17 @@
 
                 if (data.status === 'success' && data.hasActivePlan) {
                     const plan = data.plan;
-                    ajoActiveCard.style.display = 'block';
+                    if(ajoActiveCard) ajoActiveCard.style.display = 'block';
                     document.getElementById('ajoBalance').textContent = '₦' + plan.accumulatedSavings.toLocaleString('en-NG', {minimumFractionDigits: 2});
                     document.getElementById('ajoDays').textContent = plan.daysCompleted + '/30';
                     document.getElementById('nextAjoDeduction').textContent = '₦' + plan.dailyAmount.toLocaleString();
                     const matDate = new Date(plan.maturityDate);
                     document.getElementById('ajoMaturity').textContent = matDate.getDate() + ' ' + matDate.toLocaleString('default', { month: 'short' }) + ', ' + matDate.getFullYear();
                 } else {
-                    ajoActiveCard.style.display = 'none';
+                    if(ajoActiveCard) ajoActiveCard.style.display = 'none';
                 }
             } catch (err) {
-                ajoActiveCard.style.display = 'none';
-            }
-        }
-
-        async function requestAjoBreak() {
-            const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-            if(!confirm('⚠️ Confirm early plan break? A 10% penalty fee will apply immediately.')) return;
-
-            try {
-                const res = await fetch('/api/v1/ajo/break', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ planId: 'AJO-CURRENT', merchantPhone })
-                });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    alert('⚠️ ' + data.message);
-                    checkAjoExpressStatus();
-                } else {
-                    alert('❌ ' + data.message);
-                }
-            } catch (err) {
-                alert('❌ Error breaking plan.');
+                if(ajoActiveCard) ajoActiveCard.style.display = 'none';
             }
         }
 
@@ -579,9 +582,40 @@
         function submitStockPurchase(e) {
             e.preventDefault();
             const amount = document.getElementById('stockAmount').value;
+            const asset = document.getElementById('stockAsset').value;
             const totalDebit = parseFloat(amount) + 1850;
-            alert('📈 Stock Order & Onboarding Logged!\n\nTotal Charge: ₦' + totalDebit.toLocaleString() + ' (Principal: ₦' + parseFloat(amount).toLocaleString() + ' + Onboarding License Fee: ₦1,850)');
+            alert('📈 Stock Order & Onboarding Logged!\n\nTotal Charge: ₦' + totalDebit.toLocaleString() + ' (Principal: ₦' + parseFloat(amount).toLocaleString() + ' + License Fee: ₦1,850)');
             closeStockModal();
+            generatePDFReceipt('Equity Stock Purchase (' + asset + ')', 'SEC Compliant Desk', totalDebit);
+        }
+
+        // 📄 Client-Side PDF Receipt Generator
+        function generatePDFReceipt(serviceName, recipientTarget, amountPaid) {
+            const mchName = localStorage.getItem('merchantName') || 'Tope Ogegbo';
+            const txRef = 'TXN-' + Math.floor(10000000 + Math.random() * 90000000);
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+            document.getElementById('rcpRef').textContent = txRef;
+            document.getElementById('rcpDate').textContent = now;
+            document.getElementById('rcpMerchant').textContent = mchName;
+            document.getElementById('rcpService').textContent = serviceName;
+            document.getElementById('rcpTarget').textContent = recipientTarget;
+            document.getElementById('rcpAmount').textContent = '₦' + parseFloat(amountPaid).toLocaleString('en-NG', {minimumFractionDigits: 2});
+
+            const element = document.getElementById('receiptTemplate');
+            element.style.display = 'block';
+
+            const opt = {
+                margin:       10,
+                filename:     'Receipt_' + txRef + '.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.display = 'none';
+            });
         }
 
         function downloadMonthlyStatement() {
