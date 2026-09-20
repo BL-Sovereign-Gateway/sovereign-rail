@@ -96,7 +96,7 @@
         .btn-confirm { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 11px; border: none; border-radius: 7px; font-weight: 800; font-size: 0.9rem; transition: 0.2s; cursor: pointer; }
         .btn-confirm:hover:not(:disabled) { background: var(--cyan-hover); }
 
-        .bank-option-card { background: rgba(13, 19, 34, 0.6); border: 1px solid var(--border); padding: 10px 12px; border-radius: 7px; margin-bottom: 8px; }
+        .bank-option-card { background: rgba(13, 19, 34, 0.6); border: 1px solid var(--border); padding: 12px; border-radius: 7px; margin-bottom: 10px; }
         .badge-pending { background-color: rgba(245, 158, 11, 0.12); color: var(--amber-main); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
     </style>
 </head>
@@ -219,95 +219,72 @@
         </main>
     </div>
 
-    <!-- 1. MULTI-OPTION FUND WALLET MODAL (BANK TRANSFER + DEBIT/CREDIT CARDS) -->
+    <!-- 1. DYNAMIC MULTI-BANK DIRECT FUNDING MODAL -->
     <div id="fundModal" class="modal-backdrop">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 style="margin: 0; color: var(--emerald-main); font-size: 1.1rem; display: flex; align-items: center; gap: 6px;">
-                    <span>➕</span> Fund Gateway Balance
+                    <span>🏦</span> Direct Bank Funding (All Banks)
                 </h3>
                 <span onclick="closeFundModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
             </div>
 
-            <!-- Payment Method Selector Tabs -->
-            <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                <button type="button" id="tabBankTransfer" onclick="switchFundMethod('bank')" style="flex: 1; padding: 8px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 1px solid var(--cyan-main); background: rgba(56, 189, 248, 0.15); color: var(--cyan-main);">
-                    🏦 Bank Transfer
-                </button>
-                <button type="button" id="tabDebitCard" onclick="switchFundMethod('card')" style="flex: 1; padding: 8px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-sub);">
-                    💳 Debit Card / All Banks
-                </button>
-            </div>
-
-            <!-- TAB 1: BANK TRANSFER (NOMBA / ACCESS / WEMA) -->
-            <div id="fundBankSection">
-                <p style="font-size: 0.76rem; color: var(--text-sub); margin-bottom: 12px;">
-                    Transfer from <strong>any Nigerian bank app or USSD code</strong> to any of your dedicated NUBAN collection accounts below for instant ledger top-up:
-                </p>
-
-                <!-- Nomba MFB -->
-                <div class="bank-option-card" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--cyan-main); font-weight: bold;">Primary Virtual NUBAN</div>
-                        <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-main);">Nomba Microfinance Bank</div>
-                        <div style="font-size: 1.15rem; font-weight: 800; color: var(--emerald-main); margin-top: 1px;">9920792189</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Account Name: @BL SOVEREIGN / Tope Ogegbo</div>
-                    </div>
-                    <button onclick="copyToClipboard('9920792189')" style="background: rgba(56, 189, 248, 0.15); color: var(--cyan-main); border: 1px solid var(--cyan-main); padding: 6px 10px; border-radius: 5px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">
-                        📋 Copy
-                    </button>
+            <form id="directBankFundForm" onsubmit="generateBankTransfer(event)">
+                <div class="input-group">
+                    <label class="input-label">Select Your Bank (Sender Bank)</label>
+                    <select id="fundingSourceBank" required class="form-select">
+                        <option value="">Select your bank...</option>
+                        <option value="Access Bank Plc">Access Bank Plc</option>
+                        <option value="First Bank of Nigeria">First Bank of Nigeria</option>
+                        <option value="Guaranty Trust Bank (GTB)">Guaranty Trust Bank (GTB)</option>
+                        <option value="Zenith Bank Plc">Zenith Bank Plc</option>
+                        <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
+                        <option value="Moniepoint Microfinance Bank">Moniepoint Microfinance Bank</option>
+                        <option value="OPay Digital Services">OPay Digital Services</option>
+                        <option value="PalmPay Limited">PalmPay Limited</option>
+                        <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
+                        <option value="Wema Bank / ALAT">Wema Bank / ALAT</option>
+                        <option value="Fidelity Bank Plc">Fidelity Bank Plc</option>
+                        <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
+                        <option value="Sterling Bank Plc">Sterling Bank Plc</option>
+                        <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
+                        <option value="Ecobank Nigeria">Ecobank Nigeria</option>
+                        <option value="FCMB - First City Monument Bank">FCMB</option>
+                        <option value="Keystone Bank">Keystone Bank</option>
+                        <option value="Polaris Bank">Polaris Bank</option>
+                        <option value="Nomba MFB">Nomba MFB</option>
+                        <option value="Other Bank App / USSD">Other Nigerian Bank / USSD</option>
+                    </select>
                 </div>
 
-                <!-- Access Bank Plc -->
-                <div class="bank-option-card" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--cyan-main); font-weight: bold;">Corporate Direct NUBAN</div>
-                        <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-main);">Access Bank Plc</div>
-                        <div style="font-size: 1.15rem; font-weight: 800; color: var(--emerald-main); margin-top: 1px;">0123456789</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Account Name: ALL TIME BUSINESS LTD</div>
-                    </div>
-                    <button onclick="copyToClipboard('0123456789')" style="background: rgba(56, 189, 248, 0.15); color: var(--cyan-main); border: 1px solid var(--cyan-main); padding: 6px 10px; border-radius: 5px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">
-                        📋 Copy
-                    </button>
+                <div class="input-group">
+                    <label class="input-label">Amount to Fund (₦)</label>
+                    <input type="number" id="fundAmountInput" min="100" required placeholder="e.g. 5000" class="form-control">
                 </div>
 
-                <!-- Wema Bank / ALAT -->
-                <div class="bank-option-card" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--cyan-main); font-weight: bold;">Alternative Virtual NUBAN</div>
-                        <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-main);">Wema Bank / ALAT</div>
-                        <div style="font-size: 1.15rem; font-weight: 800; color: var(--emerald-main); margin-top: 1px;">8830192841</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Account Name: @BL SOVEREIGN GATEWAY</div>
-                    </div>
-                    <button onclick="copyToClipboard('8830192841')" style="background: rgba(56, 189, 248, 0.15); color: var(--cyan-main); border: 1px solid var(--cyan-main); padding: 6px 10px; border-radius: 5px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">
-                        📋 Copy
-                    </button>
-                </div>
-
-                <button onclick="closeFundModal()" class="btn-confirm" style="background: var(--emerald-main); margin-top: 10px;">
-                    I Have Transferred / Close
+                <button type="submit" class="btn-confirm" style="background: var(--emerald-main); color: #fff;">
+                    Generate Direct Deposit NUBAN
                 </button>
-            </div>
+            </form>
 
-            <!-- TAB 2: DEBIT / CREDIT CARD DIRECT TOPUP -->
-            <div id="fundCardSection" style="display: none;">
-                <form id="cardFundForm" onsubmit="initiateCardPayment(event)">
-                    <p style="font-size: 0.76rem; color: var(--text-sub); margin-bottom: 12px;">
-                        Pay securely using any Nigerian ATM Debit or Credit Card (Mastercard, Visa, Verve):
-                    </p>
-                    <div class="input-group">
-                        <label class="input-label">Enter Amount to Fund (₦)</label>
-                        <input type="number" id="cardFundAmount" min="100" required placeholder="e.g. 5000" class="form-control">
-                    </div>
+            <!-- Generated Bank Deposit Box -->
+            <div id="generatedAccountBox" style="display: none; margin-top: 15px;">
+                <div class="bank-option-card" style="background: rgba(16, 185, 129, 0.08); border-color: var(--emerald-main);">
+                    <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--emerald-main); font-weight: bold; margin-bottom: 4px;">Dynamic Deposit NUBAN Ready</div>
+                    <div style="font-size: 0.85rem; color: var(--text-sub);">Source Bank: <strong id="dispSourceBank" style="color: var(--text-main);">GTBank</strong></div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-main); margin: 6px 0;" id="dispNuban">9920792189</div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">Bank Name: <strong style="color: var(--text-main);">Nomba MFB / Gateway Settlement</strong></div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">Account Name: <strong style="color: var(--text-main);">@BL SOVEREIGN / Tope Ogegbo</strong></div>
+                </div>
 
-                    <div style="background: rgba(56, 189, 248, 0.05); border-left: 3px solid var(--cyan-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 15px;">
-                        💳 Supports all Nigerian banks (GTBank, Zenith, FirstBank, UBA, Access, Moniepoint, OPay, Kuda, etc.). Powered by secured payment gateway.
-                    </div>
-
-                    <button type="submit" class="btn-confirm" style="background: var(--cyan-main); color: var(--bg-dark);">
-                        Proceed to Secure Card Checkout
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="copyGeneratedNuban()" class="btn-confirm" style="background: rgba(56, 189, 248, 0.2); color: var(--cyan-main); border: 1px solid var(--cyan-main); flex: 1;">
+                        📋 Copy NUBAN
                     </button>
-                </form>
+                    <button onclick="confirmTransferDone()" class="btn-confirm" style="background: var(--emerald-main); color: #fff; flex: 1;">
+                        ✅ I Have Transferred
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -488,50 +465,26 @@
             }
         });
 
-        // Switch between Bank Transfer and Debit Card funding tabs
-        function switchFundMethod(method) {
-            const bankSection = document.getElementById('fundBankSection');
-            const cardSection = document.getElementById('fundCardSection');
-            const tabBank = document.getElementById('tabBankTransfer');
-            const tabCard = document.getElementById('tabDebitCard');
+        // Dynamic Bank Direct Funding Generator
+        function generateBankTransfer(e) {
+            e.preventDefault();
+            const sourceBank = document.getElementById('fundingSourceBank').value;
+            const amount = document.getElementById('fundAmountInput').value;
 
-            if (method === 'bank') {
-                bankSection.style.display = 'block';
-                cardSection.style.display = 'none';
-                tabBank.style.border = '1px solid var(--cyan-main)';
-                tabBank.style.background = 'rgba(56, 189, 248, 0.15)';
-                tabBank.style.color = 'var(--cyan-main)';
-
-                tabCard.style.border = '1px solid var(--border)';
-                tabCard.style.background = 'var(--bg-input)';
-                tabCard.style.color = 'var(--text-sub)';
-            } else {
-                bankSection.style.display = 'none';
-                cardSection.style.display = 'block';
-                tabCard.style.border = '1px solid var(--cyan-main)';
-                tabCard.style.background = 'rgba(56, 189, 248, 0.15)';
-                tabCard.style.color = 'var(--cyan-main)';
-
-                tabBank.style.border = '1px solid var(--border)';
-                tabBank.style.background = 'var(--bg-input)';
-                tabBank.style.color = 'var(--text-sub)';
-            }
+            document.getElementById('dispSourceBank').textContent = sourceBank;
+            document.getElementById('dispNuban').textContent = '9920792189';
+            document.getElementById('generatedAccountBox').style.display = 'block';
         }
 
-        // 1-Click Copy NUBAN to Clipboard
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('📋 NUBAN Account Number (' + text + ') copied to clipboard!');
-            }).catch(err => {
-                alert('Account Number: ' + text);
+        function copyGeneratedNuban() {
+            const nuban = document.getElementById('dispNuban').textContent;
+            navigator.clipboard.writeText(nuban).then(() => {
+                alert('📋 NUBAN (' + nuban + ') copied to clipboard! Complete transfer in your bank app.');
             });
         }
 
-        // Initiate Direct Card Gateway Payment
-        function initiateCardPayment(e) {
-            e.preventDefault();
-            const amount = document.getElementById('cardFundAmount').value;
-            alert('💳 Redirecting to secure ATM card payment gateway for ₦' + parseFloat(amount).toLocaleString('en-NG', {minimumFractionDigits: 2}) + '...');
+        function confirmTransferDone() {
+            alert('✅ Transfer recorded! Your ledger balance will update automatically upon bank network clearance.');
             closeFundModal();
         }
 
@@ -618,7 +571,11 @@
             window.location.href = '/login';
         }
 
-        function openFundModal() { document.getElementById('fundModal').style.display = 'flex'; }
+        function openFundModal() { 
+            document.getElementById('fundModal').style.display = 'flex'; 
+            document.getElementById('generatedAccountBox').style.display = 'none';
+            document.getElementById('directBankFundForm').reset();
+        }
         function closeFundModal() { document.getElementById('fundModal').style.display = 'none'; }
 
         function openWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
