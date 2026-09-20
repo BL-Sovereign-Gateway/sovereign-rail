@@ -3,7 +3,7 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
- * Universal PDF Receipts | Multi-Bank Settlement | Newsletter Routing
+ * Universal PDF Receipts | Multi-Bank Settlement | Newsletter Routing & Email Dispatch
  * ============================================================================
  */
 
@@ -32,6 +32,7 @@ const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123
 
 // Persistent Database Handler
 const DB_FILE = path.join(__dirname, 'database.json');
+const BROADCASTS_FILE = path.join(__dirname, 'broadcasts.json');
 
 function loadAccounts() {
     try {
@@ -53,7 +54,28 @@ function saveAccounts(accounts) {
     }
 }
 
+function loadBroadcasts() {
+    try {
+        if (fs.existsSync(BROADCASTS_FILE)) {
+            const data = fs.readFileSync(BROADCASTS_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (e) {
+        console.error('⚠️ Broadcasts Read Error:', e.message);
+    }
+    return [];
+}
+
+function saveBroadcasts(broadcasts) {
+    try {
+        fs.writeFileSync(BROADCASTS_FILE, JSON.stringify(broadcasts, null, 2), 'utf8');
+    } catch (e) {
+        console.error('❌ Broadcasts Save Error:', e.message);
+    }
+}
+
 let merchantAccounts = loadAccounts();
+let broadcastPosts = loadBroadcasts();
 
 // Resend Email Dispatcher
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -112,7 +134,7 @@ async function sendTermiiSMS(recipientPhone, messageText) {
     }
 }
 
-// SMS Alert Endpoint with Strict ₦6.00 Debit
+// SMS Alert Endpoint
 app.post('/api/v1/sms/send-alert', async (req, res) => {
     try {
         const { merchantPhone, recipientPhone, message } = req.body;
@@ -168,7 +190,6 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 // 🔐 AUTHENTICATION & ONBOARDING
 // =========================================================================
 
-// Onboarding Route (Emails Sent | Free SMS Removed)
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
@@ -206,7 +227,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         merchantAccounts[cleanPhone] = newMerchant;
         saveAccounts(merchantAccounts);
 
-        // Resend Email Onboarding Dispatch
         const welcomeMailHtml = `
             <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8;">
                 <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
@@ -228,7 +248,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
     }
 });
 
-// Merchant Sign In
 app.post('/api/v1/auth/signin', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
@@ -247,7 +266,6 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     }
 });
 
-// Bank Withdrawal
 app.post('/api/v1/merchant/withdraw', async (req, res) => {
     try {
         const { merchantPhone, amount, destinationBank, accountNumber, withdrawalPin } = req.body;
@@ -278,6 +296,90 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Withdrawal processing failed.' });
+    }
+});
+
+// =========================================================================
+// 📢 BROADCAST & NEWSLETTER DISPATCH ENDPOINTS
+// =========================================================================
+
+// 1. Publish Broadcast (Text, Image & Video)
+app.post('/api/v1/admin/publish-broadcast', (req, res) => {
+    try {
+        const { title, body, image, video } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ status: 'error', message: 'Headline and body content are required.' });
+        }
+
+        broadcastPosts = loadBroadcasts();
+
+        const newPost = {
+            id: `BC-${Date.now()}`,
+            title,
+            body,
+            image: image || null,
+            video: video || null,
+            publishedAt: new Date().toISOString()
+        };
+
+        broadcastPosts.unshift(newPost);
+        saveBroadcasts(broadcastPosts);
+
+        return res.status(200).json({ status: 'success', message: 'Broadcast published live!', post: newPost });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
+    }
+});
+
+// 2. Dispatch Mass Newsletter Email to All Registered Merchants
+app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
+    try {
+        const { title, body, image } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ status: 'error', message: 'Headline and body content are required.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const merchants = Object.values(merchantAccounts);
+
+        const emailContent = `
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8;">
+                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
+                <p style="text-align:center; color:#94a3b8; font-size:12px;">ALL TIME BUSINESS LTD (RC: 950444)</p>
+                <hr style="border-color:#334155; margin:20px 0;">
+                <h3 style="color:#f59e0b;">${title}</h3>
+                <p style="line-height:1.6; color:#f8fafc;">${body.replace(/\n/g, '<br>')}</p>
+                ${image ? `<div style="margin-top:20px; text-align:center;"><img src="${image}" style="max-width:100%; border-radius:8px;" /></div>` : ''}
+                <hr style="border-color:#334155; margin:20px 0;">
+                <p style="text-align:center; font-size:12px; color:#64748b;">Visit <a href="https://www.alltimebusiness.com.ng" style="color:#38bdf8;">www.alltimebusiness.com.ng</a> to access your dashboard.</p>
+            </div>
+        `;
+
+        if (merchants.length > 0) {
+            for (const merchant of merchants) {
+                if (merchant.email) {
+                    await dispatchEmail(merchant.email, `📢 ${title}`, emailContent);
+                }
+            }
+        } else {
+            await dispatchEmail('ogegbodegreat@gmail.com', `📢 ${title}`, emailContent);
+        }
+
+        return res.status(200).json({ status: 'success', message: 'Newsletter successfully dispatched via email!' });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Error dispatching newsletter.' });
+    }
+});
+
+// 3. Fetch All Published Broadcasts (Used by /newsletter page)
+app.get('/api/v1/broadcasts', (req, res) => {
+    try {
+        broadcastPosts = loadBroadcasts();
+        return res.status(200).json({ status: 'success', broadcasts: broadcastPosts });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to fetch broadcasts.' });
     }
 });
 
