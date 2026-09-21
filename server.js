@@ -3,7 +3,8 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
- * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts
+ * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
+ * Merchant Account Lock/Unlock Enforcement
  * ============================================================================
  */
 
@@ -136,11 +137,51 @@ async function sendTermiiSMS(recipientPhone, messageText) {
 
 // Helper: Dispatch Transaction Alert SMS to Merchant
 async function dispatchImmediateTransactionSMS(merchantPhone, serviceCategory, target, amount, newBalance, txRef) {
-    const smsMessage = `@BL SOVEREIGN ALERT: Successful ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
+    const smsMessage = `OE Alert: @BL SOVEREIGN ALERT: Successful ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
     
-    // Asynchronously send SMS so response isn't delayed
+    // Asynchronously send SMS so HTTP response isn't delayed
     sendTermiiSMS(merchantPhone, smsMessage).catch(err => console.error('SMS Alert Error:', err.message));
 }
+
+// SMS Alert Custom Endpoint
+app.post('/api/v1/sms/send-alert', async (req, res) => {
+    try {
+        const { merchantPhone, recipientPhone, message } = req.body;
+        const SMS_BILLING_RATE = 6.00;
+
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[merchantPhone ? merchantPhone.trim() : ''];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+        }
+
+        if ((account.balance || 0) < SMS_BILLING_RATE) {
+            return res.status(400).json({ status: 'error', message: `Insufficient balance. Required: ₦${SMS_BILLING_RATE.toFixed(2)}.` });
+        }
+
+        const smsResult = await sendTermiiSMS(recipientPhone, message);
+
+        if (smsResult.success) {
+            account.balance -= SMS_BILLING_RATE;
+            saveAccounts(merchantAccounts);
+
+            return res.status(200).json({
+                status: 'success',
+                message: `SMS sent successfully. ₦${SMS_BILLING_RATE.toFixed(2)} debited from ledger.`,
+                remainingBalance: account.balance
+            });
+        } else {
+            return res.status(500).json({ status: 'error', message: 'Termii SMS delivery failed.' });
+        }
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Server error processing SMS.' });
+    }
+});
 
 // =========================================================================
 // 🏦 ACCESS BANK AUTOMATED SETTLEMENT SWEEP
@@ -193,6 +234,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             virtualNuban: generatedNuban,
             virtualBank: 'Nomba / MFB',
             balance: 0.00,
+            isLocked: false,
             createdAt: new Date().toISOString()
         };
 
@@ -251,6 +293,10 @@ app.post('/api/v1/auth/signin', async (req, res) => {
         const account = merchantAccounts[cleanPhone];
         if (!account) return res.status(404).json({ status: 'error', message: 'Account not found.' });
 
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked by management. Please contact support.' });
+        }
+
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) return res.status(401).json({ status: 'error', message: 'Incorrect password.' });
 
@@ -261,10 +307,9 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 });
 
 // =========================================================================
-// 🛒 SERVICE TRANSACTION ENDPOINTS (WITH IMMEDIATE SMS ALERT)
+// 🛒 SERVICE TRANSACTION ENDPOINTS (WITH IMMEDIATE SMS ALERT & LOCK CHECKS)
 // =========================================================================
 
-// Generic Unified Transaction Handler
 app.post('/api/v1/services/transact', async (req, res) => {
     try {
         const { merchantPhone, serviceType, recipient, amount } = req.body;
@@ -278,6 +323,7 @@ app.post('/api/v1/services/transact', async (req, res) => {
         const account = merchantAccounts[merchantPhone.trim()];
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Transaction rejected: Merchant account is locked.' });
         if ((account.balance || 0) < txnAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
         // Apply debit & add ₦2.00 cashback
@@ -314,6 +360,7 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         const account = merchantAccounts[merchantPhone.trim()];
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Withdrawal rejected: Merchant account is locked.' });
         if ((account.balance || 0) < withdrawAmount) return res.status(400).json({ status: 'error', message: 'Insufficient balance.' });
 
         const setPin = account.withdrawalPin || '1234';
@@ -484,7 +531,7 @@ app.get('/api/v1/receipt/download', (req, res) => {
 });
 
 // =========================================================================
-// ⚙️ ADMIN DATA ENDPOINTS
+// ⚙️ ADMIN DATA & ACCOUNT LOCK CONTROL ENDPOINTS
 // =========================================================================
 
 app.get('/api/v1/admin/merchants', (req, res) => {
@@ -517,6 +564,28 @@ app.post('/api/v1/admin/credit-merchant', (req, res) => {
         return res.status(200).json({ status: 'success', message: 'Merchant balance updated.', newBalance: account.balance });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to credit merchant.' });
+    }
+});
+
+// 🔒 / 🔓 TOGGLE MERCHANT ACCOUNT LOCK ENDPOINT
+app.post('/api/v1/admin/toggle-account-lock', (req, res) => {
+    try {
+        const { phone, isLocked } = req.body;
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[phone ? phone.trim() : ''];
+
+        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant not found.' });
+
+        account.isLocked = !!isLocked;
+        saveAccounts(merchantAccounts);
+
+        return res.status(200).json({
+            status: 'success',
+            message: `Merchant account is now ${account.isLocked ? 'locked' : 'unlocked'}.`,
+            isLocked: account.isLocked
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to update account lock status.' });
     }
 });
 
