@@ -22,7 +22,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); padding: 30px; font-size: 14px; }
-        .container { max-width: 1050px; margin: 0 auto; }
+        .container { max-width: 1100px; margin: 0 auto; }
 
         /* Header */
         .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 18px; }
@@ -81,8 +81,17 @@
         .data-table td { padding: 12px; border-bottom: 1px solid var(--border); }
         .empty-row { text-align: center; color: var(--text-sub); padding: 30px 0 !important; }
 
-        .btn-sm-topup { background: rgba(16, 185, 129, 0.15); color: var(--emerald-main); border: 1px solid var(--emerald-main); padding: 4px 10px; border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 0.75rem; }
+        .btn-sm-topup { background: rgba(16, 185, 129, 0.15); color: var(--emerald-main); border: 1px solid var(--emerald-main); padding: 4px 8px; border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 0.72rem; }
         .btn-sm-topup:hover { background: var(--emerald-main); color: #fff; }
+
+        .btn-sm-lock { background: rgba(239, 68, 68, 0.15); color: var(--red-main); border: 1px solid var(--red-main); padding: 4px 8px; border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 0.72rem; }
+        .btn-sm-lock:hover { background: var(--red-main); color: #fff; }
+
+        .btn-sm-unlock { background: rgba(56, 189, 248, 0.15); color: var(--cyan-main); border: 1px solid var(--cyan-main); padding: 4px 8px; border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 0.72rem; }
+        .btn-sm-unlock:hover { background: var(--cyan-main); color: var(--bg-dark); }
+
+        .badge-status-active { background: rgba(16, 185, 129, 0.15); color: var(--emerald-main); border: 1px solid var(--emerald-main); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
+        .badge-status-locked { background: rgba(239, 68, 68, 0.15); color: var(--red-main); border: 1px solid var(--red-main); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
 
         /* Threat Log Grid */
         .threat-card { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -229,12 +238,13 @@
                             <th>Collection NUBAN</th>
                             <th>Settlement Account</th>
                             <th>Balance (₦)</th>
-                            <th>Action</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="merchantTableBody">
                         <tr>
-                            <td colspan="7" class="empty-row">No merchants registered yet.</td>
+                            <td colspan="8" class="empty-row">No merchants registered yet.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -265,11 +275,20 @@
                     let totalFloat = 0;
 
                     if (merchants.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No merchants registered yet.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="8" class="empty-row">No merchants registered yet.</td></tr>';
                     } else {
                         merchants.forEach(m => {
                             const bal = parseFloat(m.balance || 0);
                             totalFloat += bal;
+                            const isLocked = m.isLocked || false;
+
+                            const statusBadge = isLocked 
+                                ? '<span class="badge-status-locked">🔒 LOCKED</span>' 
+                                : '<span class="badge-status-active">✅ ACTIVE</span>';
+
+                            const lockBtn = isLocked 
+                                ? `<button class="btn-sm-unlock" onclick="toggleAccountLock('${m.phone}', '${m.merchantName}', false)">🔓 Unlock</button>` 
+                                : `<button class="btn-sm-lock" onclick="toggleAccountLock('${m.phone}', '${m.merchantName}', true)">🔒 Lock</button>`;
 
                             const tr = document.createElement('tr');
                             tr.innerHTML = `
@@ -279,8 +298,12 @@
                                 <td><strong style="color: var(--cyan-main);">${m.virtualNuban || 'N/A'}</strong> (${m.virtualBank || 'Nomba'})</td>
                                 <td>${m.settlementAccount || 'N/A'} (${m.bankName || 'N/A'})</td>
                                 <td><strong style="color: var(--emerald-main);">₦${bal.toLocaleString('en-NG', {minimumFractionDigits: 2})}</strong></td>
+                                <td>${statusBadge}</td>
                                 <td>
-                                    <button class="btn-sm-topup" onclick="promptManualTopup('${m.phone}', '${m.merchantName}')">➕ Credit</button>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="btn-sm-topup" onclick="promptManualTopup('${m.phone}', '${m.merchantName}')">➕ Credit</button>
+                                        ${lockBtn}
+                                    </div>
                                 </td>
                             `;
                             tbody.appendChild(tr);
@@ -296,6 +319,30 @@
                 }
             } catch (err) {
                 console.error('Error fetching admin records:', err);
+            }
+        }
+
+        // 🔒 / 🔓 Lock or Unlock Merchant Account Endpoint Handler
+        async function toggleAccountLock(phone, name, shouldLock) {
+            const actionText = shouldLock ? 'LOCK' : 'UNLOCK';
+            if (!confirm(`Are you sure you want to ${actionText} the merchant account for ${name} (${phone})?`)) return;
+
+            try {
+                const res = await fetch('/api/v1/admin/toggle-account-lock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, isLocked: shouldLock })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    alert(`🎉 Merchant account for ${name} is now ${shouldLock ? 'LOCKED 🔒' : 'UNLOCKED 🔓'}!`);
+                    loadAdminData();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (err) {
+                alert(`❌ Error processing account ${actionText.toLowerCase()}.`);
             }
         }
 
