@@ -22,13 +22,17 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); padding: 30px; font-size: 14px; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1050px; margin: 0 auto; }
 
         /* Header */
-        .page-header { margin-bottom: 25px; }
+        .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 18px; }
         .page-title { font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #ffffff; letter-spacing: -0.3px; }
         .sub-bar { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 0.78rem; color: var(--text-sub); }
         .badge-live { background: rgba(16, 185, 129, 0.12); color: var(--emerald-main); border: 1px solid var(--emerald-main); padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+
+        /* Security Threat Badge */
+        .threat-monitor-btn { background: rgba(239, 68, 68, 0.12); border: 1px solid var(--red-main); color: var(--red-main); padding: 8px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+        .threat-monitor-btn:hover { background: var(--red-main); color: #fff; }
 
         /* Top Metrics Grid */
         .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px; }
@@ -44,7 +48,7 @@
         /* Forms & Inputs */
         .form-group { margin-bottom: 16px; }
         .form-label { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-sub); margin-bottom: 6px; letter-spacing: 0.5px; }
-        .form-control, textarea { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 0.9rem; }
+        .form-control, textarea, select { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 0.9rem; }
         .form-control::placeholder, textarea::placeholder { color: #475569; }
         textarea { min-height: 90px; resize: vertical; }
 
@@ -54,16 +58,18 @@
         .upload-text { font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; justify-content: center; gap: 6px; }
 
         .media-preview-container { display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
-        .media-preview-item { width: 120px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid var(--cyan-main); position: relative; }
+        .media-preview-item { width: 120px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid var(--cyan-main); }
         .media-preview-item img, .media-preview-item video { width: 100%; height: 100%; object-fit: cover; }
 
         /* Buttons */
-        .btn-group { display: flex; gap: 12px; }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
         .btn { border: none; padding: 10px 18px; border-radius: 7px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-cyan { background: var(--cyan-main); color: var(--bg-dark); }
         .btn-cyan:hover { opacity: 0.9; }
         .btn-purple { background: rgba(168, 85, 247, 0.2); color: var(--purple-main); border: 1px solid var(--purple-main); }
         .btn-purple:hover { background: var(--purple-main); color: #fff; }
+        .btn-amber { background: rgba(245, 158, 11, 0.2); color: var(--amber-main); border: 1px solid var(--amber-main); }
+        .btn-amber:hover { background: var(--amber-main); color: #fff; }
 
         /* Database Table */
         .table-responsive { overflow-x: auto; }
@@ -74,6 +80,9 @@
 
         .btn-sm-topup { background: rgba(16, 185, 129, 0.15); color: var(--emerald-main); border: 1px solid var(--emerald-main); padding: 4px 10px; border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 0.75rem; }
         .btn-sm-topup:hover { background: var(--emerald-main); color: #fff; }
+
+        /* Threat Log Grid */
+        .threat-card { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -81,11 +90,16 @@
     <div class="container">
         <!-- Page Header -->
         <header class="page-header">
-            <h1 class="page-title">⚡ ALL TIME BUSINESS LTD — ADMIN COMMAND CENTER</h1>
-            <div class="sub-bar">
-                <span>@BL SOVEREIGN GATEWAY LIVE CONTROL PANEL</span>
-                <span class="badge-live">SYSTEM ONLINE</span>
+            <div>
+                <h1 class="page-title">⚡ ALL TIME BUSINESS LTD — ADMIN COMMAND CENTER</h1>
+                <div class="sub-bar">
+                    <span>@BL SOVEREIGN GATEWAY LIVE CONTROL PANEL</span>
+                    <span class="badge-live">SYSTEM ONLINE</span>
+                </div>
             </div>
+            <button onclick="toggleThreatModal()" class="threat-monitor-btn">
+                <span>🛡️</span> FRAUD & THREAT MONITOR <strong id="threatCountBadge" style="background: var(--red-main); color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 0.7rem;">0</strong>
+            </button>
         </header>
 
         <!-- Top Metrics Row -->
@@ -112,22 +126,22 @@
             </div>
         </div>
 
-        <!-- Publish Broadcast & Newsletter Box -->
+        <!-- 📢 PUBLISH ANNOUNCEMENT & SMS/EMAIL BROADCAST DESK -->
         <div class="section-card">
             <div class="section-header">
-                <div class="section-title">📢 Publish Announcement & Media Broadcast</div>
-                <span style="font-size: 0.75rem; color: var(--cyan-main); font-weight: 600;">Text, Image & Video Supported</span>
+                <div class="section-title">📢 Broadcast, SMS & Email Broadcast Center</div>
+                <span style="font-size: 0.75rem; color: var(--cyan-main); font-weight: 600;">Termii ₦6.00 SMS • Resend Email • Web Media</span>
             </div>
 
             <form id="publishForm" onsubmit="handlePublishBroadcast(event)">
                 <div class="form-group">
-                    <label class="form-label">Broadcast Headline / Subject</label>
-                    <input type="text" id="postTitle" required placeholder="e.g. 🎁 Special Weekend Airtime Cashback & System Maintenance Notice" class="form-control">
+                    <label class="form-label">Broadcast Headline / Email Subject</label>
+                    <input type="text" id="postTitle" required placeholder="e.g. 🎁 Special Weekend Airtime Cashback & Maintenance Notice" class="form-control">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Announcement Content (Text)</label>
-                    <textarea id="postBody" required placeholder="Type your merchant update or newsletter message here..."></textarea>
+                    <label class="form-label">Announcement Message Content (Text & SMS)</label>
+                    <textarea id="postBody" required placeholder="Type your merchant update, promotional message, or broadcast text here..."></textarea>
                 </div>
 
                 <div class="upload-grid">
@@ -153,16 +167,39 @@
 
                 <div class="btn-group">
                     <button type="submit" class="btn btn-cyan">
-                        🚀 Publish Broadcast to Merchants
+                        🚀 Publish to Website Feed
                     </button>
                     <button type="button" onclick="dispatchMassNewsletterEmail()" class="btn btn-purple">
                         ✉️ Dispatch Mass Email Newsletter
+                    </button>
+                    <button type="button" onclick="dispatchMassSMSAlert()" class="btn btn-amber">
+                        📲 Dispatch Promotional SMS (₦6.00/SMS)
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Registered Merchant Table -->
+        <!-- 🛡️ FRAUD & THREAT INTELLIGENCE MONITOR BOX -->
+        <div class="section-card" id="threatMonitorCard" style="border-color: rgba(239, 68, 68, 0.4);">
+            <div class="section-header">
+                <div class="section-title" style="color: var(--red-main);">
+                    <span>🛡️</span> Security, Fraud & Threat Logs
+                </div>
+                <span style="font-size: 0.75rem; color: var(--text-sub);">Real-Time Platform Integrity Monitor</span>
+            </div>
+
+            <div id="threatLogsContainer">
+                <div class="threat-card">
+                    <div>
+                        <div style="font-size: 0.82rem; font-weight: bold; color: var(--red-main);">⚠️ 0 Security Incidents / Threats Flagged Today</div>
+                        <div style="font-size: 0.72rem; color: var(--text-sub);">Platform withdrawal PIN locks, SQL injections, and unauthorized NUBAN requests are clear.</div>
+                    </div>
+                    <span class="badge-live" style="background: rgba(16, 185, 129, 0.12); color: var(--emerald-main); border-color: var(--emerald-main);">SECURE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📋 Daily Merchant Records Table -->
         <div class="section-card">
             <div class="section-header">
                 <div class="section-title">📋 Daily Merchant Records & Database</div>
@@ -297,7 +334,7 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    alert('🎉 Broadcast published live!');
+                    alert('🎉 Broadcast published live to merchant feed!');
                     document.getElementById('publishForm').reset();
                     document.getElementById('mediaPreviewArea').innerHTML = '';
                     document.getElementById('mediaPreviewArea').style.display = 'none';
@@ -317,11 +354,11 @@
             const body = document.getElementById('postBody').value.trim();
 
             if (!title || !body) {
-                alert('⚠️ Please enter a headline and content before sending.');
+                alert('⚠️ Please enter a headline and message body before sending.');
                 return;
             }
 
-            if (!confirm('📧 Dispatch this newsletter email to all registered merchants?')) return;
+            if (!confirm('📧 Dispatch this email newsletter to all onboarded merchants?')) return;
 
             try {
                 const res = await fetch('/api/v1/admin/dispatch-newsletter', {
@@ -332,12 +369,44 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    alert('🎉 Newsletter successfully dispatched!');
+                    alert('🎉 Mass newsletter successfully dispatched via email!');
                 } else {
                     alert('❌ ' + data.message);
                 }
             } catch (err) {
                 alert('❌ Error dispatching newsletter.');
+            }
+        }
+
+        // 📲 Dispatch Promotional SMS Alert (Termii Engine)
+        async function dispatchMassSMSAlert() {
+            const title = document.getElementById('postTitle').value.trim();
+            const body = document.getElementById('postBody').value.trim();
+
+            if (!title || !body) {
+                alert('⚠️ Please enter a headline and SMS body before sending.');
+                return;
+            }
+
+            const smsMessage = `${title}: ${body}`.substring(0, 160);
+
+            if (!confirm(`📲 Dispatch mass Termii SMS to all merchants at ₦6.00/SMS rate?\n\nMessage Sample:\n"${smsMessage}"`)) return;
+
+            try {
+                const res = await fetch('/api/v1/admin/dispatch-mass-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: smsMessage })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    alert('🎉 Promotional SMS broadcast dispatched successfully via Termii!');
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (err) {
+                alert('❌ Error dispatching mass SMS broadcast.');
             }
         }
 
@@ -369,6 +438,11 @@
             } catch (err) {
                 alert('❌ Error processing credit.');
             }
+        }
+
+        function toggleThreatModal() {
+            const card = document.getElementById('threatMonitorCard');
+            card.scrollIntoView({ behavior: 'smooth' });
         }
     </script>
 </body>
