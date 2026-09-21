@@ -52,6 +52,9 @@
         .form-control::placeholder, textarea::placeholder { color: #475569; }
         textarea { min-height: 90px; resize: vertical; }
 
+        /* Dual Column Layout for SMS/Web vs Email Text */
+        .message-columns-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 16px; }
+
         .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .upload-box { border: 1px dashed #334155; background: var(--bg-input); border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; transition: 0.2s; }
         .upload-box:hover { border-color: var(--cyan-main); }
@@ -139,9 +142,17 @@
                     <input type="text" id="postTitle" required placeholder="e.g. 🎁 Special Weekend Airtime Cashback & Maintenance Notice" class="form-control">
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Announcement Message Content (Text & SMS)</label>
-                    <textarea id="postBody" required placeholder="Type your merchant update, promotional message, or broadcast text here..."></textarea>
+                <!-- Dual Columns for Web/SMS Message vs Dedicated Email Body -->
+                <div class="message-columns-grid">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Announcement Message Content (Text & SMS)</label>
+                        <textarea id="postBody" required placeholder="Type your web announcement feed or concise SMS text message here..."></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Promotional Email Broadcast Content (HTML / Full Text)</label>
+                        <textarea id="postEmailBody" placeholder="Type customized promotional email newsletter message here (or leave blank to use above text)..." style="border-color: rgba(168, 85, 247, 0.4);"></textarea>
+                    </div>
                 </div>
 
                 <div class="upload-grid">
@@ -351,10 +362,13 @@
         // ✉️ Dispatch Newsletter Mass Email
         async function dispatchMassNewsletterEmail() {
             const title = document.getElementById('postTitle').value.trim();
-            const body = document.getElementById('postBody').value.trim();
+            const textBody = document.getElementById('postBody').value.trim();
+            const emailBody = document.getElementById('postEmailBody').value.trim();
 
-            if (!title || !body) {
-                alert('⚠️ Please enter a headline and message body before sending.');
+            const finalEmailContent = emailBody || textBody;
+
+            if (!title || !finalEmailContent) {
+                alert('⚠️ Please enter a headline and email message content before sending.');
                 return;
             }
 
@@ -364,7 +378,7 @@
                 const res = await fetch('/api/v1/admin/dispatch-newsletter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, body, image: selectedImageBase64 })
+                    body: JSON.stringify({ title, body: finalEmailContent, image: selectedImageBase64 })
                 });
                 const data = await res.json();
 
@@ -384,7 +398,7 @@
             const body = document.getElementById('postBody').value.trim();
 
             if (!title || !body) {
-                alert('⚠️ Please enter a headline and SMS body before sending.');
+                alert('⚠️ Please enter a headline and SMS message body before sending.');
                 return;
             }
 
