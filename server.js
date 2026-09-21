@@ -3,7 +3,7 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
- * Universal PDF Receipts | Multi-Bank Settlement | Newsletter Routing & Email Dispatch
+ * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts
  * ============================================================================
  */
 
@@ -30,7 +30,7 @@ const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123456789';
 
-// Persistent Database Handler
+// Persistent Database Handlers
 const DB_FILE = path.join(__dirname, 'database.json');
 const BROADCASTS_FILE = path.join(__dirname, 'broadcasts.json');
 
@@ -77,7 +77,7 @@ function saveBroadcasts(broadcasts) {
 let merchantAccounts = loadAccounts();
 let broadcastPosts = loadBroadcasts();
 
-// Resend Email Dispatcher
+// Resend Email Dispatcher Engine
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = new Resend(resendApiKey);
 
@@ -134,41 +134,13 @@ async function sendTermiiSMS(recipientPhone, messageText) {
     }
 }
 
-// SMS Alert Endpoint
-app.post('/api/v1/sms/send-alert', async (req, res) => {
-    try {
-        const { merchantPhone, recipientPhone, message } = req.body;
-        const SMS_BILLING_RATE = 6.00;
-
-        merchantAccounts = loadAccounts();
-        const account = merchantAccounts[merchantPhone ? merchantPhone.trim() : ''];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        if ((account.balance || 0) < SMS_BILLING_RATE) {
-            return res.status(400).json({ status: 'error', message: `Insufficient balance. Required: ₦${SMS_BILLING_RATE.toFixed(2)}.` });
-        }
-
-        const smsResult = await sendTermiiSMS(recipientPhone, message);
-
-        if (smsResult.success) {
-            account.balance -= SMS_BILLING_RATE;
-            saveAccounts(merchantAccounts);
-
-            return res.status(200).json({
-                status: 'success',
-                message: `SMS sent successfully. ₦${SMS_BILLING_RATE.toFixed(2)} debited from ledger.`,
-                remainingBalance: account.balance
-            });
-        } else {
-            return res.status(500).json({ status: 'error', message: 'Termii SMS delivery failed.' });
-        }
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing SMS.' });
-    }
-});
+// Helper: Dispatch Transaction Alert SMS to Merchant
+async function dispatchImmediateTransactionSMS(merchantPhone, serviceCategory, target, amount, newBalance, txRef) {
+    const smsMessage = `@BL SOVEREIGN ALERT: Successful ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
+    
+    // Asynchronously send SMS so response isn't delayed
+    sendTermiiSMS(merchantPhone, smsMessage).catch(err => console.error('SMS Alert Error:', err.message));
+}
 
 // =========================================================================
 // 🏦 ACCESS BANK AUTOMATED SETTLEMENT SWEEP
@@ -228,18 +200,40 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         saveAccounts(merchantAccounts);
 
         const welcomeMailHtml = `
-            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8;">
-                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
-                <h3 style="color:#10b981;">Welcome, ${merchantName}!</h3>
-                <p>Your onboarding is complete. Here are your collection NUBAN details:</p>
-                <p><strong>Primary NUBAN:</strong> ${generatedNuban} (Nomba MFB)</p>
-                <p><strong>Corporate NUBAN:</strong> Access Bank Plc</p>
-                <p><strong>Alternative NUBAN:</strong> Wema Bank / ALAT</p>
-                <br>
-                <p>© 2026 ALL TIME BUSINESS LTD (RC: 950444)</p>
+            <div style="background:#0d1322; color:#f1f5f9; padding:30px; font-family:'Segoe UI',Consolas,monospace; border-radius:12px; border:1px solid #38bdf8; max-width:600px; margin:0 auto;">
+                <h2 style="color:#38bdf8; text-align:center; margin-top:0;">@BL SOVEREIGN GATEWAY</h2>
+                <p style="text-align:center; font-weight:bold; color:#10b981; letter-spacing:1px; font-size:12px; margin-bottom:20px;">
+                    MERCHANT ONBOARDING CONFIRMATION
+                </p>
+                <div style="border-top:1px dashed #334155; border-bottom:1px dashed #334155; padding:15px 0; margin-bottom:20px; font-size:14px; line-height:1.6;">
+                    <p style="margin-top:0;">Welcome onboard, <strong>${merchantName}</strong>!</p>
+                    <p>Your dedicated multi-bank settlement NUBAN has been provisioned and linked to your gateway wallet balance.</p>
+                </div>
+
+                <div style="background:#162032; border:1px solid #233148; padding:15px; border-radius:8px; margin-bottom:20px; font-size:13px; line-height:1.8;">
+                    <p style="margin:0; color:#38bdf8; font-weight:bold;">📌 ACCOUNT DETAILS</p>
+                    <hr style="border-color:#233148; margin:8px 0;">
+                    <p style="margin:0;">Account Name: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>${merchantName}</strong></p>
+                    <p style="margin:0;">Virtual NUBAN: &nbsp;&nbsp;&nbsp;&nbsp;<strong>${generatedNuban}</strong></p>
+                    <p style="margin:0;">Primary Bank: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nomba Microfinance Bank</p>
+                    <p style="margin:0;">Status: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#10b981; font-weight:bold;">ACTIVE & READY FOR FUNDING</span></p>
+                </div>
+
+                <div style="background:rgba(56, 189, 248, 0.08); border-left:4px solid #38bdf8; padding:12px; border-radius:4px; font-size:13px; line-height:1.5; margin-bottom:20px;">
+                    <p style="margin:0; font-weight:bold; color:#38bdf8;">🎁 INCENTIVE PROGRAM:</p>
+                    <p style="margin:4px 0 0 0; color:#8295b3;">
+                        Receive a flat ₦2.00 cashback credited directly to your ledger balance for every processed vending transaction and bill payment.
+                    </p>
+                </div>
+
+                <div style="text-align:center; padding-top:10px; border-top:1px solid #233148;">
+                    <p style="font-size:13px; color:#8295b3; margin-bottom:12px;">Manage your desk & download statement receipts at:</p>
+                    <a href="https://www.alltimebusiness.com.ng" style="display:inline-block; background:#38bdf8; color:#0d1322; padding:10px 20px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:13px;">https://www.alltimebusiness.com.ng</a>
+                </div>
             </div>
         `;
-        await dispatchEmail(cleanEmail, '🎉 Merchant Onboarding Successful', welcomeMailHtml);
+
+        await dispatchEmail(cleanEmail, '⚡ @BL SOVEREIGN GATEWAY — Merchant Onboarding Confirmation', welcomeMailHtml);
 
         return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
 
@@ -266,6 +260,47 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     }
 });
 
+// =========================================================================
+// 🛒 SERVICE TRANSACTION ENDPOINTS (WITH IMMEDIATE SMS ALERT)
+// =========================================================================
+
+// Generic Unified Transaction Handler
+app.post('/api/v1/services/transact', async (req, res) => {
+    try {
+        const { merchantPhone, serviceType, recipient, amount } = req.body;
+        const txnAmount = parseFloat(amount);
+
+        if (!merchantPhone || !serviceType || !recipient || isNaN(txnAmount) || txnAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid transaction parameters.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[merchantPhone.trim()];
+
+        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        if ((account.balance || 0) < txnAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
+
+        // Apply debit & add ₦2.00 cashback
+        account.balance = (account.balance - txnAmount) + 2.00;
+        saveAccounts(merchantAccounts);
+
+        const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+        // 📲 Immediate Transaction SMS Dispatch
+        dispatchImmediateTransactionSMS(merchantPhone, serviceType, recipient, txnAmount, account.balance, txRef);
+
+        return res.status(200).json({
+            status: 'success',
+            message: `${serviceType} of ₦${txnAmount.toLocaleString()} to ${recipient} completed successfully! ₦2.00 cashback applied.`,
+            txRef,
+            newBalance: account.balance
+        });
+
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Transaction processing failed.' });
+    }
+});
+
 app.post('/api/v1/merchant/withdraw', async (req, res) => {
     try {
         const { merchantPhone, amount, destinationBank, accountNumber, withdrawalPin } = req.body;
@@ -287,11 +322,16 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         account.balance -= withdrawAmount;
         saveAccounts(merchantAccounts);
 
-        await executeAccessBankAutoSweep(withdrawAmount, `WTH-${Date.now()}`, 'Merchant Withdrawal');
+        const txRef = `WTH-${Date.now()}`;
+        await executeAccessBankAutoSweep(withdrawAmount, txRef, 'Merchant Withdrawal');
+
+        // 📲 Immediate Withdrawal SMS Alert
+        dispatchImmediateTransactionSMS(merchantPhone, 'Bank Withdrawal', `${accountNumber} (${destinationBank})`, withdrawAmount, account.balance, txRef);
 
         return res.status(200).json({
             status: 'success',
             message: `Withdrawal of ₦${withdrawAmount.toLocaleString()} to ${destinationBank} (${accountNumber}) authorized!`,
+            txRef,
             newBalance: account.balance
         });
     } catch (err) {
@@ -303,7 +343,6 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
 // 📢 BROADCAST & NEWSLETTER DISPATCH ENDPOINTS
 // =========================================================================
 
-// 1. Publish Broadcast (Text, Image & Video)
 app.post('/api/v1/admin/publish-broadcast', (req, res) => {
     try {
         const { title, body, image, video } = req.body;
@@ -332,7 +371,6 @@ app.post('/api/v1/admin/publish-broadcast', (req, res) => {
     }
 });
 
-// 2. Dispatch Mass Newsletter Email to All Registered Merchants
 app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
     try {
         const { title, body, image } = req.body;
@@ -373,7 +411,6 @@ app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
     }
 });
 
-// 3. Fetch All Published Broadcasts (Used by /newsletter page)
 app.get('/api/v1/broadcasts', (req, res) => {
     try {
         broadcastPosts = loadBroadcasts();
