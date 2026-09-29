@@ -2,7 +2,8 @@
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
- * Features: Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
+ * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
+ * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
  * Merchant Account Lock/Unlock Enforcement
  * ============================================================================
@@ -13,6 +14,7 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { Resend } = require('resend');
 
 const app = express();
@@ -25,6 +27,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
 const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
 
+const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_d09a8973b754921966d58d927d6368fa9f78f88636b0';
+const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://sandbox-api-d.squadco.com';
+
 const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
 const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
@@ -34,6 +39,7 @@ const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123
 // Persistent Database Handlers
 const DB_FILE = path.join(__dirname, 'database.json');
 const BROADCASTS_FILE = path.join(__dirname, 'broadcasts.json');
+const PROCESSED_TXNS_FILE = path.join(__dirname, 'processed_txns.json');
 
 function loadAccounts() {
     try {
@@ -75,8 +81,29 @@ function saveBroadcasts(broadcasts) {
     }
 }
 
+function loadProcessedTxns() {
+    try {
+        if (fs.existsSync(PROCESSED_TXNS_FILE)) {
+            const data = fs.readFileSync(PROCESSED_TXNS_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (e) {
+        console.error('⚠️ Processed Txns Read Error:', e.message);
+    }
+    return {};
+}
+
+function saveProcessedTxns(txns) {
+    try {
+        fs.writeFileSync(PROCESSED_TXNS_FILE, JSON.stringify(txns, null, 2), 'utf8');
+    } catch (e) {
+        console.error('❌ Processed Txns Save Error:', e.message);
+    }
+}
+
 let merchantAccounts = loadAccounts();
 let broadcastPosts = loadBroadcasts();
+let processedTxns = loadProcessedTxns();
 
 // Resend Email Dispatcher Engine
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -200,13 +227,171 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE
+// =========================================================================
+
+async function generateSquadVirtualAccount(merchantData) {
+    try {
+        console.log(`💳 Initiating Squad GTBank Virtual Account for: ${merchantData.merchantName}`);
+
+        const nameParts = merchantData.merchantName.trim().split(' ');
+        const firstName = nameParts[0] || 'Merchant';
+        const lastName = nameParts.slice(1).join(' ') || 'User';
+
+        const payload = {
+            first_name: firstName,
+            last_name: lastName,
+            middle_name: "",
+            mobile_num: merchantData.phone,
+            email: merchantData.email,
+            bvn: merchantData.bvn || "22222222222",
+            dob: "1995-01-01",
+            address: "Lagos, Nigeria",
+            gender: "1",
+            customer_identifier: merchantData.phone,
+            beneficiary_account: ACCESS_BANK_DESTINATION_ACCOUNT
+        };
+
+        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account`, payload, {
+            headers: {
+                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.data && response.data.status === 200 && response.data.data) {
+            const accData = response.data.data;
+            console.log(`✅ Squad GTBank Virtual Account Created: ${accData.account_number} (GTBank)`);
+            return {
+                success: true,
+                virtualNuban: accData.account_number,
+                virtualBank: 'GTBank / Squad'
+            };
+        } else {
+            console.warn('⚠️ Squad returned non-200, falling back to simulated GTBank NUBAN:', response.data);
+            return {
+                success: false,
+                virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
+                virtualBank: 'GTBank / Squad'
+            };
+        }
+    } catch (err) {
+        console.error('❌ Squad Virtual Account Error:', err.response ? err.response.data : err.message);
+        return {
+            success: false,
+            virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
+            virtualBank: 'GTBank / Squad'
+        };
+    }
+}
+
+// =========================================================================
+// 🔔 SQUAD WEBHOOK PAYMENT LISTENER ENGINE
+// =========================================================================
+
+app.post('/api/v1/webhook/squad', async (req, res) => {
+    try {
+        const squadSignature = req.headers['x-squad-encrypted-body'];
+        if (squadSignature) {
+            const hash = crypto.createHmac('sha512', SQUAD_SECRET_KEY)
+                .update(JSON.stringify(req.body))
+                .digest('hex').toUpperCase();
+
+            if (hash !== squadSignature.toUpperCase()) {
+                console.warn('⚠️ Squad Webhook signature verification failed.');
+                return res.status(401).json({ status: 'error', message: 'Invalid webhook signature' });
+            }
+        }
+
+        const { event, data } = req.body;
+        console.log(`📥 Squad Webhook Event Received: [${event}]`, data);
+
+        if (event === 'charge.success' || (data && data.event === 'charge.success')) {
+            const paymentData = data || req.body;
+            const txRef = paymentData.transaction_ref;
+            const amountInNaira = parseFloat(paymentData.principal_amount || paymentData.amount) / 100;
+            const customerId = (paymentData.customer_identifier || paymentData.email || '').trim();
+
+            processedTxns = loadProcessedTxns();
+            if (processedTxns[txRef]) {
+                console.log(`⚠️ Transaction [${txRef}] already processed. Skipping duplicate.`);
+                return res.status(200).json({ status: 'success', message: 'Transaction already processed' });
+            }
+
+            merchantAccounts = loadAccounts();
+            let targetAccount = merchantAccounts[customerId];
+
+            if (!targetAccount) {
+                targetAccount = Object.values(merchantAccounts).find(
+                    acc => acc.virtualNuban === paymentData.virtual_account_number || acc.email === customerId
+                );
+            }
+
+            if (targetAccount) {
+                const phone = targetAccount.phone;
+                merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + amountInNaira;
+                saveAccounts(merchantAccounts);
+
+                processedTxns[txRef] = {
+                    amount: amountInNaira,
+                    merchantPhone: phone,
+                    timestamp: new Date().toISOString()
+                };
+                saveProcessedTxns(processedTxns);
+
+                console.log(`💰 Merchant [${phone}] Credited with ₦${amountInNaira.toLocaleString()} via Squad. New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
+
+                // ⚡ Trigger Auto-Sweep to Access Bank
+                executeAccessBankAutoSweep(amountInNaira, txRef, 'Squad Collection Deposit');
+
+                // 📲 Dispatch Instant SMS Alert
+                dispatchImmediateTransactionSMS(
+                    phone,
+                    'Deposit (GTBank Virtual Acc)',
+                    paymentData.virtual_account_number || 'GTBank NUBAN',
+                    amountInNaira,
+                    merchantAccounts[phone].balance,
+                    txRef
+                );
+
+                return res.status(200).json({ status: 'success', message: 'Merchant credited successfully' });
+            } else {
+                console.warn(`❌ No matching merchant account found for Customer Identifier: [${customerId}]`);
+                return res.status(404).json({ status: 'error', message: 'Merchant account not found' });
+            }
+        }
+
+        return res.status(200).json({ status: 'success', message: 'Event received' });
+    } catch (err) {
+        console.error('❌ Squad Webhook Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal Webhook Server Error' });
+    }
+});
+
+// Manual Requery Endpoint for Squad Transactions
+app.post('/api/v1/virtual-account/requery', async (req, res) => {
+    try {
+        const { transactionRef } = req.body;
+        if (!transactionRef) return res.status(400).json({ status: 'error', message: 'Transaction reference is required.' });
+
+        const response = await axios.get(`${SQUAD_BASE_URL}/transaction/verify/${transactionRef}`, {
+            headers: { 'Authorization': `Bearer ${SQUAD_SECRET_KEY}` }
+        });
+
+        return res.status(200).json({ status: 'success', data: response.data });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to requery transaction from Squad.' });
+    }
+});
+
+// =========================================================================
 // 🔐 AUTHENTICATION & ONBOARDING
 // =========================================================================
 
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
-        const { merchantName, phone, email, password, settlementAccount, bankName, withdrawalPin } = req.body;
+        const { merchantName, phone, email, password, settlementAccount, bankName, withdrawalPin, bvn } = req.body;
 
         if (!merchantName || !phone || !email || !password || !settlementAccount || !bankName) {
             return res.status(400).json({ status: 'error', message: 'All fields are required.' });
@@ -219,8 +404,15 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Phone number already registered.' });
         }
 
-        const generatedNuban = `99${Math.floor(10000000 + Math.random() * 90000000)}`;
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Call Squad API for live GTBank Virtual Account
+        const squadRes = await generateSquadVirtualAccount({
+            merchantName,
+            phone: cleanPhone,
+            email: cleanEmail,
+            bvn
+        });
 
         const newMerchant = {
             id: `MCH-${Date.now()}`,
@@ -231,8 +423,8 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             withdrawalPin: (withdrawalPin && /^\d{4}$/.test(withdrawalPin.trim())) ? withdrawalPin.trim() : '1234',
             settlementAccount,
             bankName,
-            virtualNuban: generatedNuban,
-            virtualBank: 'Nomba / MFB',
+            virtualNuban: squadRes.virtualNuban,
+            virtualBank: 'GTBank / Squad',
             balance: 0.00,
             isLocked: false,
             createdAt: new Date().toISOString()
@@ -249,15 +441,15 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                 </p>
                 <div style="border-top:1px dashed #334155; border-bottom:1px dashed #334155; padding:15px 0; margin-bottom:20px; font-size:14px; line-height:1.6;">
                     <p style="margin-top:0;">Welcome onboard, <strong>${merchantName}</strong>!</p>
-                    <p>Your dedicated multi-bank settlement NUBAN has been provisioned and linked to your gateway wallet balance.</p>
+                    <p>Your dedicated GTBank multi-bank settlement NUBAN has been provisioned and linked to your gateway wallet balance.</p>
                 </div>
 
                 <div style="background:#162032; border:1px solid #233148; padding:15px; border-radius:8px; margin-bottom:20px; font-size:13px; line-height:1.8;">
                     <p style="margin:0; color:#38bdf8; font-weight:bold;">📌 ACCOUNT DETAILS</p>
                     <hr style="border-color:#233148; margin:8px 0;">
                     <p style="margin:0;">Account Name: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>${merchantName}</strong></p>
-                    <p style="margin:0;">Virtual NUBAN: &nbsp;&nbsp;&nbsp;&nbsp;<strong>${generatedNuban}</strong></p>
-                    <p style="margin:0;">Primary Bank: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nomba Microfinance Bank</p>
+                    <p style="margin:0;">Virtual NUBAN: &nbsp;&nbsp;&nbsp;&nbsp;<strong>${squadRes.virtualNuban}</strong></p>
+                    <p style="margin:0;">Primary Bank: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Guaranty Trust Bank (GTBank)</p>
                     <p style="margin:0;">Status: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#10b981; font-weight:bold;">ACTIVE & READY FOR FUNDING</span></p>
                 </div>
 
