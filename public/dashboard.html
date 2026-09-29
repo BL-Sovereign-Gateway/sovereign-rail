@@ -125,7 +125,7 @@
         <main class="content">
             <header class="content-header">
                 <div>
-                    <div class="welcome-text" id="welcomeMerchant">Hi, Tope Ogegbo</div>
+                    <div class="welcome-text" id="welcomeMerchant">Hi, Valued Merchant</div>
                 </div>
                 <div class="action-btns-grid">
                     <button onclick="openFundModal()" class="fund-btn">➕ FUND WALLET</button>
@@ -139,8 +139,8 @@
             <div class="ticker-container">
                 <div class="ticker-wrapper">
                     <div class="ticker-content" id="tickerContent">
-                        <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Access Bank, Wema Bank, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
-                        <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Nomba Financial Service, Access Bank, Wema Bank, Flutterwave, Squad, Railway app, github, clubkonnect, Termii...</span>
+                        <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Access Bank, GTBank, Squad Co, Termii SMS, Resend Email...</span>
+                        <span class="ticker-item">🎁 ₦2.00 Cashback / transactions, strategic partners, Access Bank, GTBank, Squad Co, Termii SMS, Resend Email...</span>
                     </div>
                 </div>
 
@@ -161,41 +161,25 @@
                 </div>
             </div>
 
-            <!-- Active Ajo Express Status Card -->
-            <div id="activeAjoStatus" class="card" style="margin-bottom: 22px; display: none; border-color: var(--amber-main); border-style: dashed; background: rgba(245, 158, 11, 0.03);">
-                <div class="card-label" style="color: var(--amber-main);">Active Ajo Express Savings Lock</div>
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <div class="card-val" id="ajoBalance">₦0.00</div>
-                        <div class="card-sub">Next Daily Lock: <strong id="nextAjoDeduction">₦...,000.00</strong> | Days Completed: <strong id="ajoDays">.../30</strong></div>
-                        <div class="card-sub">Maturity Date: <strong id="ajoMaturity">..., 2026</strong> (Auto-sweeps to payout account)</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <span class="badge-pending" id="ajoStatus">LOCKED (DAY 1 FEE)</span>
-                        <div style="margin-top: 10px;">
-                            <button onclick="requestAjoBreak()" style="background: rgba(239, 68, 68, 0.1); color: var(--red-main); border: 1px solid var(--red-main); padding: 4px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">Break Plan (-10%)</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Financial Balances Grid -->
             <div class="grid-3">
                 <div class="card wallet-card">
                     <div>
                         <div class="card-label">
                             <span>Gateway Ledger Balance</span>
-                            <span class="eye-toggle" id="toggleWalletEye" onclick="toggleWalletVisibility()">👁️ Hide</span>
+                            <span class="eye-toggle" id="toggleWalletEye" onclick="toggleWalletVisibility()">👁️ Show Balance</span>
                         </div>
                         <div class="card-val" id="walletBalance">₦••••••••</div>
-                        <div class="card-sub">Account Number <strong style="color: var(--cyan-main);">9920792189</strong>. Nomba MFB.</div>
+                        <div class="card-sub">
+                            GTBank Virtual Account: <strong style="color: var(--cyan-main);" id="cardVirtualNuban">Generating...</strong> (<span id="cardVirtualBank">GTBank / Squad</span>)
+                        </div>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-label">
                         <span>SAIL Credit Line</span>
-                        <span class="eye-toggle" id="toggleCreditEye" onclick="toggleCreditVisibility()">👁️ Hide</span>
+                        <span class="eye-toggle" id="toggleCreditEye" onclick="toggleCreditVisibility()">👁️ Show</span>
                     </div>
                     <div class="card-val" id="creditBalance">₦••••••••</div>
                     <div class="card-sub">Status: <span class="badge-pending">Awaiting Volume</span></div>
@@ -205,9 +189,9 @@
             <!-- Quick Services Grid -->
             <h2 style="font-size: 1.05rem; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 14px;">VTU, Bills & Financial Products</h2>
             <div class="actions-list">
-                <a href="/vtu-support" class="action-card"><span>📞</span> Buy Airtime</a>
+                <a href="/vtu-support" class="action-card"><span>📞</span> Buy Airtime & Data</a>
                 <a href="/education-support" class="action-card"><span>🎓</span> WAEC / JAMB Result PINs</a>
-                <a href="/bill-payments" class="action-card"><span>📺</span> Cable TV (DSTV/GOtv)</a>
+                <a href="/bill-payments" class="action-card"><span>📺</span> Cable TV & Electricity Discos</a>
                 <div onclick="openStockModal()" class="action-card" style="border-color: var(--purple-main);">
                     <span>📈</span> Buy Stocks & Equity (T&C Apply)
                 </div>
@@ -219,7 +203,7 @@
         </main>
     </div>
 
-    <!-- 1. MULTI-OPTION FUND WALLET MODAL (DIRECT BANK TRANSFER + ATM DEBIT CARDS) -->
+    <!-- 1. MULTI-OPTION FUND WALLET MODAL -->
     <div id="fundModal" class="modal-backdrop">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
@@ -232,20 +216,20 @@
             <!-- Payment Method Tabs -->
             <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
                 <button type="button" id="tabBankTransfer" onclick="switchFundMethod('bank')" style="flex: 1; padding: 8px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 1px solid var(--cyan-main); background: rgba(56, 189, 248, 0.15); color: var(--cyan-main);">
-                    🏦 Direct Bank Transfer (All Banks)
+                    🏦 Direct Bank Transfer (GTBank Squad)
                 </button>
                 <button type="button" id="tabDebitCard" onclick="switchFundMethod('card')" style="flex: 1; padding: 8px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-sub);">
                     💳 Debit/Credit Card
                 </button>
             </div>
 
-            <!-- TAB 1: DIRECT BANK TRANSFER (SELECT ANY NIGERIAN BANK) -->
+            <!-- TAB 1: DIRECT GTBANK VIRTUAL ACCOUNT DEPOSIT -->
             <div id="fundBankSection">
                 <form id="directBankFundForm" onsubmit="generateBankTransfer(event)">
                     <div class="input-group">
-                        <label class="input-label">Select Your Bank (Sender Bank)</label>
+                        <label class="input-label">Select Sender Bank (Your Bank)</label>
                         <select id="fundingSourceBank" required class="form-select">
-                            <option value="">Select your bank...</option>
+                            <option value="Any Nigerian Bank">Transfer from Any Nigerian Bank App / USSD</option>
                             <option value="Access Bank Plc">Access Bank Plc</option>
                             <option value="First Bank of Nigeria">First Bank of Nigeria</option>
                             <option value="Guaranty Trust Bank (GTB)">Guaranty Trust Bank (GTB)</option>
@@ -255,43 +239,31 @@
                             <option value="OPay Digital Services">OPay Digital Services</option>
                             <option value="PalmPay Limited">PalmPay Limited</option>
                             <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
-                            <option value="Wema Bank / ALAT">Wema Bank / ALAT</option>
-                            <option value="Fidelity Bank Plc">Fidelity Bank Plc</option>
-                            <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
-                            <option value="Sterling Bank Plc">Sterling Bank Plc</option>
-                            <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
-                            <option value="Ecobank Nigeria">Ecobank Nigeria</option>
-                            <option value="FCMB">FCMB</option>
-                            <option value="Keystone Bank">Keystone Bank</option>
-                            <option value="Polaris Bank">Polaris Bank</option>
-                            <option value="Nomba MFB">Nomba MFB</option>
-                            <option value="Other Bank App / USSD">Other Nigerian Bank / USSD</option>
                         </select>
                     </div>
 
                     <div class="input-group">
-                        <label class="input-label">Amount to Fund (₦)</label>
+                        <label class="input-label">Expected Amount to Fund (₦)</label>
                         <input type="number" id="fundAmountInput" min="100" required placeholder="e.g. 5000" class="form-control">
                     </div>
 
                     <button type="submit" class="btn-confirm" style="background: var(--emerald-main); color: #fff;">
-                        Generate Direct Deposit NUBAN
+                        Display GTBank Virtual NUBAN
                     </button>
                 </form>
 
-                <!-- Generated Account Result Box -->
+                <!-- Generated GTBank Account Display Box -->
                 <div id="generatedAccountBox" style="display: none; margin-top: 15px;">
                     <div class="bank-option-card" style="background: rgba(16, 185, 129, 0.08); border-color: var(--emerald-main);">
-                        <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--emerald-main); font-weight: bold; margin-bottom: 4px;">Dynamic Deposit NUBAN Ready</div>
-                        <div style="font-size: 0.85rem; color: var(--text-sub);">Source Bank: <strong id="dispSourceBank" style="color: var(--text-main);">GTBank</strong></div>
-                        <div style="font-size: 1.25rem; font-weight: 800; color: var(--emerald-main); margin: 6px 0;" id="dispNuban">9920792189</div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted);">Bank Name: <strong style="color: var(--text-main);">Nomba MFB / Gateway Settlement</strong></div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted);">Account Name: <strong style="color: var(--text-main);">@BL SOVEREIGN / Tope Ogegbo</strong></div>
+                        <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--emerald-main); font-weight: bold; margin-bottom: 4px;">Dedicated GTBank Deposit Account</div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--emerald-main); margin: 6px 0;" id="dispNuban">Loading NUBAN...</div>
+                        <div style="font-size: 0.78rem; color: var(--text-sub);">Bank Name: <strong style="color: var(--text-main);" id="dispBankName">Guaranty Trust Bank (GTBank)</strong></div>
+                        <div style="font-size: 0.78rem; color: var(--text-sub);">Account Name: <strong style="color: var(--text-main);" id="dispAccName">@BL SOVEREIGN GATEWAY</strong></div>
                     </div>
 
                     <div style="display: flex; gap: 8px;">
                         <button onclick="copyGeneratedNuban()" class="btn-confirm" style="background: rgba(56, 189, 248, 0.2); color: var(--cyan-main); border: 1px solid var(--cyan-main); flex: 1;">
-                            📋 Copy NUBAN
+                            📋 Copy GTBank NUBAN
                         </button>
                         <button onclick="confirmTransferDone()" class="btn-confirm" style="background: var(--emerald-main); color: #fff; flex: 1;">
                             ✅ I Have Transferred
@@ -300,23 +272,15 @@
                 </div>
             </div>
 
-            <!-- TAB 2: DEBIT / CREDIT CARD DIRECT CHECKOUT -->
+            <!-- TAB 2: CARD PAYMENTS -->
             <div id="fundCardSection" style="display: none;">
                 <form id="cardFundForm" onsubmit="initiateCardPayment(event)">
-                    <p style="font-size: 0.76rem; color: var(--text-sub); margin-bottom: 12px;">
-                        Pay securely using any Nigerian ATM Debit or Credit Card (Mastercard, Visa, Verve):
-                    </p>
                     <div class="input-group">
                         <label class="input-label">Enter Amount to Fund (₦)</label>
                         <input type="number" id="cardFundAmount" min="100" required placeholder="e.g. 5000" class="form-control">
                     </div>
-
-                    <div style="background: rgba(56, 189, 248, 0.05); border-left: 3px solid var(--cyan-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 15px;">
-                        💳 Supports cards from all Nigerian banks (GTBank, Zenith, FirstBank, UBA, Access, Moniepoint, OPay, Kuda, etc.).
-                    </div>
-
                     <button type="submit" class="btn-confirm" style="background: var(--cyan-main); color: var(--bg-dark);">
-                        Proceed to Secure Card Checkout
+                        Proceed to Secure Checkout
                     </button>
                 </form>
             </div>
@@ -340,16 +304,10 @@
                         <option value="Guaranty Trust Bank Plc">Guaranty Trust Bank Plc (GTB)</option>
                         <option value="Zenith Bank Plc">Zenith Bank Plc</option>
                         <option value="United Bank For Africa Plc">United Bank For Africa Plc (UBA)</option>
-                        <option value="Fidelity Bank Plc">Fidelity Bank Plc</option>
-                        <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
                         <option value="Moniepoint MFB">Moniepoint Microfinance Bank</option>
                         <option value="OPay Digital Services">OPay Digital Services</option>
                         <option value="PalmPay Limited">PalmPay Limited</option>
                         <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
-                        <option value="Wema Bank Plc">Wema Bank / ALAT</option>
-                        <option value="Sterling Bank Plc">Sterling Bank Plc</option>
-                        <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
-                        <option value="Ecobank Nigeria">Ecobank Nigeria</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -371,422 +329,137 @@
         </div>
     </div>
 
-    <!-- 3. AJO EXPRESS MODAL -->
-    <div id="ajoModal" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.1rem;">⚡ Start Ajo Express Daily Lock</h3>
-                <span onclick="closeAjoModal()" style="cursor: pointer; font-size: 1.3rem; color: var(--text-muted);">&times;</span>
-            </div>
-            <form id="ajoForm" onsubmit="submitAjoPlan(event)">
-                <div class="input-group">
-                    <label class="input-label">Select Fixed Daily Contribution (₦)</label>
-                    <select id="ajoDailyAmount" required class="form-select">
-                        <option value="500">₦500 / day (Target Payout: ₦14,500)</option>
-                        <option value="1000">₦1,000 / day (Target Payout: ₦29,000)</option>
-                        <option value="2000" selected>₦2,000 / day (Target Payout: ₦58,000)</option>
-                        <option value="5000">₦5,000 / day (Target Payout: ₦145,000)</option>
-                        <option value="10000">₦10,000 / day (Target Payout: ₦290,000)</option>
-                    </select>
-                </div>
-                <div style="background: rgba(245, 158, 11, 0.05); border-left: 3px solid var(--amber-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 12px;">
-                    ⚠️ Day 1 contribution is retained by @BL SOVEREIGN GATEWAY as the management fee. Early withdrawal before 30 days incurs a strict <strong>10% penalty</strong>.
-                </div>
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 15px;">
-                    <input type="checkbox" id="ajoTermsCheck" required style="width: 16px; height: 16px; accent-color: var(--cyan-main); cursor: pointer; margin-top: 2px;">
-                    <label for="ajoTermsCheck" style="font-size: 0.75rem; color: var(--text-sub); cursor: pointer; line-height: 1.3;">
-                        I accept the <strong style="color: var(--cyan-main);">Ajo Express Terms & Conditions</strong>.
-                    </label>
-                </div>
-                <button type="submit" id="ajoSubmitBtn" class="btn-confirm" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    Activate & Collect Day 1 Fee
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- 4. BUY STOCKS MODAL -->
-    <div id="stockModal" class="modal-backdrop">
-        <div class="modal-content" style="border-color: var(--purple-main);">
-            <div class="modal-header">
-                <h3 style="margin: 0; color: var(--purple-main); font-size: 1.1rem;">📈 Commercial Stock Desk</h3>
-                <span onclick="closeStockModal()" style="cursor: pointer; font-size: 1.3rem; color: var(--text-muted);">&times;</span>
-            </div>
-            <form id="stockForm" onsubmit="submitStockPurchase(event)">
-                <div class="input-group">
-                    <label class="input-label">Select Equity Portfolio Asset</label>
-                    <select id="stockAsset" required class="form-select">
-                        <option value="NGX_BANKING">NGX Banking Index Portfolio (Nigeria)</option>
-                        <option value="US_TECH">US Tech Equity Basket (S&P 500)</option>
-                        <option value="ATB_COMMERCIAL">All Time Business Corporate Note</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Investment Principal Amount (₦)</label>
-                    <input type="number" id="stockAmount" min="5000" required placeholder="10000" class="form-control">
-                </div>
-
-                <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid var(--purple-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 12px;">
-                    💳 <strong>One-Time Account Activation Fee:</strong> Statutory fee of <strong>₦1,850</strong> will be debited alongside your order for SEC compliance onboarding.
-                </div>
-
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 15px;">
-                    <input type="checkbox" id="stockTermsCheck" required style="width: 16px; height: 16px; accent-color: var(--purple-main); cursor: pointer; margin-top: 2px;">
-                    <label for="stockTermsCheck" style="font-size: 0.75rem; color: var(--text-sub); cursor: pointer; line-height: 1.3;">
-                        I agree to the <strong style="color: var(--purple-main);">Stock Terms & Conditions</strong> and authorize the <strong>₦1,850</strong> fee debit.
-                    </label>
-                </div>
-                <button type="submit" id="stockSubmitBtn" class="btn-confirm" disabled style="background: var(--purple-main); opacity: 0.5; cursor: not-allowed; color: #fff;">
-                    Pay ₦1,850 Fee & Authorize Order
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- HIDDEN PDF RECEIPT TEMPLATE CONTAINER -->
-    <div id="receiptTemplate" style="display: none; padding: 25px; background: #ffffff; color: #000000; font-family: sans-serif; border: 2px solid #0284c7; width: 550px;">
-        <div style="text-align: center; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 18px;">
-            <h2 style="color: #0284c7; margin: 0;">@BL SOVEREIGN GATEWAY</h2>
-            <p style="margin: 3px 0; font-size: 11px; color: #555;">ALL TIME BUSINESS LTD (RC: 950444)</p>
-            <p style="margin: 0; font-size: 13px; font-weight: bold; color: #10b981;">OFFICIAL TRANSACTION RECEIPT</p>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <tr><td style="padding: 6px 0; font-weight: bold;">Transaction Reference:</td><td id="rcpRef" style="text-align: right;">TXN-10293847</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold;">Date & Time:</td><td id="rcpDate" style="text-align: right;">2026-09-20 22:10</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold;">Merchant Name:</td><td id="rcpMerchant" style="text-align: right;">Tope Ogegbo</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold;">Service / Product:</td><td id="rcpService" style="text-align: right;">VTU Airtime Topup</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold;">Recipient / Account:</td><td id="rcpTarget" style="text-align: right;">08022552528</td></tr>
-            <tr style="border-top: 1px solid #ccc; border-bottom: 1px solid #ccc;"><td style="padding: 10px 0; font-size: 15px; font-weight: bold; color: #0284c7;">Total Amount Paid:</td><td id="rcpAmount" style="text-align: right; font-size: 15px; font-weight: bold; color: #0284c7;">₦5,000.00</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold;">Payment Status:</td><td style="text-align: right; color: #10b981; font-weight: bold;">SUCCESSFUL</td></tr>
-        </table>
-        <div style="margin-top: 25px; text-align: center; font-size: 10px; color: #777; border-top: 1px dashed #ccc; padding-top: 12px;">
-            Thank you for transacting with @BL SOVEREIGN GATEWAY. For support, visit www.alltimebusiness.com.ng
-        </div>
-    </div>
-
-    <!-- JavaScript Engine -->
+    <!-- JavaScript Master Handler -->
     <script>
-        let walletRawAmount = 145000;
-        let creditRawAmount = 0;
+        let currentMerchant = JSON.parse(localStorage.getItem('activeMerchant')) || {
+            merchantName: 'Valued Merchant',
+            phone: '08000000000',
+            virtualNuban: '0700000000',
+            virtualBank: 'GTBank / Squad',
+            balance: 0.00
+        };
 
-        let isWalletHidden = true;
-        let isCreditHidden = true;
+        let isWalletVisible = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            authenticateSession();
-            renderBalances();
-            checkAjoExpressStatus();
-            setupInBoxPopups();
-
-            const termsCheck = document.getElementById('ajoTermsCheck');
-            const submitBtn = document.getElementById('ajoSubmitBtn');
-            if (termsCheck && submitBtn) {
-                termsCheck.addEventListener('change', (e) => {
-                    submitBtn.disabled = !e.target.checked;
-                    submitBtn.style.opacity = e.target.checked ? '1' : '0.5';
-                    submitBtn.style.cursor = e.target.checked ? 'pointer' : 'not-allowed';
-                });
-            }
-
-            const stockCheck = document.getElementById('stockTermsCheck');
-            const stockBtn = document.getElementById('stockSubmitBtn');
-            if (stockCheck && stockBtn) {
-                stockCheck.addEventListener('change', (e) => {
-                    stockBtn.disabled = !e.target.checked;
-                    stockBtn.style.opacity = e.target.checked ? '1' : '0.5';
-                    stockBtn.style.cursor = e.target.checked ? 'pointer' : 'not-allowed';
-                });
-            }
+            renderDashboardInfo();
         });
 
-        // Switch funding method tabs (Bank Transfer vs Debit Card)
-        function switchFundMethod(method) {
-            const bankSection = document.getElementById('fundBankSection');
-            const cardSection = document.getElementById('fundCardSection');
-            const tabBank = document.getElementById('tabBankTransfer');
-            const tabCard = document.getElementById('tabDebitCard');
-
-            if (method === 'bank') {
-                bankSection.style.display = 'block';
-                cardSection.style.display = 'none';
-                tabBank.style.border = '1px solid var(--cyan-main)';
-                tabBank.style.background = 'rgba(56, 189, 248, 0.15)';
-                tabBank.style.color = 'var(--cyan-main)';
-
-                tabCard.style.border = '1px solid var(--border)';
-                tabCard.style.background = 'var(--bg-input)';
-                tabCard.style.color = 'var(--text-sub)';
-            } else {
-                bankSection.style.display = 'none';
-                cardSection.style.display = 'block';
-                tabCard.style.border = '1px solid var(--cyan-main)';
-                tabCard.style.background = 'rgba(56, 189, 248, 0.15)';
-                tabCard.style.color = 'var(--cyan-main)';
-
-                tabBank.style.border = '1px solid var(--border)';
-                tabBank.style.background = 'var(--bg-input)';
-                tabBank.style.color = 'var(--text-sub)';
-            }
-        }
-
-        // Dynamic Bank Direct Funding Generator
-        function generateBankTransfer(e) {
-            e.preventDefault();
-            const sourceBank = document.getElementById('fundingSourceBank').value;
-            const amount = document.getElementById('fundAmountInput').value;
-
-            document.getElementById('dispSourceBank').textContent = sourceBank;
-            document.getElementById('dispNuban').textContent = '9920792189';
-            document.getElementById('generatedAccountBox').style.display = 'block';
-        }
-
-        function copyGeneratedNuban() {
-            const nuban = document.getElementById('dispNuban').textContent;
-            navigator.clipboard.writeText(nuban).then(() => {
-                alert('📋 NUBAN (' + nuban + ') copied to clipboard! Complete transfer in your bank app.');
-            });
-        }
-
-        function confirmTransferDone() {
-            alert('✅ Transfer recorded! Your ledger balance will update automatically upon bank network clearance.');
-            closeFundModal();
-        }
-
-        // Card Payment Checkout Initiator
-        function initiateCardPayment(e) {
-            e.preventDefault();
-            const amount = document.getElementById('cardFundAmount').value;
-            alert('💳 Redirecting to secure ATM card payment gateway for ₦' + parseFloat(amount).toLocaleString('en-NG', {minimumFractionDigits: 2}) + '...');
-            closeFundModal();
-        }
-
-        // In-Box Pop-Up Overlay Engine
-        let popupState = 0;
-        function setupInBoxPopups() {
-            const tickerElem = document.getElementById('tickerContent');
-            if (tickerElem) {
-                tickerElem.addEventListener('animationiteration', triggerInBoxPopup);
-            }
-            setTimeout(triggerInBoxPopup, 22000);
-        }
-
-        function triggerInBoxPopup() {
-            const popup = document.getElementById('inboxPopup');
-            const pBadge = document.getElementById('popupBadge');
-            const pText = document.getElementById('popupText');
-            const pBtn = document.getElementById('popupBtn');
-
-            if (popupState === 0) {
-                pBadge.textContent = "⚡ AJO";
-                pBadge.style.background = "var(--amber-main)";
-                pText.textContent = "Ajo Express Savings: Lock daily merchant profits starting at ₦500/day!";
-                pBtn.style.background = "var(--amber-main)";
-                pBtn.onclick = () => { openAjoModal(); closeInboxPopup(); };
-                popupState = 1;
-            } else {
-                pBadge.textContent = "📈 STOCKS";
-                pBadge.style.background = "var(--purple-main)";
-                pText.textContent = "Commercial Stock Desk: Buy NGX & US Tech equities with ₦1,850 T&C!";
-                pBtn.style.background = "var(--purple-main)";
-                pBtn.onclick = () => { openStockModal(); closeInboxPopup(); };
-                popupState = 0;
-            }
-
-            popup.style.display = 'flex';
-            setTimeout(closeInboxPopup, 6000);
-        }
-
-        function closeInboxPopup() {
-            document.getElementById('inboxPopup').style.display = 'none';
+        function renderDashboardInfo() {
+            document.getElementById('welcomeMerchant').innerText = `Hi, ${currentMerchant.merchantName}`;
+            document.getElementById('cardVirtualNuban').innerText = currentMerchant.virtualNuban || '0700000000';
+            document.getElementById('cardVirtualBank').innerText = currentMerchant.virtualBank || 'GTBank / Squad';
         }
 
         function toggleWalletVisibility() {
-            isWalletHidden = !isWalletHidden;
-            const balElem = document.getElementById('walletBalance');
+            isWalletVisible = !isWalletVisible;
+            const walletVal = document.getElementById('walletBalance');
             const eyeBtn = document.getElementById('toggleWalletEye');
 
-            if (isWalletHidden) {
-                balElem.textContent = '₦••••••••';
-                eyeBtn.textContent = '👁️ Reveal';
+            if (isWalletVisible) {
+                walletVal.innerText = `₦${parseFloat(currentMerchant.balance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+                eyeBtn.innerText = '🙈 Hide Balance';
             } else {
-                balElem.textContent = '₦' + walletRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
-                eyeBtn.textContent = '👁️ Hide';
+                walletVal.innerText = '₦••••••••';
+                eyeBtn.innerText = '👁️ Show Balance';
             }
         }
 
         function toggleCreditVisibility() {
-            isCreditHidden = !isCreditHidden;
-            const creditElem = document.getElementById('creditBalance');
-            const eyeBtn = document.getElementById('toggleCreditEye');
+            const creditVal = document.getElementById('creditBalance');
+            creditVal.innerText = (creditVal.innerText === '₦••••••••') ? '₦0.00' : '₦••••••••';
+        }
 
-            if (isCreditHidden) {
-                creditElem.textContent = '₦••••••••';
-                eyeBtn.textContent = '👁️ Reveal';
+        function openFundModal() {
+            document.getElementById('fundModal').style.display = 'flex';
+        }
+
+        function closeFundModal() {
+            document.getElementById('fundModal').style.display = 'none';
+        }
+
+        function switchFundMethod(method) {
+            if (method === 'bank') {
+                document.getElementById('fundBankSection').style.display = 'block';
+                document.getElementById('fundCardSection').style.display = 'none';
             } else {
-                creditElem.textContent = '₦' + creditRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
-                eyeBtn.textContent = '👁️ Hide';
+                document.getElementById('fundBankSection').style.display = 'none';
+                document.getElementById('fundCardSection').style.display = 'block';
             }
         }
 
-        function renderBalances() {
-            document.getElementById('walletBalance').textContent = isWalletHidden ? '₦••••••••' : '₦' + walletRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
-            document.getElementById('creditBalance').textContent = isCreditHidden ? '₦••••••••' : '₦' + creditRawAmount.toLocaleString('en-NG', {minimumFractionDigits: 2});
+        function generateBankTransfer(e) {
+            e.preventDefault();
+            document.getElementById('dispNuban').innerText = currentMerchant.virtualNuban || '0700000000';
+            document.getElementById('dispAccName').innerText = `${currentMerchant.merchantName} / @BL GATEWAY`;
+            document.getElementById('generatedAccountBox').style.display = 'block';
         }
 
-        function authenticateSession() {
-            const mchName = localStorage.getItem('merchantName') || 'Tope Ogegbo';
-            document.getElementById('welcomeMerchant').textContent = 'Hi, ' + mchName;
+        function copyGeneratedNuban() {
+            const nuban = currentMerchant.virtualNuban || '0700000000';
+            navigator.clipboard.writeText(nuban);
+            alert(`✅ GTBank Virtual Account (${nuban}) copied to clipboard!`);
         }
 
-        function terminateSession() {
-            localStorage.clear();
-            window.location.href = '/login';
+        function confirmTransferDone() {
+            alert('⚡ Payment received confirmation initiated! Your wallet will credit automatically upon GTBank network confirmation.');
+            closeFundModal();
         }
 
-        function openFundModal() { 
-            document.getElementById('fundModal').style.display = 'flex'; 
-            document.getElementById('generatedAccountBox').style.display = 'none';
-            document.getElementById('directBankFundForm').reset();
-            switchFundMethod('bank');
+        function openWithdrawModal() {
+            document.getElementById('withdrawModal').style.display = 'flex';
         }
-        function closeFundModal() { document.getElementById('fundModal').style.display = 'none'; }
 
-        function openWithdrawModal() { document.getElementById('withdrawModal').style.display = 'flex'; }
-        function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
+        function closeWithdrawModal() {
+            document.getElementById('withdrawModal').style.display = 'none';
+        }
 
         async function submitBankWithdrawal(e) {
             e.preventDefault();
-            const destinationBank = document.getElementById('wthBank').value;
-            const accountNumber = document.getElementById('wthAccountNo').value.trim();
+            const bank = document.getElementById('wthBank').value;
+            const accNo = document.getElementById('wthAccountNo').value;
             const amount = document.getElementById('wthAmount').value;
-            const withdrawalPin = document.getElementById('wthPin').value.trim();
-            const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-
-            if (withdrawalPin.length !== 4) {
-                alert('⚠️ Please enter a valid 4-digit security PIN.');
-                return;
-            }
+            const pin = document.getElementById('wthPin').value;
 
             try {
-                const res = await fetch('/api/v1/merchant/withdraw', {
+                const response = await fetch('/api/v1/merchant/withdraw', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ merchantPhone, amount, destinationBank, accountNumber, withdrawalPin })
+                    body: JSON.stringify({
+                        merchantPhone: currentMerchant.phone,
+                        amount,
+                        destinationBank: bank,
+                        accountNumber: accNo,
+                        withdrawalPin: pin
+                    })
                 });
-                const data = await res.json();
 
-                if (data.status === 'success') {
-                    alert('🎉 ' + data.message);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    alert(`✅ ${result.message}`);
+                    currentMerchant.balance = result.newBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(currentMerchant));
+                    renderDashboardInfo();
                     closeWithdrawModal();
-                    generatePDFReceipt('Bank Withdrawal Transfer', accountNumber + ' (' + destinationBank + ')', amount);
                 } else {
-                    alert('❌ ' + data.message);
+                    alert(`❌ Withdrawal Failed: ${result.message}`);
                 }
             } catch (err) {
-                alert('❌ Error processing bank withdrawal.');
+                alert('❌ Network error processing withdrawal.');
             }
-        }
-
-        function openAjoModal() { document.getElementById('ajoModal').style.display = 'flex'; }
-        function closeAjoModal() { document.getElementById('ajoModal').style.display = 'none'; }
-
-        async function submitAjoPlan(e) {
-            e.preventDefault();
-            const dailyAmount = document.getElementById('ajoDailyAmount').value;
-            const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-
-            try {
-                const res = await fetch('/api/v1/ajo/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ merchantPhone, dailyAmount })
-                });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    alert('🎉 ' + data.message);
-                    closeAjoModal();
-                    generatePDFReceipt('Ajo Express Daily Lock Activation', 'Management Plan', dailyAmount);
-                } else {
-                    alert('⚠️ ' + data.message);
-                }
-            } catch (err) {
-                alert('❌ Network error initializing Ajo Express.');
-            }
-        }
-
-        async function checkAjoExpressStatus() {
-            const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-            const ajoActiveCard = document.getElementById('activeAjoStatus');
-            
-            try {
-                const res = await fetch('/api/v1/ajo/status/' + merchantPhone);
-                const data = await res.json();
-
-                if (data.status === 'success' && data.hasActivePlan) {
-                    const plan = data.plan;
-                    if(ajoActiveCard) ajoActiveCard.style.display = 'block';
-                    document.getElementById('ajoBalance').textContent = '₦' + plan.accumulatedSavings.toLocaleString('en-NG', {minimumFractionDigits: 2});
-                    document.getElementById('ajoDays').textContent = plan.daysCompleted + '/30';
-                    document.getElementById('nextAjoDeduction').textContent = '₦' + plan.dailyAmount.toLocaleString();
-                    const matDate = new Date(plan.maturityDate);
-                    document.getElementById('ajoMaturity').textContent = matDate.getDate() + ' ' + matDate.toLocaleString('default', { month: 'short' }) + ', ' + matDate.getFullYear();
-                } else {
-                    if(ajoActiveCard) ajoActiveCard.style.display = 'none';
-                }
-            } catch (err) {
-                if(ajoActiveCard) ajoActiveCard.style.display = 'none';
-            }
-        }
-
-        function openStockModal() { document.getElementById('stockModal').style.display = 'flex'; }
-        function closeStockModal() { document.getElementById('stockModal').style.display = 'none'; }
-
-        function submitStockPurchase(e) {
-            e.preventDefault();
-            const amount = document.getElementById('stockAmount').value;
-            const asset = document.getElementById('stockAsset').value;
-            const totalDebit = parseFloat(amount) + 1850;
-            alert('📈 Stock Order & Onboarding Logged!\n\nTotal Charge: ₦' + totalDebit.toLocaleString() + ' (Principal: ₦' + parseFloat(amount).toLocaleString() + ' + License Fee: ₦1,850)');
-            closeStockModal();
-            generatePDFReceipt('Equity Stock Purchase (' + asset + ')', 'SEC Compliant Desk', totalDebit);
-        }
-
-        // Client-Side PDF Receipt Generator
-        function generatePDFReceipt(serviceName, recipientTarget, amountPaid) {
-            const mchName = localStorage.getItem('merchantName') || 'Tope Ogegbo';
-            const txRef = 'TXN-' + Math.floor(10000000 + Math.random() * 90000000);
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
-
-            document.getElementById('rcpRef').textContent = txRef;
-            document.getElementById('rcpDate').textContent = now;
-            document.getElementById('rcpMerchant').textContent = mchName;
-            document.getElementById('rcpService').textContent = serviceName;
-            document.getElementById('rcpTarget').textContent = recipientTarget;
-            document.getElementById('rcpAmount').textContent = '₦' + parseFloat(amountPaid).toLocaleString('en-NG', {minimumFractionDigits: 2});
-
-            const element = document.getElementById('receiptTemplate');
-            element.style.display = 'block';
-
-            const opt = {
-                margin:       10,
-                filename:     'Receipt_' + txRef + '.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.style.display = 'none';
-            });
         }
 
         function downloadMonthlyStatement() {
-            const merchantPhone = localStorage.getItem('merchantPhone') || '08022552528';
-            const currentDate = new Date();
-            const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-            const currentYear = currentDate.getFullYear();
-            window.open('/api/v1/merchant/statement/download?merchantPhone=' + merchantPhone + '&month=' + currentMonth + '&year=' + currentYear, '_blank');
+            window.open(`/api/v1/receipt/download?merchantPhone=${currentMerchant.phone}&service=Monthly Statement&amount=${currentMerchant.balance}`, '_blank');
+        }
+
+        function terminateSession() {
+            localStorage.removeItem('activeMerchant');
+            window.location.href = '/login';
+        }
+
+        function closeInboxPopup() {
+            document.getElementById('inboxPopup').style.display = 'none';
         }
     </script>
 </body>
