@@ -5,7 +5,7 @@
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
- * Merchant Account Lock/Unlock Enforcement
+ * Merchant Account Lock/Unlock Enforcement | Admin Private Desk Control
  * ============================================================================
  */
 
@@ -247,7 +247,7 @@ async function generateSquadVirtualAccount(merchantData) {
             middle_name: "",
             mobile_num: normalizePhoneNumber(merchantData.phone),
             email: merchantData.email,
-            bvn: merchantData.bvn, // 👈 Passes real 11-digit BVN/NIN provided on signup
+            bvn: merchantData.bvn,
             dob: "1995-01-01",
             address: "Lagos, Nigeria",
             gender: "1",
@@ -271,7 +271,7 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200 response:', response.data);
+            console.warn('⚠️️ Squad returned non-200 response:', response.data);
             return {
                 success: false,
                 virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -558,7 +558,155 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
 });
 
 // =========================================================================
-// 🌐 EXPLICIT PAGE ROUTING
+// 🔒 ADMIN COMMAND DESK API ENDPOINTS FOR /private CONTROL
+// =========================================================================
+
+app.get('/api/v1/admin/merchants', (req, res) => {
+    try {
+        merchantAccounts = loadAccounts();
+        const merchants = Object.values(merchantAccounts).map(m => {
+            const { password, ...safeMerchant } = m;
+            return safeMerchant;
+        });
+        return res.status(200).json({ status: 'success', count: merchants.length, merchants });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to retrieve merchants.' });
+    }
+});
+
+app.post('/api/v1/admin/toggle-lock', (req, res) => {
+    try {
+        const { phone, isLocked } = req.body;
+        const cleanPhone = normalizePhoneNumber(phone);
+        merchantAccounts = loadAccounts();
+
+        if (!merchantAccounts[cleanPhone]) {
+            return res.status(404).json({ status: 'error', message: 'Merchant not found.' });
+        }
+
+        merchantAccounts[cleanPhone].isLocked = Boolean(isLocked);
+        saveAccounts(merchantAccounts);
+
+        const stateText = isLocked ? 'LOCKED 🔴' : 'UNLOCKED 🟢';
+        return res.status(200).json({ status: 'success', message: `Merchant [${cleanPhone}] account set to ${stateText}.` });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Lock toggle execution failed.' });
+    }
+});
+
+app.post('/api/v1/admin/credit-debit', (req, res) => {
+    try {
+        const { phone, amount, action } = req.body;
+        const cleanPhone = normalizePhoneNumber(phone);
+        const adjustAmount = parseFloat(amount);
+
+        if (!cleanPhone || isNaN(adjustAmount) || adjustAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid parameters.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant not found.' });
+
+        if (action === 'credit') {
+            account.balance = (account.balance || 0) + adjustAmount;
+        } else if (action === 'debit') {
+            account.balance = Math.max(0, (account.balance || 0) - adjustAmount);
+        } else {
+            return res.status(400).json({ status: 'error', message: 'Invalid action. Must be credit or debit.' });
+        }
+
+        saveAccounts(merchantAccounts);
+        return res.status(200).json({ status: 'success', message: `Merchant ledger ${action}ed by ₦${adjustAmount.toLocaleString()}`, newBalance: account.balance });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Manual ledger override failed.' });
+    }
+});
+
+// =========================================================================
+// 📢 BROADCAST & NEWSLETTER DISPATCH ENDPOINTS
+// =========================================================================
+
+app.post('/api/v1/admin/publish-broadcast', (req, res) => {
+    try {
+        const { title, body, image, video } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ status: 'error', message: 'Headline and body content are required.' });
+        }
+
+        broadcastPosts = loadBroadcasts();
+
+        const newPost = {
+            id: `BC-${Date.now()}`,
+            title,
+            body,
+            image: image || null,
+            video: video || null,
+            publishedAt: new Date().toISOString()
+        };
+
+        broadcastPosts.unshift(newPost);
+        saveBroadcasts(broadcastPosts);
+
+        return res.status(200).json({ status: 'success', message: 'Broadcast published live!', post: newPost });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
+    }
+});
+
+app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
+    try {
+        const { title, body, image } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ status: 'error', message: 'Headline and body content are required.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const merchants = Object.values(merchantAccounts);
+
+        const emailContent = `
+            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8;">
+                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
+                <p style="text-align:center; color:#94a3b8; font-size:12px;">ALL TIME BUSINESS LTD (RC: 950444)</p>
+                <hr style="border-color:#334155; margin:20px 0;">
+                <h3 style="color:#f59e0b;">${title}</h3>
+                <p style="line-height:1.6; color:#f8fafc;">${body.replace(/\n/g, '<br>')}</p>
+                ${image ? `<div style="margin-top:20px; text-align:center;"><img src="${image}" style="max-width:100%; border-radius:8px;" /></div>` : ''}
+                <hr style="border-color:#334155; margin:20px 0;">
+                <p style="text-align:center; font-size:12px; color:#64748b;">Visit <a href="https://www.alltimebusiness.com.ng" style="color:#38bdf8;">www.alltimebusiness.com.ng</a> to access your dashboard.</p>
+            </div>
+        `;
+
+        if (merchants.length > 0) {
+            for (const merchant of merchants) {
+                if (merchant.email) {
+                    await dispatchEmail(merchant.email, `📢 ${title}`, emailContent);
+                }
+            }
+        } else {
+            await dispatchEmail('ogegbodegreat@gmail.com', `📢 ${title}`, emailContent);
+        }
+
+        return res.status(200).json({ status: 'success', message: 'Newsletter successfully dispatched via email!' });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Error dispatching newsletter.' });
+    }
+});
+
+app.get('/api/v1/broadcasts', (req, res) => {
+    try {
+        broadcastPosts = loadBroadcasts();
+        return res.status(200).json({ status: 'success', broadcasts: broadcastPosts });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to fetch broadcasts.' });
+    }
+});
+
+// =========================================================================
+// 🌐 EXPLICIT PAGE ROUTING & FALLBACK (WITH /private ROUTE)
 // =========================================================================
 
 app.get('/dashboard', (req, res) => {
@@ -569,6 +717,12 @@ app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+// 🔒 ADMIN COMMAND DESK PRIVATE ROUTE
+app.get('/private', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'private.html'));
+});
+
+// Wildcard Fallback Route
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -576,4 +730,5 @@ app.get('*', (req, res) => {
 // Server Initialization
 app.listen(PORT, () => {
     console.log(`🚀 Master Server Engine running on port ${PORT}`);
+    console.log(`🔒 Admin Private Desk: /private`);
 });
