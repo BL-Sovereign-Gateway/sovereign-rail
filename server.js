@@ -271,7 +271,7 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️️ Squad returned non-200, generating simulated GTBank NUBAN:', response.data);
+            console.warn('⚠️ Squad returned non-200, generating simulated GTBank NUBAN:', response.data);
             return {
                 success: false,
                 virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -468,6 +468,9 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         `;
 
         await dispatchEmail(cleanEmail, '⚡ @BL SOVEREIGN GATEWAY — Merchant Onboarding Confirmation', welcomeMailHtml);
+
+        // Immediate Onboarding SMS via Termii
+        sendTermiiSMS(cleanPhone, `Welcome to @BL GATEWAY, ${merchantName}! Your GTBank NUBAN is ${squadRes.virtualNuban}. Login at www.alltimebusiness.com.ng`).catch(() => {});
 
         return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
 
@@ -721,6 +724,18 @@ app.get('/api/v1/receipt/download', (req, res) => {
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to generate receipt.' });
     }
+});
+
+// =========================================================================
+// 🌐 EXPLICIT PAGE ROUTING & FALLBACK
+// =========================================================================
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Wildcard Fallback Route for Single Page App
