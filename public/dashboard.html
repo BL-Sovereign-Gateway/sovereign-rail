@@ -128,7 +128,6 @@
         <main class="content">
             <header class="content-header">
                 <div>
-                    <!-- Dynamically renders Merchant Name -->
                     <div class="welcome-text" id="welcomeMerchant">Hi, Merchant</div>
                 </div>
                 <div class="action-btns-grid">
@@ -175,7 +174,7 @@
                         </div>
                         <div class="card-val" id="walletBalance">₦••••••••</div>
                         <div class="card-sub">
-                            GTBank Virtual Account: <strong style="color: var(--cyan-main);" id="cardVirtualNuban">Generating...</strong> (<span id="cardVirtualBank">GTBank / Squad</span>)
+                            GTBank Virtual Account: <strong style="color: var(--cyan-main);" id="cardVirtualNuban">Provisioning...</strong> (<span id="cardVirtualBank">GTBank / Squad</span>)
                         </div>
                     </div>
                 </div>
@@ -233,7 +232,7 @@
                     <div class="input-group">
                         <label class="input-label">Select Sender Bank (Your Bank)</label>
                         <select id="fundingSourceBank" required class="form-select">
-                            <option value="Any Nigerian Bank">Transfer from Any Nigerian Bank App / USSD</option>
+                            <option value="Any Nigerian Bank">All Nigerian Banks App / USSD</option>
                             <option value="Access Bank Plc">Access Bank Plc</option>
                             <option value="First Bank of Nigeria">First Bank of Nigeria</option>
                             <option value="Guaranty Trust Bank (GTB)">Guaranty Trust Bank (GTB)</option>
@@ -243,6 +242,29 @@
                             <option value="OPay Digital Services">OPay Digital Services</option>
                             <option value="PalmPay Limited">PalmPay Limited</option>
                             <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
+                            <option value="Wema Bank / ALAT">Wema Bank / ALAT</option>
+                            <option value="Fidelity Bank Plc">Fidelity Bank Plc</option>
+                            <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
+                            <option value="Sterling Bank Plc">Sterling Bank Plc</option>
+                            <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
+                            <option value="Ecobank Nigeria">Ecobank Nigeria</option>
+                            <option value="FCMB">First City Monument Bank (FCMB)</option>
+                            <option value="Keystone Bank">Keystone Bank</option>
+                            <option value="Polaris Bank">Polaris Bank</option>
+                            <option value="Unity Bank">Unity Bank Plc</option>
+                            <option value="Heritage Bank">Heritage Bank</option>
+                            <option value="Jaiz Bank">Jaiz Bank Plc</option>
+                            <option value="TAJBank">TAJBank Limited</option>
+                            <option value="LOTUS BANK">LOTUS BANK</option>
+                            <option value="Globus Bank">Globus Bank</option>
+                            <option value="Parallex Bank">Parallex Bank</option>
+                            <option value="SunTrust Bank">SunTrust Bank</option>
+                            <option value="Providus Bank">Providus Bank</option>
+                            <option value="Titan Trust Bank">Titan Trust Bank</option>
+                            <option value="VFD Microfinance Bank">VFD Microfinance Bank</option>
+                            <option value="Rubies Bank">Rubies Bank</option>
+                            <option value="Dot MFB">Dot Microfinance Bank</option>
+                            <option value="FairMoney MFB">FairMoney Microfinance Bank</option>
                         </select>
                     </div>
 
@@ -291,7 +313,7 @@
         </div>
     </div>
 
-    <!-- 2. BANK WITHDRAWAL MODAL -->
+    <!-- 2. BANK WITHDRAWAL MODAL (FULL NIGERIAN BANKS LIST) -->
     <div id="withdrawModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
@@ -312,6 +334,30 @@
                         <option value="OPay Digital Services">OPay Digital Services</option>
                         <option value="PalmPay Limited">PalmPay Limited</option>
                         <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
+                        <option value="Wema Bank Plc">Wema Bank / ALAT</option>
+                        <option value="Fidelity Bank Plc">Fidelity Bank Plc</option>
+                        <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
+                        <option value="Sterling Bank Plc">Sterling Bank Plc</option>
+                        <option value="Union Bank of Nigeria">Union Bank of Nigeria</option>
+                        <option value="Ecobank Nigeria">Ecobank Nigeria</option>
+                        <option value="First City Monument Bank">First City Monument Bank (FCMB)</option>
+                        <option value="Keystone Bank">Keystone Bank</option>
+                        <option value="Polaris Bank">Polaris Bank</option>
+                        <option value="Unity Bank">Unity Bank Plc</option>
+                        <option value="Heritage Bank">Heritage Bank</option>
+                        <option value="Jaiz Bank">Jaiz Bank Plc</option>
+
+                        <option value="TAJBank">TAJBank Limited</option>
+                        <option value="LOTUS BANK">LOTUS BANK</option>
+                        <option value="Globus Bank">Globus Bank</option>
+                        <option value="Parallex Bank">Parallex Bank</option>
+                        <option value="SunTrust Bank">SunTrust Bank</option>
+                        <option value="Providus Bank">Providus Bank</option>
+                        <option value="Titan Trust Bank">Titan Trust Bank</option>
+                        <option value="VFD Microfinance Bank">VFD Microfinance Bank</option>
+                        <option value="Rubies Bank">Rubies Bank</option>
+                        <option value="Dot MFB">Dot Microfinance Bank</option>
+                        <option value="FairMoney MFB">FairMoney Microfinance Bank</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -346,7 +392,7 @@
                     <input type="text" id="resetIdentifier" required placeholder="08012345678 or merchant@email.com" class="form-control">
                 </div>
                 <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--cyan-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 15px;">
-                    📲 A security reset verification code will be dispatched to your registered email and Termii SMS line.
+                    📲 A security reset verification link will be dispatched to your registered email and Termii SMS line.
                 </div>
                 <button type="submit" class="btn-confirm" style="background: var(--cyan-main); color: var(--bg-dark);">
                     Dispatch Security Reset Link
@@ -357,13 +403,9 @@
 
     <!-- JavaScript Master Handler -->
     <script>
-        let currentMerchant = JSON.parse(localStorage.getItem('activeMerchant')) || {
-            merchantName: '',
-            phone: '',
-            virtualNuban: '',
-            virtualBank: 'GTBank / Squad',
-            balance: 0.00
-        };
+        // Extraction logic to handle multiple session key structures
+        let rawMerchantData = localStorage.getItem('activeMerchant') || localStorage.getItem('merchant') || localStorage.getItem('user');
+        let currentMerchant = rawMerchantData ? JSON.parse(rawMerchantData) : {};
 
         let isWalletVisible = false;
         let inactivityTimer;
@@ -376,7 +418,9 @@
 
         // Dynamic Merchant Greeting & Info Rendering
         function renderDashboardInfo() {
-            const displayName = currentMerchant.merchantName ? currentMerchant.merchantName.trim() : 'Valued Merchant';
+            let merchantName = currentMerchant.merchantName || currentMerchant.fullname || currentMerchant.name;
+            const displayName = (merchantName && merchantName.trim() !== '') ? merchantName.trim() : 'Merchant';
+            
             document.getElementById('welcomeMerchant').innerText = `Hi, ${displayName}`;
             document.getElementById('cardVirtualNuban').innerText = currentMerchant.virtualNuban || 'Provisioning...';
             document.getElementById('cardVirtualBank').innerText = currentMerchant.virtualBank || 'GTBank / Squad';
@@ -392,7 +436,6 @@
                 }, INACTIVITY_LIMIT_MS);
             };
 
-            // Listeners for user activity
             window.onload = resetTimer;
             document.onmousemove = resetTimer;
             document.onkeydown = resetTimer;
@@ -441,7 +484,8 @@
         function generateBankTransfer(e) {
             e.preventDefault();
             document.getElementById('dispNuban').innerText = currentMerchant.virtualNuban || 'Provisioning...';
-            document.getElementById('dispAccName').innerText = `${currentMerchant.merchantName || 'Merchant'} / @BL GATEWAY`;
+            let name = currentMerchant.merchantName || currentMerchant.fullname || 'Merchant';
+            document.getElementById('dispAccName').innerText = `${name} / @BL GATEWAY`;
             document.getElementById('generatedAccountBox').style.display = 'block';
         }
 
@@ -503,7 +547,6 @@
             }
         }
 
-        // 🔑 FORGOT PASSWORD HANDLERS
         function openForgotPasswordModal() {
             document.getElementById('forgotPasswordModal').style.display = 'flex';
         }
@@ -517,7 +560,7 @@
             const identifier = document.getElementById('resetIdentifier').value.trim();
             if (!identifier) return;
 
-            alert(`✅ Reset security instructions dispatched to [${identifier}]. Please check your SMS and inbox.`);
+            alert(`✅ Security reset link sent to [${identifier}]. Please check your SMS and email.`);
             closeForgotPasswordModal();
         }
 
@@ -525,10 +568,12 @@
             window.open(`/api/v1/receipt/download?merchantPhone=${currentMerchant.phone}&service=Monthly Statement&amount=${currentMerchant.balance}`, '_blank');
         }
 
+        // 🚪 INSTANT SIGN-OUT FIX
         function terminateSession() {
             clearTimeout(inactivityTimer);
-            localStorage.removeItem('activeMerchant');
-            window.location.href = '/login';
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace('/login');
         }
 
         function closeInboxPopup() {
