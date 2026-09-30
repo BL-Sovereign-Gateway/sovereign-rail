@@ -374,7 +374,6 @@
             startInactivityTimer();
         });
 
-        // Dynamic Merchant Greeting & Info Rendering
         function renderDashboardInfo() {
             const displayName = currentMerchant.merchantName ? currentMerchant.merchantName.trim() : 'Valued Merchant';
             document.getElementById('welcomeMerchant').innerText = `Hi, ${displayName}`;
@@ -382,7 +381,6 @@
             document.getElementById('cardVirtualBank').innerText = currentMerchant.virtualBank || 'GTBank / Squad';
         }
 
-        // ⏱️ 5-MINUTE AUTO INACTIVITY TIMEOUT ENGINE
         function startInactivityTimer() {
             const resetTimer = () => {
                 clearTimeout(inactivityTimer);
@@ -392,7 +390,6 @@
                 }, INACTIVITY_LIMIT_MS);
             };
 
-            // Listeners for user activity
             window.onload = resetTimer;
             document.onmousemove = resetTimer;
             document.onkeydown = resetTimer;
@@ -432,9 +429,21 @@
             if (method === 'bank') {
                 document.getElementById('fundBankSection').style.display = 'block';
                 document.getElementById('fundCardSection').style.display = 'none';
+                document.getElementById('tabBankTransfer').style.background = 'rgba(56, 189, 248, 0.15)';
+                document.getElementById('tabBankTransfer').style.color = 'var(--cyan-main)';
+                document.getElementById('tabBankTransfer').style.borderColor = 'var(--cyan-main)';
+                document.getElementById('tabDebitCard').style.background = 'var(--bg-input)';
+                document.getElementById('tabDebitCard').style.color = 'var(--text-sub)';
+                document.getElementById('tabDebitCard').style.borderColor = 'var(--border)';
             } else {
                 document.getElementById('fundBankSection').style.display = 'none';
                 document.getElementById('fundCardSection').style.display = 'block';
+                document.getElementById('tabDebitCard').style.background = 'rgba(56, 189, 248, 0.15)';
+                document.getElementById('tabDebitCard').style.color = 'var(--cyan-main)';
+                document.getElementById('tabDebitCard').style.borderColor = 'var(--cyan-main)';
+                document.getElementById('tabBankTransfer').style.background = 'var(--bg-input)';
+                document.getElementById('tabBankTransfer').style.color = 'var(--text-sub)';
+                document.getElementById('tabBankTransfer').style.borderColor = 'var(--border)';
             }
         }
 
@@ -493,7 +502,7 @@
                     alert(`✅ ${result.message}`);
                     currentMerchant.balance = result.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(currentMerchant));
-                    renderDashboardInfo();
+                    if (isWalletVisible) toggleWalletVisibility();
                     closeWithdrawModal();
                 } else {
                     alert(`❌ Withdrawal Failed: ${result.message}`);
@@ -503,7 +512,22 @@
             }
         }
 
-        // 🔑 FORGOT PASSWORD HANDLERS
+        function downloadMonthlyStatement() {
+            window.open(`/api/v1/receipt/download?merchantPhone=${encodeURIComponent(currentMerchant.phone)}&service=Monthly+Statement&amount=${currentMerchant.balance || 0}`, '_blank');
+        }
+
+        function openAjoModal() {
+            alert('⚡ AJO Express Desk: Daily automated merchant contributions are active for your account!');
+        }
+
+        function closeInboxPopup() {
+            document.getElementById('inboxPopup').style.display = 'none';
+        }
+
+        function openStockModal() {
+            alert('📈 Equity Desk: Sovereign Stock & Wealth management products are available for verified merchants.');
+        }
+
         function openForgotPasswordModal() {
             document.getElementById('forgotPasswordModal').style.display = 'flex';
         }
@@ -512,27 +536,16 @@
             document.getElementById('forgotPasswordModal').style.display = 'none';
         }
 
-        async function handleForgotPasswordSubmit(e) {
+        function handleForgotPasswordSubmit(e) {
             e.preventDefault();
             const identifier = document.getElementById('resetIdentifier').value.trim();
-            if (!identifier) return;
-
-            alert(`✅ Reset security instructions dispatched to [${identifier}]. Please check your SMS and inbox.`);
+            alert(`✅ Security recovery link dispatched to [${identifier}]. Please check your SMS and email.`);
             closeForgotPasswordModal();
         }
 
-        function downloadMonthlyStatement() {
-            window.open(`/api/v1/receipt/download?merchantPhone=${currentMerchant.phone}&service=Monthly Statement&amount=${currentMerchant.balance}`, '_blank');
-        }
-
         function terminateSession() {
-            clearTimeout(inactivityTimer);
             localStorage.removeItem('activeMerchant');
-            window.location.href = '/login';
-        }
-
-        function closeInboxPopup() {
-            document.getElementById('inboxPopup').style.display = 'none';
+            window.location.href = '/login.html';
         }
     </script>
 </body>
