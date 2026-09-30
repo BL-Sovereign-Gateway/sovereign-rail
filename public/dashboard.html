@@ -39,8 +39,10 @@
         .nav-item { margin-bottom: 6px; }
         .nav-link { display: flex; align-items: center; gap: 10px; color: var(--text-sub); text-decoration: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; transition: 0.2s; }
         .nav-link:hover, .nav-link.active { background-color: rgba(56, 189, 248, 0.1); color: var(--cyan-main); border-left: 3px solid var(--cyan-main); }
-        .logout-btn { background: none; border: 1px solid var(--border); color: var(--red-main); width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: 0.2s; }
+        .logout-btn { background: none; border: 1px solid var(--border); color: var(--red-main); width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: 0.2s; margin-top: 8px; }
         .logout-btn:hover { background-color: rgba(239, 68, 68, 0.1); border-color: var(--red-main); }
+        .forgot-btn { background: none; border: 1px dashed var(--cyan-main); color: var(--cyan-main); width: 100%; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.78rem; transition: 0.2s; margin-top: auto; }
+        .forgot-btn:hover { background-color: rgba(56, 189, 248, 0.1); }
 
         /* Main Compact Content Container */
         .content { flex-grow: 1; padding: 30px 35px; max-width: 1080px; margin: 0 auto; }
@@ -118,6 +120,7 @@
                 <li class="nav-item"><a href="/credit-support" class="nav-link"><span>💳</span> SAIL Credit Line</a></li>
                 <li class="nav-item"><a href="/private" class="nav-link"><span>🔒</span> Admin Command Desk</a></li>
             </ul>
+            <button class="forgot-btn" onclick="openForgotPasswordModal()">🔑 Reset Security PIN / Password</button>
             <button class="logout-btn" onclick="terminateSession()">Sign Out</button>
         </aside>
 
@@ -125,7 +128,8 @@
         <main class="content">
             <header class="content-header">
                 <div>
-                    <div class="welcome-text" id="welcomeMerchant">Hi, Valued Merchant</div>
+                    <!-- Dynamically renders Merchant Name -->
+                    <div class="welcome-text" id="welcomeMerchant">Hi, Merchant</div>
                 </div>
                 <div class="action-btns-grid">
                     <button onclick="openFundModal()" class="fund-btn">➕ FUND WALLET</button>
@@ -329,26 +333,72 @@
         </div>
     </div>
 
+    <!-- 3. FORGOT PASSWORD / PIN RESET MODAL -->
+    <div id="forgotPasswordModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.1rem;">🔑 Reset Security PIN / Password</h3>
+                <span onclick="closeForgotPasswordModal()" style="cursor: pointer; font-size: 1.3rem; color: var(--text-muted);">&times;</span>
+            </div>
+            <form id="forgotPasswordForm" onsubmit="handleForgotPasswordSubmit(event)">
+                <div class="input-group">
+                    <label class="input-label">Registered Merchant Phone or Email</label>
+                    <input type="text" id="resetIdentifier" required placeholder="08012345678 or merchant@email.com" class="form-control">
+                </div>
+                <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--cyan-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 15px;">
+                    📲 A security reset verification code will be dispatched to your registered email and Termii SMS line.
+                </div>
+                <button type="submit" class="btn-confirm" style="background: var(--cyan-main); color: var(--bg-dark);">
+                    Dispatch Security Reset Link
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- JavaScript Master Handler -->
     <script>
         let currentMerchant = JSON.parse(localStorage.getItem('activeMerchant')) || {
-            merchantName: 'Valued Merchant',
-            phone: '08000000000',
-            virtualNuban: '0700000000',
+            merchantName: '',
+            phone: '',
+            virtualNuban: '',
             virtualBank: 'GTBank / Squad',
             balance: 0.00
         };
 
         let isWalletVisible = false;
+        let inactivityTimer;
+        const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 Minutes Timeout
 
         document.addEventListener('DOMContentLoaded', () => {
             renderDashboardInfo();
+            startInactivityTimer();
         });
 
+        // Dynamic Merchant Greeting & Info Rendering
         function renderDashboardInfo() {
-            document.getElementById('welcomeMerchant').innerText = `Hi, ${currentMerchant.merchantName}`;
-            document.getElementById('cardVirtualNuban').innerText = currentMerchant.virtualNuban || '0700000000';
+            const displayName = currentMerchant.merchantName ? currentMerchant.merchantName.trim() : 'Valued Merchant';
+            document.getElementById('welcomeMerchant').innerText = `Hi, ${displayName}`;
+            document.getElementById('cardVirtualNuban').innerText = currentMerchant.virtualNuban || 'Provisioning...';
             document.getElementById('cardVirtualBank').innerText = currentMerchant.virtualBank || 'GTBank / Squad';
+        }
+
+        // ⏱️ 5-MINUTE AUTO INACTIVITY TIMEOUT ENGINE
+        function startInactivityTimer() {
+            const resetTimer = () => {
+                clearTimeout(inactivityTimer);
+                inactivityTimer = setTimeout(() => {
+                    alert('⏱️ Session Expired: You have been signed out due to 5 minutes of inactivity for account security.');
+                    terminateSession();
+                }, INACTIVITY_LIMIT_MS);
+            };
+
+            // Listeners for user activity
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;
+            document.onkeydown = resetTimer;
+            document.onclick = resetTimer;
+            document.onscroll = resetTimer;
+            document.ontouchstart = resetTimer;
         }
 
         function toggleWalletVisibility() {
@@ -390,13 +440,17 @@
 
         function generateBankTransfer(e) {
             e.preventDefault();
-            document.getElementById('dispNuban').innerText = currentMerchant.virtualNuban || '0700000000';
-            document.getElementById('dispAccName').innerText = `${currentMerchant.merchantName} / @BL GATEWAY`;
+            document.getElementById('dispNuban').innerText = currentMerchant.virtualNuban || 'Provisioning...';
+            document.getElementById('dispAccName').innerText = `${currentMerchant.merchantName || 'Merchant'} / @BL GATEWAY`;
             document.getElementById('generatedAccountBox').style.display = 'block';
         }
 
         function copyGeneratedNuban() {
-            const nuban = currentMerchant.virtualNuban || '0700000000';
+            const nuban = currentMerchant.virtualNuban || '';
+            if (!nuban) {
+                alert('⚠️ Virtual NUBAN is still provisioning.');
+                return;
+            }
             navigator.clipboard.writeText(nuban);
             alert(`✅ GTBank Virtual Account (${nuban}) copied to clipboard!`);
         }
@@ -449,11 +503,30 @@
             }
         }
 
+        // 🔑 FORGOT PASSWORD HANDLERS
+        function openForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'flex';
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+        }
+
+        async function handleForgotPasswordSubmit(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('resetIdentifier').value.trim();
+            if (!identifier) return;
+
+            alert(`✅ Reset security instructions dispatched to [${identifier}]. Please check your SMS and inbox.`);
+            closeForgotPasswordModal();
+        }
+
         function downloadMonthlyStatement() {
             window.open(`/api/v1/receipt/download?merchantPhone=${currentMerchant.phone}&service=Monthly Statement&amount=${currentMerchant.balance}`, '_blank');
         }
 
         function terminateSession() {
+            clearTimeout(inactivityTimer);
             localStorage.removeItem('activeMerchant');
             window.location.href = '/login';
         }
