@@ -230,7 +230,7 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (DYNAMIC KYC BVN)
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -247,7 +247,7 @@ async function generateSquadVirtualAccount(merchantData) {
             middle_name: "",
             mobile_num: normalizePhoneNumber(merchantData.phone),
             email: merchantData.email,
-            bvn: merchantData.bvn || "22222222222",
+            bvn: merchantData.bvn, // 👈 Passes real 11-digit BVN/NIN provided on signup
             dob: "1995-01-01",
             address: "Lagos, Nigeria",
             gender: "1",
@@ -271,7 +271,7 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200, generating simulated GTBank NUBAN:', response.data);
+            console.warn('⚠️ Squad returned non-200 response:', response.data);
             return {
                 success: false,
                 virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -369,22 +369,6 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
     }
 });
 
-// Manual Requery Endpoint for Squad Transactions
-app.post('/api/v1/virtual-account/requery', async (req, res) => {
-    try {
-        const { transactionRef } = req.body;
-        if (!transactionRef) return res.status(400).json({ status: 'error', message: 'Transaction reference is required.' });
-
-        const response = await axios.get(`${SQUAD_BASE_URL}/transaction/verify/${transactionRef}`, {
-            headers: { 'Authorization': `Bearer ${SQUAD_SECRET_KEY}` }
-        });
-
-        return res.status(200).json({ status: 'success', data: response.data });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to requery transaction from Squad.' });
-    }
-});
-
 // =========================================================================
 // 🔐 AUTHENTICATION & ONBOARDING
 // =========================================================================
@@ -392,14 +376,15 @@ app.post('/api/v1/virtual-account/requery', async (req, res) => {
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
-        const { merchantName, phone, email, password, settlementAccount, bankName, withdrawalPin, bvn } = req.body;
+        const { merchantName, phone, email, bvn, password, settlementAccount, bankName, withdrawalPin } = req.body;
 
-        if (!merchantName || !phone || !email || !password || !settlementAccount || !bankName) {
-            return res.status(400).json({ status: 'error', message: 'All fields are required.' });
+        if (!merchantName || !phone || !email || !bvn || !password || !settlementAccount || !bankName) {
+            return res.status(400).json({ status: 'error', message: 'All fields including BVN/NIN are required.' });
         }
 
         const cleanPhone = normalizePhoneNumber(phone);
         const cleanEmail = email.trim().toLowerCase();
+        const cleanBvn = bvn.trim();
 
         if (merchantAccounts[cleanPhone]) {
             return res.status(400).json({ status: 'error', message: 'Phone number already registered.' });
@@ -411,7 +396,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             merchantName,
             phone: cleanPhone,
             email: cleanEmail,
-            bvn
+            bvn: cleanBvn
         });
 
         const newMerchant = {
@@ -419,6 +404,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             merchantName,
             phone: cleanPhone,
             email: cleanEmail,
+            bvn: cleanBvn,
             password: hashedPassword,
             withdrawalPin: (withdrawalPin && /^\d{4}$/.test(withdrawalPin.trim())) ? withdrawalPin.trim() : '1234',
             settlementAccount,
@@ -453,23 +439,14 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     <p style="margin:0;">Status: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#10b981; font-weight:bold;">ACTIVE & READY FOR FUNDING</span></p>
                 </div>
 
-                <div style="background:rgba(56, 189, 248, 0.08); border-left:4px solid #38bdf8; padding:12px; border-radius:4px; font-size:13px; line-height:1.5; margin-bottom:20px;">
-                    <p style="margin:0; font-weight:bold; color:#38bdf8;">🎁 INCENTIVE PROGRAM:</p>
-                    <p style="margin:4px 0 0 0; color:#8295b3;">
-                        Receive a flat ₦2.00 cashback credited directly to your ledger balance for every processed vending transaction and bill payment.
-                    </p>
-                </div>
-
                 <div style="text-align:center; padding-top:10px; border-top:1px solid #233148;">
-                    <p style="font-size:13px; color:#8295b3; margin-bottom:12px;">Manage your desk & download statement receipts at:</p>
+                    <p style="font-size:13px; color:#8295b3; margin-bottom:12px;">Manage your desk at:</p>
                     <a href="https://www.alltimebusiness.com.ng" style="display:inline-block; background:#38bdf8; color:#0d1322; padding:10px 20px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:13px;">https://www.alltimebusiness.com.ng</a>
                 </div>
             </div>
         `;
 
         await dispatchEmail(cleanEmail, '⚡ @BL SOVEREIGN GATEWAY — Merchant Onboarding Confirmation', welcomeMailHtml);
-
-        // Immediate Onboarding SMS via Termii
         sendTermiiSMS(cleanPhone, `Welcome to @BL GATEWAY, ${merchantName}! Your GTBank NUBAN is ${squadRes.virtualNuban}. Login at www.alltimebusiness.com.ng`).catch(() => {});
 
         return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
@@ -502,7 +479,7 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 });
 
 // =========================================================================
-// 🛒 SERVICE TRANSACTION ENDPOINTS (WITH IMMEDIATE SMS ALERT & LOCK CHECKS)
+// 🛒 SERVICE TRANSACTION & WITHDRAWAL ENDPOINTS
 // =========================================================================
 
 app.post('/api/v1/services/transact', async (req, res) => {
@@ -581,153 +558,7 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
 });
 
 // =========================================================================
-// 📢 BROADCAST & NEWSLETTER DISPATCH ENDPOINTS
-// =========================================================================
-
-app.post('/api/v1/admin/publish-broadcast', (req, res) => {
-    try {
-        const { title, body, image, video } = req.body;
-
-        if (!title || !body) {
-            return res.status(400).json({ status: 'error', message: 'Headline and body content are required.' });
-        }
-
-        broadcastPosts = loadBroadcasts();
-
-        const newPost = {
-            id: `BC-${Date.now()}`,
-            title,
-            body,
-            image: image || null,
-            video: video || null,
-            publishedAt: new Date().toISOString()
-        };
-
-        broadcastPosts.unshift(newPost);
-        saveBroadcasts(broadcastPosts);
-
-        return res.status(200).json({ status: 'success', message: 'Broadcast published live!', post: newPost });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
-    }
-});
-
-app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
-    try {
-        const { title, body, image } = req.body;
-
-        if (!title || !body) {
-            return res.status(400).json({ status: 'error', message: 'Headline and body content are required.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const merchants = Object.values(merchantAccounts);
-
-        const emailContent = `
-            <div style="background:#0f172a; color:#fff; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8;">
-                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY</h2>
-                <p style="text-align:center; color:#94a3b8; font-size:12px;">ALL TIME BUSINESS LTD (RC: 950444)</p>
-                <hr style="border-color:#334155; margin:20px 0;">
-                <h3 style="color:#f59e0b;">${title}</h3>
-                <p style="line-height:1.6; color:#f8fafc;">${body.replace(/\n/g, '<br>')}</p>
-                ${image ? `<div style="margin-top:20px; text-align:center;"><img src="${image}" style="max-width:100%; border-radius:8px;" /></div>` : ''}
-                <hr style="border-color:#334155; margin:20px 0;">
-                <p style="text-align:center; font-size:12px; color:#64748b;">Visit <a href="https://www.alltimebusiness.com.ng" style="color:#38bdf8;">www.alltimebusiness.com.ng</a> to access your dashboard.</p>
-            </div>
-        `;
-
-        if (merchants.length > 0) {
-            for (const merchant of merchants) {
-                if (merchant.email) {
-                    await dispatchEmail(merchant.email, `📢 ${title}`, emailContent);
-                }
-            }
-        } else {
-            await dispatchEmail('ogegbodegreat@gmail.com', `📢 ${title}`, emailContent);
-        }
-
-        return res.status(200).json({ status: 'success', message: 'Newsletter successfully dispatched via email!' });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Error dispatching newsletter.' });
-    }
-});
-
-app.get('/api/v1/broadcasts', (req, res) => {
-    try {
-        broadcastPosts = loadBroadcasts();
-        return res.status(200).json({ status: 'success', broadcasts: broadcastPosts });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to fetch broadcasts.' });
-    }
-});
-
-// =========================================================================
-// 📄 UNIVERSAL TRANSACTION RECEIPT PDF / HTML DOWNLOAD ENDPOINT
-// =========================================================================
-
-app.get('/api/v1/receipt/download', (req, res) => {
-    try {
-        const { txRef, service, recipient, amount, merchantPhone } = req.query;
-
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(merchantPhone || '');
-        const account = merchantAccounts[cleanPhone] || { merchantName: 'Valued Merchant' };
-
-        const reference = txRef || `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
-        const dateStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
-        const amountFormatted = parseFloat(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 });
-
-        const receiptHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Receipt - ${reference}</title>
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; background: #fff; color: #1e293b; }
-                    .receipt-box { max-width: 500px; margin: 0 auto; border: 2px solid #0284c7; border-radius: 12px; padding: 30px; }
-                    .header { text-align: center; border-bottom: 2px solid #0284c7; padding-bottom: 15px; margin-bottom: 20px; }
-                    .header h2 { color: #0284c7; margin: 0; }
-                    .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                    .table td { padding: 10px 0; font-size: 14px; }
-                    .total { border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; font-weight: bold; font-size: 16px; color: #0284c7; }
-                    .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #64748b; }
-                </style>
-            </head>
-            <body>
-                <div class="receipt-box">
-                    <div class="header">
-                        <h2>@BL SOVEREIGN GATEWAY</h2>
-                        <p style="margin: 3px 0; font-size: 12px;">ALL TIME BUSINESS LTD (RC: 950444)</p>
-                        <p style="margin: 8px 0 0 0; font-weight: bold; color: #10b981;">TRANSACTION RECEIPT</p>
-                    </div>
-                    <table class="table">
-                        <tr><td>Reference ID:</td><td style="text-align:right; font-weight:bold;">${reference}</td></tr>
-                        <tr><td>Date:</td><td style="text-align:right;">${dateStr}</td></tr>
-                        <tr><td>Merchant:</td><td style="text-align:right;">${account.merchantName}</td></tr>
-                        <tr><td>Service:</td><td style="text-align:right;">${service || 'Utility Vending'}</td></tr>
-                        <tr><td>Target / Account:</td><td style="text-align:right;">${recipient || 'N/A'}</td></tr>
-                        <tr class="total"><td>Amount Paid:</td><td style="text-align:right;">₦${amountFormatted}</td></tr>
-                        <tr><td>Status:</td><td style="text-align:right; color:#10b981; font-weight:bold;">SUCCESSFUL</td></tr>
-                    </table>
-                    <div class="footer">
-                        <p>Thank you for transacting with @BL Sovereign Gateway.</p>
-                        <p>www.alltimebusiness.com.ng</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        res.setHeader('Content-Type', 'text/html');
-        return res.send(receiptHtml);
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to generate receipt.' });
-    }
-});
-
-// =========================================================================
-// 🌐 EXPLICIT PAGE ROUTING & FALLBACK
+// 🌐 EXPLICIT PAGE ROUTING
 // =========================================================================
 
 app.get('/dashboard', (req, res) => {
@@ -738,7 +569,6 @@ app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Wildcard Fallback Route for Single Page App
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -746,5 +576,4 @@ app.get('*', (req, res) => {
 // Server Initialization
 app.listen(PORT, () => {
     console.log(`🚀 Master Server Engine running on port ${PORT}`);
-    console.log(`🔗 Webhook Endpoint: /api/v1/webhook/squad`);
 });
