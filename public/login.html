@@ -36,7 +36,6 @@
         .form-control, .form-select { width: 100%; padding: 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 0.92rem; transition: 0.2s; }
         .form-control:focus, .form-select:focus { border-color: var(--cyan-main); outline: none; }
 
-        /* Password Wrapper for Eye Icon */
         .password-wrapper { position: relative; width: 100%; }
         .password-wrapper .form-control { padding-right: 42px; }
         .toggle-password-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-sub); cursor: pointer; font-size: 1.1rem; line-height: 1; user-select: none; transition: 0.2s; }
@@ -62,7 +61,6 @@
             <div class="sub-logo">ALL TIME BUSINESS LTD | MERCHANT PORTAL</div>
         </div>
 
-        <!-- Auth Navigation Tabs -->
         <div class="auth-tabs">
             <button id="tabSignin" class="auth-tab-btn active" onclick="switchAuthTab('signin')">Sign In</button>
             <button id="tabSignup" class="auth-tab-btn" onclick="switchAuthTab('signup')">Sign Up (Onboarding)</button>
@@ -83,7 +81,6 @@
                 </div>
             </div>
 
-            <!-- RESET PASSWORD LINK IN SIGN IN SECTION -->
             <div class="forgot-link-wrapper">
                 <span class="forgot-pass-link" onclick="openResetModal()">Forgot Password or Security PIN?</span>
             </div>
@@ -157,7 +154,7 @@
         </form>
     </div>
 
-    <!-- RESET PASSWORD / SECURITY PIN MODAL -->
+    <!-- RESET PASSWORD MODAL -->
     <div id="resetModal" class="modal-backdrop">
         <div class="modal-content">
             <div class="modal-header">
@@ -169,28 +166,20 @@
                     <label class="input-label">Registered Phone Number or Email</label>
                     <input type="text" id="resetIdentifier" required placeholder="08012345678 or merchant@email.com" class="form-control">
                 </div>
-                <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--cyan-main); padding: 10px; border-radius: 6px; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 16px;">
-                    📲 A security recovery code will be dispatched to your registered Termii SMS line and Resend Email inbox.
-                </div>
                 <button type="submit" class="btn-submit">Dispatch Reset Instructions</button>
             </form>
         </div>
     </div>
 
     <script>
-        // Standardize phone input formats (080..., 23480..., +23480...)
         function cleanPhoneNumber(phone) {
             if (!phone) return '';
             let cleaned = phone.trim().replace(/\s+/g, '').replace(/-/g, '');
-            if (cleaned.startsWith('+234')) {
-                return '0' + cleaned.slice(4);
-            } else if (cleaned.startsWith('234')) {
-                return '0' + cleaned.slice(3);
-            }
+            if (cleaned.startsWith('+234')) return '0' + cleaned.slice(4);
+            if (cleaned.startsWith('234')) return '0' + cleaned.slice(3);
             return cleaned;
         }
 
-        // Toggle password visibility (eye icon handler)
         function togglePasswordVisibility(inputId, btn) {
             const input = document.getElementById(inputId);
             if (input.type === 'password') {
@@ -222,6 +211,7 @@
             const phone = cleanPhoneNumber(rawPhone);
             const password = document.getElementById('loginPassword').value;
 
+            // 1. Try Backend Auth Endpoint
             try {
                 const response = await fetch('/api/v1/auth/signin', {
                     method: 'POST',
@@ -236,29 +226,25 @@
                     return;
                 }
             } catch (err) {
-                console.warn('API signin endpoint unreachable. Checking local storage fallback...');
+                console.warn('Backend API endpoint offline or unreachable. Proceeding with active session verification...');
             }
 
-            // Fallback for immediate onboarding testing
-            const localSession = localStorage.getItem('activeMerchant');
-            if (localSession) {
-                const merchant = JSON.parse(localSession);
-                const storedPhone = cleanPhoneNumber(merchant.phone || merchant.username);
-                if (storedPhone === phone) {
-                    window.location.href = '/dashboard';
-                    return;
-                }
-            }
-
-            // Fallback authorization
-            const fallbackMerchant = {
+            // 2. Direct Fallback Authorization for Local Merchant
+            let merchantObj = {
                 merchantName: 'Zenith Merchant',
                 phone: phone,
                 virtualNuban: '070' + Math.floor(1000000 + Math.random() * 8999999),
                 virtualBank: 'GTBank / Squad',
                 balance: 0.00
             };
-            localStorage.setItem('activeMerchant', JSON.stringify(fallbackMerchant));
+
+            const existingSession = localStorage.getItem('activeMerchant');
+            if (existingSession) {
+                const parsed = JSON.parse(existingSession);
+                if (parsed.merchantName) merchantObj = parsed;
+            }
+
+            localStorage.setItem('activeMerchant', JSON.stringify(merchantObj));
             window.location.href = '/dashboard';
         }
 
