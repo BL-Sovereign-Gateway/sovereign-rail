@@ -5,7 +5,7 @@
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
- * Merchant Account Lock/Unlock | Full Private Command Desk Engine
+ * Merchant Account Lock/Unlock Enforcement | Admin Command Desk
  * ============================================================================
  */
 
@@ -25,8 +25,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables & Credentials
-const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_d09a8973b754921966d58d927d6368fa9f78f88636b0';
-const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://sandbox-api-d.squadco.com';
+const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sk_8000a1fe2299833dea7f8db8d6ab063fbe973740';
+const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://api-d.squadco.com';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123456789';
@@ -230,7 +230,7 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (DYNAMIC KYC BVN)
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (DYNAMIC KYC BVN/NIN)
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -558,10 +558,9 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
 });
 
 // =========================================================================
-// 🔒 ADMIN COMMAND DESK API ENDPOINTS (MATCHING private.html EXACTLY)
+// 🔒 ADMIN COMMAND DESK API ENDPOINTS
 // =========================================================================
 
-// 1. Fetch Merchants & System Analytics for private.html
 app.get('/api/v1/admin/merchants', (req, res) => {
     try {
         merchantAccounts = loadAccounts();
@@ -572,7 +571,6 @@ app.get('/api/v1/admin/merchants', (req, res) => {
             return safeMerchant;
         });
 
-        // Calculate Analytics Metrics
         const todayStr = new Date().toISOString().split('T')[0];
         let todayTxnsCount = 0;
         let todayVolumeTotal = 0;
@@ -597,7 +595,6 @@ app.get('/api/v1/admin/merchants', (req, res) => {
     }
 });
 
-// 2. Lock / Unlock Merchant Account (endpoint: /api/v1/admin/toggle-account-lock)
 app.post('/api/v1/admin/toggle-account-lock', (req, res) => {
     try {
         const { phone, isLocked } = req.body;
@@ -612,7 +609,6 @@ app.post('/api/v1/admin/toggle-account-lock', (req, res) => {
         saveAccounts(merchantAccounts);
 
         const stateText = isLocked ? 'LOCKED 🔒' : 'UNLOCKED 🔓';
-        console.log(`🛡️ Admin Command: Merchant [${cleanPhone}] is now ${stateText}`);
 
         return res.status(200).json({
             status: 'success',
@@ -623,7 +619,6 @@ app.post('/api/v1/admin/toggle-account-lock', (req, res) => {
     }
 });
 
-// 3. Credit Merchant Wallet Balance (endpoint: /api/v1/admin/credit-merchant)
 app.post('/api/v1/admin/credit-merchant', (req, res) => {
     try {
         const { phone, amount } = req.body;
@@ -657,7 +652,6 @@ app.post('/api/v1/admin/credit-merchant', (req, res) => {
     }
 });
 
-// 4. Publish Media Broadcast Feed (endpoint: /api/v1/admin/publish-broadcast)
 app.post('/api/v1/admin/publish-broadcast', (req, res) => {
     try {
         const { title, body, image, video } = req.body;
@@ -686,7 +680,6 @@ app.post('/api/v1/admin/publish-broadcast', (req, res) => {
     }
 });
 
-// 5. Dispatch Mass Email Newsletter (endpoint: /api/v1/admin/dispatch-newsletter)
 app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
     try {
         const { title, body, image } = req.body;
@@ -727,7 +720,6 @@ app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
     }
 });
 
-// 6. Dispatch Mass Termii SMS Broadcast (endpoint: /api/v1/admin/dispatch-mass-sms)
 app.post('/api/v1/admin/dispatch-mass-sms', async (req, res) => {
     try {
         const { message } = req.body;
@@ -760,7 +752,6 @@ app.post('/api/v1/admin/dispatch-mass-sms', async (req, res) => {
     }
 });
 
-// Fetch Broadcast Feed for Merchant Portal
 app.get('/api/v1/broadcasts', (req, res) => {
     try {
         broadcastPosts = loadBroadcasts();
@@ -782,7 +773,7 @@ app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// 🔒 Explicit Route for Admin Private Command Center
+// Explicit Route for Admin Private Command Center
 app.get('/private', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'private.html'));
 });
