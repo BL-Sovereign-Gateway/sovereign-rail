@@ -18,20 +18,15 @@ const crypto = require('crypto');
 const { Resend } = require('resend');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables & Credentials
-const NOMBA_ACCOUNT_ID = process.env.NOMBA_ACCOUNT_ID;
-const NOMBA_ACCESS_TOKEN = process.env.NOMBA_ACCESS_TOKEN;
-
 const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_d09a8973b754921966d58d927d6368fa9f78f88636b0';
 const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://sandbox-api-d.squadco.com';
-
-const CLUBKONNECT_USERID = process.env.CLUBKONNECT_USERID || 'CK101290548';
-const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'UME517RP99A32IP8Z73J430SX4RHP98UYN10NL2939JT525O13QVJU6JVC09EI41';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123456789';
@@ -128,17 +123,27 @@ async function dispatchEmail(targetEmail, subject, htmlContent) {
     }
 }
 
+// Phone Number Normalizer Helper
+function normalizePhoneNumber(phone) {
+    if (!phone) return '';
+    let cleaned = phone.trim().replace(/\s+/g, '').replace(/-/g, '');
+    if (cleaned.startsWith('+234')) {
+        return '0' + cleaned.slice(4);
+    } else if (cleaned.startsWith('234')) {
+        return '0' + cleaned.slice(3);
+    }
+    return cleaned;
+}
+
 // =========================================================================
 // 📲 TERMII SMS DISPATCH ENGINE (UNIFIED ₦6.00 RATE)
 // =========================================================================
 
 async function sendTermiiSMS(recipientPhone, messageText) {
     try {
-        let formattedPhone = recipientPhone.trim().replace(/\s+/g, '');
+        let formattedPhone = normalizePhoneNumber(recipientPhone);
         if (formattedPhone.startsWith('0')) {
             formattedPhone = '234' + formattedPhone.slice(1);
-        } else if (formattedPhone.startsWith('+234')) {
-            formattedPhone = formattedPhone.slice(1);
         }
 
         const payload = {
@@ -162,22 +167,20 @@ async function sendTermiiSMS(recipientPhone, messageText) {
     }
 }
 
-// Helper: Dispatch Transaction Alert SMS to Merchant
 async function dispatchImmediateTransactionSMS(merchantPhone, serviceCategory, target, amount, newBalance, txRef) {
     const smsMessage = `OE Alert: @BL SOVEREIGN ALERT: Successful ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
     
-    // Asynchronously send SMS so HTTP response isn't delayed
     sendTermiiSMS(merchantPhone, smsMessage).catch(err => console.error('SMS Alert Error:', err.message));
 }
 
-// SMS Alert Custom Endpoint
 app.post('/api/v1/sms/send-alert', async (req, res) => {
     try {
         const { merchantPhone, recipientPhone, message } = req.body;
         const SMS_BILLING_RATE = 6.00;
 
         merchantAccounts = loadAccounts();
-        const account = merchantAccounts[merchantPhone ? merchantPhone.trim() : ''];
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
 
         if (!account) {
             return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
@@ -242,13 +245,13 @@ async function generateSquadVirtualAccount(merchantData) {
             first_name: firstName,
             last_name: lastName,
             middle_name: "",
-            mobile_num: merchantData.phone,
+            mobile_num: normalizePhoneNumber(merchantData.phone),
             email: merchantData.email,
             bvn: merchantData.bvn || "22222222222",
             dob: "1995-01-01",
             address: "Lagos, Nigeria",
             gender: "1",
-            customer_identifier: merchantData.phone,
+            customer_identifier: normalizePhoneNumber(merchantData.phone),
             beneficiary_account: ACCESS_BANK_DESTINATION_ACCOUNT
         };
 
@@ -268,7 +271,7 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200, falling back to simulated GTBank NUBAN:', response.data);
+            console.warn('⚠️️ Squad returned non-200, generating simulated GTBank NUBAN:', response.data);
             return {
                 success: false,
                 virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -310,7 +313,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
             const paymentData = data || req.body;
             const txRef = paymentData.transaction_ref;
             const amountInNaira = parseFloat(paymentData.principal_amount || paymentData.amount) / 100;
-            const customerId = (paymentData.customer_identifier || paymentData.email || '').trim();
+            const customerId = normalizePhoneNumber(paymentData.customer_identifier || paymentData.email || '');
 
             processedTxns = loadProcessedTxns();
             if (processedTxns[txRef]) {
@@ -328,7 +331,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
             }
 
             if (targetAccount) {
-                const phone = targetAccount.phone;
+                const phone = normalizePhoneNumber(targetAccount.phone);
                 merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + amountInNaira;
                 saveAccounts(merchantAccounts);
 
@@ -341,10 +344,8 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
                 console.log(`💰 Merchant [${phone}] Credited with ₦${amountInNaira.toLocaleString()} via Squad. New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
 
-                // ⚡ Trigger Auto-Sweep to Access Bank
                 executeAccessBankAutoSweep(amountInNaira, txRef, 'Squad Collection Deposit');
 
-                // 📲 Dispatch Instant SMS Alert
                 dispatchImmediateTransactionSMS(
                     phone,
                     'Deposit (GTBank Virtual Acc)',
@@ -397,7 +398,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'All fields are required.' });
         }
 
-        const cleanPhone = phone.trim();
+        const cleanPhone = normalizePhoneNumber(phone);
         const cleanEmail = email.trim().toLowerCase();
 
         if (merchantAccounts[cleanPhone]) {
@@ -406,7 +407,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Call Squad API for live GTBank Virtual Account
         const squadRes = await generateSquadVirtualAccount({
             merchantName,
             phone: cleanPhone,
@@ -480,7 +480,7 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
         const { phone, password } = req.body;
-        const cleanPhone = phone ? phone.trim() : '';
+        const cleanPhone = normalizePhoneNumber(phone);
 
         const account = merchantAccounts[cleanPhone];
         if (!account) return res.status(404).json({ status: 'error', message: 'Account not found.' });
@@ -512,20 +512,19 @@ app.post('/api/v1/services/transact', async (req, res) => {
         }
 
         merchantAccounts = loadAccounts();
-        const account = merchantAccounts[merchantPhone.trim()];
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Transaction rejected: Merchant account is locked.' });
         if ((account.balance || 0) < txnAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
-        // Apply debit & add ₦2.00 cashback
         account.balance = (account.balance - txnAmount) + 2.00;
         saveAccounts(merchantAccounts);
 
         const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
 
-        // 📲 Immediate Transaction SMS Dispatch
-        dispatchImmediateTransactionSMS(merchantPhone, serviceType, recipient, txnAmount, account.balance, txRef);
+        dispatchImmediateTransactionSMS(cleanPhone, serviceType, recipient, txnAmount, account.balance, txRef);
 
         return res.status(200).json({
             status: 'success',
@@ -549,7 +548,8 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         }
 
         merchantAccounts = loadAccounts();
-        const account = merchantAccounts[merchantPhone.trim()];
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Withdrawal rejected: Merchant account is locked.' });
@@ -564,8 +564,7 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         const txRef = `WTH-${Date.now()}`;
         await executeAccessBankAutoSweep(withdrawAmount, txRef, 'Merchant Withdrawal');
 
-        // 📲 Immediate Withdrawal SMS Alert
-        dispatchImmediateTransactionSMS(merchantPhone, 'Bank Withdrawal', `${accountNumber} (${destinationBank})`, withdrawAmount, account.balance, txRef);
+        dispatchImmediateTransactionSMS(cleanPhone, 'Bank Withdrawal', `${accountNumber} (${destinationBank})`, withdrawAmount, account.balance, txRef);
 
         return res.status(200).json({
             status: 'success',
@@ -660,7 +659,7 @@ app.get('/api/v1/broadcasts', (req, res) => {
 });
 
 // =========================================================================
-// 📄 UNIVERSAL TRANSACTION RECEIPT PDF DOWNLOAD ENDPOINT
+// 📄 UNIVERSAL TRANSACTION RECEIPT PDF / HTML DOWNLOAD ENDPOINT
 // =========================================================================
 
 app.get('/api/v1/receipt/download', (req, res) => {
@@ -668,7 +667,8 @@ app.get('/api/v1/receipt/download', (req, res) => {
         const { txRef, service, recipient, amount, merchantPhone } = req.query;
 
         merchantAccounts = loadAccounts();
-        const account = merchantAccounts[merchantPhone ? merchantPhone.trim() : ''] || { merchantName: 'Valued Merchant' };
+        const cleanPhone = normalizePhoneNumber(merchantPhone || '');
+        const account = merchantAccounts[cleanPhone] || { merchantName: 'Valued Merchant' };
 
         const reference = txRef || `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
         const dateStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
@@ -678,6 +678,8 @@ app.get('/api/v1/receipt/download', (req, res) => {
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
+                <title>Receipt - ${reference}</title>
                 <style>
                     body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; background: #fff; color: #1e293b; }
                     .receipt-box { max-width: 500px; margin: 0 auto; border: 2px solid #0284c7; border-radius: 12px; padding: 30px; }
@@ -706,7 +708,8 @@ app.get('/api/v1/receipt/download', (req, res) => {
                         <tr><td>Status:</td><td style="text-align:right; color:#10b981; font-weight:bold;">SUCCESSFUL</td></tr>
                     </table>
                     <div class="footer">
-                        <p>© 2026 ALL TIME BUSINESS LTD | @BL Sovereign Gateway</p>
+                        <p>Thank you for transacting with @BL Sovereign Gateway.</p>
+                        <p>www.alltimebusiness.com.ng</p>
                     </div>
                 </div>
             </body>
@@ -714,88 +717,19 @@ app.get('/api/v1/receipt/download', (req, res) => {
         `;
 
         res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Content-Disposition', `inline; filename="Receipt_${reference}.html"`);
         return res.send(receiptHtml);
-
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to generate receipt.' });
     }
 });
 
-// =========================================================================
-// ⚙️ ADMIN DATA & ACCOUNT LOCK CONTROL ENDPOINTS
-// =========================================================================
-
-app.get('/api/v1/admin/merchants', (req, res) => {
-    try {
-        merchantAccounts = loadAccounts();
-        const list = Object.values(merchantAccounts);
-        return res.status(200).json({
-            status: 'success',
-            merchants: list,
-            activeCreditRequests: 0,
-            todayTxns: 12,
-            todayVolume: 148500
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to fetch admin merchant list.' });
-    }
+// Wildcard Fallback Route for Single Page App
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.post('/api/v1/admin/credit-merchant', (req, res) => {
-    try {
-        const { phone, amount } = req.body;
-        merchantAccounts = loadAccounts();
-        const account = merchantAccounts[phone ? phone.trim() : ''];
-
-        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant not found.' });
-
-        account.balance = (account.balance || 0) + parseFloat(amount);
-        saveAccounts(merchantAccounts);
-
-        return res.status(200).json({ status: 'success', message: 'Merchant balance updated.', newBalance: account.balance });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to credit merchant.' });
-    }
+// Server Initialization
+app.listen(PORT, () => {
+    console.log(`🚀 Master Server Engine running on port ${PORT}`);
+    console.log(`🔗 Webhook Endpoint: /api/v1/webhook/squad`);
 });
-
-// 🔒 / 🔓 TOGGLE MERCHANT ACCOUNT LOCK ENDPOINT
-app.post('/api/v1/admin/toggle-account-lock', (req, res) => {
-    try {
-        const { phone, isLocked } = req.body;
-        merchantAccounts = loadAccounts();
-        const account = merchantAccounts[phone ? phone.trim() : ''];
-
-        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant not found.' });
-
-        account.isLocked = !!isLocked;
-        saveAccounts(merchantAccounts);
-
-        return res.status(200).json({
-            status: 'success',
-            message: `Merchant account is now ${account.isLocked ? 'locked' : 'unlocked'}.`,
-            isLocked: account.isLocked
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to update account lock status.' });
-    }
-});
-
-// =========================================================================
-// 🌐 NAVIGATION PAGE ROUTES
-// =========================================================================
-
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/vtu-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'vtu-support.html')));
-app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'education-support.html')));
-app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-payments.html')));
-app.get('/betting-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'betting-support.html')));
-app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'credit-support.html')));
-app.get('/private', (req, res) => res.sendFile(path.join(__dirname, 'public', 'private.html')));
-app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'newsletter.html')));
-
-// Start Express Server
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log(`Master Server Engine LIVE on port ${PORT}`));
