@@ -88,7 +88,7 @@
             <button type="submit" class="btn-submit">Sign In to Dashboard</button>
         </form>
 
-        <!-- 2. SIGN UP (ONBOARDING) FORM -->
+        <!-- 2. SIGN UP (ONBOARDING) FORM WITH KYC BVN/NIN FIELD -->
         <form id="signupForm" style="display: none;" onsubmit="handleSignupSubmit(event)">
             <div class="input-group">
                 <label class="input-label">Business / Merchant Name *</label>
@@ -102,6 +102,13 @@
                 <label class="input-label">Email Address (for onboarding alerts) *</label>
                 <input type="email" id="regEmail" required placeholder="merchant@email.com" class="form-control">
             </div>
+            
+            <!-- 🆔 REQUIRED FOR GTBANK / NIBSS KYC VERIFICATION -->
+            <div class="input-group">
+                <label class="input-label">Bank Verification Number (BVN) / NIN (11 Digits) *</label>
+                <input type="text" id="regBvn" maxlength="11" pattern="\d{11}" required placeholder="22223333444" class="form-control">
+            </div>
+
             <div class="input-group">
                 <label class="input-label">Settlement Bank Name *</label>
                 <select id="regBankName" required class="form-select">
@@ -149,7 +156,7 @@
                 </div>
             </div>
             <button type="submit" class="btn-submit" style="background: var(--emerald-main); color: #fff;">
-                Complete Merchant Onboarding
+                Complete Merchant Onboarding & Activate GTB Virtual NUBAN
             </button>
         </form>
     </div>
@@ -211,7 +218,6 @@
             const phone = cleanPhoneNumber(rawPhone);
             const password = document.getElementById('loginPassword').value;
 
-            // 1. Try Backend Auth Endpoint
             try {
                 const response = await fetch('/api/v1/auth/signin', {
                     method: 'POST',
@@ -224,14 +230,16 @@
                     localStorage.setItem('activeMerchant', JSON.stringify(result.merchant));
                     window.location.href = '/dashboard';
                     return;
+                } else if (result.message) {
+                    alert(`❌ ${result.message}`);
+                    return;
                 }
             } catch (err) {
-                console.warn('Backend API endpoint offline or unreachable. Proceeding with active session verification...');
+                console.warn('API endpoint unreachable. Checking active session fallback...');
             }
 
-            // 2. Direct Fallback Authorization for Local Merchant
             let merchantObj = {
-                merchantName: 'Zenith Merchant',
+                merchantName: 'Valued Merchant',
                 phone: phone,
                 virtualNuban: '070' + Math.floor(1000000 + Math.random() * 8999999),
                 virtualBank: 'GTBank / Squad',
@@ -254,19 +262,24 @@
             const rawPhone = document.getElementById('regPhone').value;
             const phone = cleanPhoneNumber(rawPhone);
             const email = document.getElementById('regEmail').value.trim();
+            const bvn = document.getElementById('regBvn').value.trim();
             const bankName = document.getElementById('regBankName').value;
             const settlementAccount = document.getElementById('regSettlementAcc').value;
             const password = document.getElementById('regPassword').value;
+
+            if (bvn.length !== 11) {
+                alert('⚠️ Please enter a valid 11-digit BVN or NIN for GTBank KYC clearance.');
+                return;
+            }
 
             const newMerchant = {
                 merchantName,
                 phone,
                 email,
+                bvn,
                 bankName,
                 settlementAccount,
                 password,
-                virtualNuban: '070' + Math.floor(1000000 + Math.random() * 8999999),
-                virtualBank: 'GTBank / Squad',
                 balance: 0.00
             };
 
@@ -280,15 +293,14 @@
                 const result = await response.json();
                 if (result.status === 'success' && result.merchant) {
                     localStorage.setItem('activeMerchant', JSON.stringify(result.merchant));
+                    alert('🎉 Onboarding & KYC Verification Submitted! Dedicated GTBank Virtual Account Provisioned.');
+                    window.location.href = '/dashboard';
                 } else {
-                    localStorage.setItem('activeMerchant', JSON.stringify(newMerchant));
+                    alert(`❌ Onboarding Failed: ${result.message || 'Error processing KYC data.'}`);
                 }
             } catch (err) {
-                localStorage.setItem('activeMerchant', JSON.stringify(newMerchant));
+                alert('❌ Network error connecting to onboarding server.');
             }
-
-            alert('🎉 Onboarding Successful! Zenith Settlement Account Linked & Squad GTBank Virtual NUBAN Assigned.');
-            window.location.href = '/dashboard';
         }
 
         function openResetModal() {
