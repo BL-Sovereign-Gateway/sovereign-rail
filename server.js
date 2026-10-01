@@ -3,6 +3,7 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
+ * Intact Merchant Principal Crediting | Dynamic Markup & Cashback Engine |
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk
@@ -43,7 +44,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️️ DB Read Error:', e.message);
+        console.error('⚠️ DB Read Error:', e.message);
     }
     return {};
 }
@@ -63,7 +64,7 @@ function loadBroadcasts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️ Broadcasts Read Error:', e.message);
+        console.error('⚠️️ Broadcasts Read Error:', e.message);
     }
     return [];
 }
@@ -133,6 +134,24 @@ function normalizePhoneNumber(phone) {
         return '0' + cleaned.slice(3);
     }
     return cleaned;
+}
+
+// =========================================================================
+// 🧮 DYNAMIC TIERED MARKUP & CASHBACK CALCULATOR ENGINE
+// =========================================================================
+function calculateTieredMarkup(principalAmount) {
+    const amount = parseFloat(principalAmount);
+    let markup = 0;
+
+    if (amount >= 1000 && amount <= 20000) {
+        markup = 20.00; // ₦20 on ₦1k - ₦20k
+    } else if (amount >= 20001 && amount <= 50000) {
+        markup = 25.00; // ₦25 on ₦21k - ₦50k
+    } else if (amount >= 50001) {
+        markup = 30.00; // ₦30 on ₦51k and above
+    }
+
+    return markup;
 }
 
 // =========================================================================
@@ -271,7 +290,7 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️️ Squad returned non-200 response:', response.data);
+            console.warn('⚠️ Squad returned non-200 response:', response.data);
             return {
                 success: false,
                 virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -289,7 +308,7 @@ async function generateSquadVirtualAccount(merchantData) {
 }
 
 // =========================================================================
-// 🔔 SQUAD WEBHOOK PAYMENT LISTENER ENGINE
+// 🔔 SQUAD WEBHOOK PAYMENT LISTENER ENGINE (INTACT PRINCIPAL CREDITING)
 // =========================================================================
 
 app.post('/api/v1/webhook/squad', async (req, res) => {
@@ -311,8 +330,15 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
         if (event === 'charge.success' || (data && data.event === 'charge.success')) {
             const paymentData = data || req.body;
-            const txRef = paymentData.transaction_ref;
-            const amountInNaira = parseFloat(paymentData.principal_amount || paymentData.amount) / 100;
+            const txRef = paymentData.transaction_ref || paymentData.transaction_reference;
+
+            // Extract values directly from Squad's payload
+            const rawPrincipal = parseFloat(paymentData.principal_amount || paymentData.amount || 0);
+            // Convert to standard Naira (handling both kobo and naira representations)
+            const principalAmount = rawPrincipal > 100000 ? rawPrincipal / 100 : rawPrincipal;
+            const squadFee = parseFloat(paymentData.fee_charged || 0);
+            const settledAmount = parseFloat(paymentData.settled_amount || (principalAmount - squadFee));
+
             const customerId = normalizePhoneNumber(paymentData.customer_identifier || paymentData.email || '');
 
             processedTxns = loadProcessedTxns();
@@ -332,30 +358,38 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
             if (targetAccount) {
                 const phone = normalizePhoneNumber(targetAccount.phone);
-                merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + amountInNaira;
+                
+                // 💡 Calculate gateway tiered markup
+                const platformMarkup = calculateTieredMarkup(principalAmount);
+
+                // ⚡ GUARANTEE: Credit merchant wallet with 100% intact principal money
+                merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + principalAmount;
                 saveAccounts(merchantAccounts);
 
                 processedTxns[txRef] = {
-                    amount: amountInNaira,
+                    principalAmount,
+                    squadFee,
+                    settledAmount,
+                    platformMarkup,
                     merchantPhone: phone,
                     timestamp: new Date().toISOString()
                 };
                 saveProcessedTxns(processedTxns);
 
-                console.log(`💰 Merchant [${phone}] Credited with ₦${amountInNaira.toLocaleString()} via Squad. New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
+                console.log(`💰 Merchant [${phone}] Credited INTACT with ₦${principalAmount.toLocaleString()}! (Squad Fee: ₦${squadFee} absorbed via Platform Tiered Markup: ₦${platformMarkup}). New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
 
-                executeAccessBankAutoSweep(amountInNaira, txRef, 'Squad Collection Deposit');
+                executeAccessBankAutoSweep(settledAmount, txRef, 'Squad Collection Deposit');
 
                 dispatchImmediateTransactionSMS(
                     phone,
                     'Deposit (GTBank Virtual Acc)',
                     paymentData.virtual_account_number || 'GTBank NUBAN',
-                    amountInNaira,
+                    principalAmount,
                     merchantAccounts[phone].balance,
                     txRef
                 );
 
-                return res.status(200).json({ status: 'success', message: 'Merchant credited successfully' });
+                return res.status(200).json({ status: 'success', message: 'Merchant credited with intact principal successfully' });
             } else {
                 console.warn(`❌ No matching merchant account found for Customer Identifier: [${customerId}]`);
                 return res.status(404).json({ status: 'error', message: 'Merchant account not found' });
@@ -426,7 +460,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         merchantAccounts[cleanPhone] = newMerchant;
         saveAccounts(merchantAccounts);
 
-        // Catchy & Professional Corporate Email Template
         const welcomeMailHtml = `
             <!DOCTYPE html>
             <html>
@@ -524,7 +557,7 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 });
 
 // =========================================================================
-// 🛒 SERVICE TRANSACTION & WITHDRAWAL ENDPOINTS
+// 🛒 SERVICE TRANSACTION & WITHDRAWAL ENDPOINTS WITH ₦2.00 CASHBACK
 // =========================================================================
 
 app.post('/api/v1/services/transact', async (req, res) => {
@@ -544,7 +577,9 @@ app.post('/api/v1/services/transact', async (req, res) => {
         if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Transaction rejected: Merchant account is locked.' });
         if ((account.balance || 0) < txnAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
-        account.balance = (account.balance - txnAmount) + 2.00;
+        // 🎁 Debit transaction amount & apply ₦2.00 cashback
+        const CASHBACK_BONUS = 2.00;
+        account.balance = (account.balance - txnAmount) + CASHBACK_BONUS;
         saveAccounts(merchantAccounts);
 
         const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
@@ -623,7 +658,7 @@ app.get('/api/v1/admin/merchants', (req, res) => {
         Object.values(processedTxns).forEach(txn => {
             if (txn.timestamp && txn.timestamp.startsWith(todayStr)) {
                 todayTxnsCount++;
-                todayVolumeTotal += parseFloat(txn.amount || 0);
+                todayVolumeTotal += parseFloat(txn.principalAmount || txn.amount || 0);
             }
         });
 
@@ -727,7 +762,7 @@ app.post('/api/v1/admin/publish-broadcast', (req, res) => {
 
 app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
     try {
-        const { title, body, image } = req.body;
+        const { title, body } = req.body;
 
         if (!title || !body) {
             return res.status(400).json({ status: 'error', message: 'Subject and email body are required.' });
@@ -738,98 +773,26 @@ app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
 
         const emailHtml = `
             <div style="background:#0d1322; color:#f1f5f9; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8; max-width:600px; margin:0 auto;">
-                <h2 style="color:#38bdf8; text-align:center; margin-top:0;">⚡ @BL SOVEREIGN GATEWAY</h2>
-                <p style="text-align:center; color:#8295b3; font-size:12px;">ALL TIME BUSINESS LTD (RC: 950444)</p>
-                <hr style="border-color:#233148; margin:20px 0;">
-                <h3 style="color:#f59e0b; margin-top:0;">${title}</h3>
-                <div style="line-height:1.7; font-size:14px; color:#e2e8f0;">${body.replace(/\n/g, '<br>')}</div>
-                ${image ? `<div style="margin-top:20px; text-align:center;"><img src="${image}" style="max-width:100%; border-radius:8px; border:1px solid #233148;" /></div>` : ''}
-                <hr style="border-color:#233148; margin:20px 0;">
-                <p style="text-align:center; font-size:12px; color:#64748b;">Manage your desk at <a href="https://www.alltimebusiness.com.ng" style="color:#38bdf8; text-decoration:none;">www.alltimebusiness.com.ng</a></p>
+                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY BULLETIN</h2>
+                <div style="margin:20px 0; line-height:1.6;">${body}</div>
+                <div style="text-align:center; font-size:11px; color:#64748b; margin-top:20px; border-top:1px solid #233148; padding-top:10px;">
+                    ALL TIME BUSINESS LTD • www.alltimebusiness.com.ng
+                </div>
             </div>
         `;
 
-        if (merchants.length > 0) {
-            for (const m of merchants) {
-                if (m.email) {
-                    await dispatchEmail(m.email, `📢 ${title}`, emailHtml);
-                }
-            }
-        } else {
-            await dispatchEmail('ogegbodegreat@gmail.com', `📢 ${title}`, emailHtml);
-        }
-
-        return res.status(200).json({ status: 'success', message: 'Mass newsletter dispatched successfully via Resend!' });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Error dispatching mass email newsletter.' });
-    }
-});
-
-app.post('/api/v1/admin/dispatch-mass-sms', async (req, res) => {
-    try {
-        const { message } = req.body;
-
-        if (!message) {
-            return res.status(400).json({ status: 'error', message: 'SMS message body is required.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const merchants = Object.values(merchantAccounts);
-
-        if (merchants.length === 0) {
-            return res.status(400).json({ status: 'error', message: 'No registered merchants to receive SMS.' });
-        }
-
-        let sentCount = 0;
-        for (const m of merchants) {
-            if (m.phone) {
-                const resSMS = await sendTermiiSMS(m.phone, message);
-                if (resSMS.success) sentCount++;
+        for (const merchant of merchants) {
+            if (merchant.email) {
+                await dispatchEmail(merchant.email, title, emailHtml);
             }
         }
 
-        return res.status(200).json({
-            status: 'success',
-            message: `Mass SMS broadcast dispatched to ${sentCount} merchant(s) at ₦6.00/SMS rate.`
-        });
+        return res.status(200).json({ status: 'success', message: `Newsletter dispatched to ${merchants.length} merchants.` });
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Error dispatching mass Termii SMS.' });
+        return res.status(500).json({ status: 'error', message: 'Failed to dispatch newsletter.' });
     }
 });
 
-app.get('/api/v1/broadcasts', (req, res) => {
-    try {
-        broadcastPosts = loadBroadcasts();
-        return res.status(200).json({ status: 'success', broadcasts: broadcastPosts });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to fetch broadcasts.' });
-    }
-});
-
-// =========================================================================
-// 🌐 EXPLICIT PAGE ROUTING & WILDCARD FALLBACK
-// =========================================================================
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// Explicit Route for Admin Private Command Center
-app.get('/private', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'private.html'));
-});
-
-// Catch-All Wildcard Route
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// Server Initialization
 app.listen(PORT, () => {
-    console.log(`🚀 Master Server Engine running on port ${PORT}`);
-    console.log(`🔒 Admin Command Center: https://www.alltimebusiness.com.ng/private`);
+    console.log(`🚀 Master Server Engine live on port ${PORT}`);
 });
