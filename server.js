@@ -7,7 +7,7 @@
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
- * SAIL Credit Line Application & Underwriting Dispatch Engine
+ * SAIL Credit Line Application Engine | Explicit Frontend Route Handlers
  * ============================================================================
  */
 
@@ -24,6 +24,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Serve static assets from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables & Credentials
@@ -138,8 +140,29 @@ function normalizePhoneNumber(phone) {
 }
 
 // =========================================================================
+// 🌐 EXPLICIT FRONTEND PAGE ROUTES
+// =========================================================================
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/sail-credit', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'sail-credit.html'));
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// =========================================================================
 // 🧮 DYNAMIC TIERED MARKUP CALCULATOR ENGINE
 // =========================================================================
+
 function calculateTieredMarkup(principalAmount) {
     const amount = parseFloat(principalAmount);
     let markup = 0;
