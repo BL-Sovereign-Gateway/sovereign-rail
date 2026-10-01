@@ -17,6 +17,7 @@
             --cyan-hover: #0ea5e9;
             --emerald-main: #10b981;
             --amber-main: #f59e0b;
+            --rose-main: #f43f5e;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -48,9 +49,14 @@
         .btn-submit { width: 100%; background: var(--cyan-main); color: var(--bg-dark); padding: 13px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: 0.2s; margin-top: 6px; }
         .btn-submit:hover { background: var(--cyan-hover); }
 
-        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(13, 19, 34, 0.88); backdrop-filter: blur(6px); z-index: 9999; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 440px; border-radius: 14px; padding: 24px; }
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(9, 13, 22, 0.88); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: var(--bg-card); border: 1px solid var(--cyan-main); width: 100%; max-width: 460px; border-radius: 16px; padding: 28px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); animation: modalSlideUp 0.3s ease-out; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -152,7 +158,7 @@
                 <label class="input-label">Password *</label>
                 <div class="password-wrapper">
                     <input type="password" id="regPassword" required placeholder="••••••••" class="form-control">
-                    <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('regPassword', this)">👁️</button>
+                    <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('regPassword', this)">👁️️</button>
                 </div>
             </div>
             <button type="submit" class="btn-submit" style="background: var(--emerald-main); color: #fff;">
@@ -161,9 +167,53 @@
         </form>
     </div>
 
+    <!-- 🎨 FANCY BRANDED SUCCESS MODAL -->
+    <div id="fancyOnboardingModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div style="width: 60px; height: 60px; background: rgba(16, 185, 129, 0.15); border: 2px solid var(--emerald-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px;">
+                ⚡
+            </div>
+            <h2 style="color: var(--cyan-main); font-size: 1.35rem; font-weight: 800; margin-bottom: 4px;">
+                Welcome Onboard!
+            </h2>
+            <p style="color: var(--emerald-main); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 18px;">
+                ALL TIME BUSINESS LTD • RC: 950444
+            </p>
+            <div style="background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: left; margin-bottom: 20px; font-size: 0.85rem; line-height: 1.6; color: var(--text-sub);">
+                <p style="color: var(--text-main); font-weight: 700; margin-bottom: 6px;">
+                    🎉 Merchant Account Activated Successfully!
+                </p>
+                <p style="margin: 0;">
+                    Your dedicated GTBank Collection NUBAN has been provisioned and linked to your wallet with automated settlement routing.
+                </p>
+            </div>
+            <button onclick="proceedToDashboard()" class="btn-submit" style="background: var(--cyan-main); color: var(--bg-dark);">
+                🚀 Proceed to Merchant Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- 🎨 FANCY BRANDED ERROR MODAL -->
+    <div id="fancyErrorModal" class="modal-backdrop">
+        <div class="modal-content" style="border-color: var(--rose-main);">
+            <div style="width: 60px; height: 60px; background: rgba(244, 63, 94, 0.15); border: 2px solid var(--rose-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px; color: var(--rose-main);">
+                ⚠️
+            </div>
+            <h2 style="color: var(--rose-main); font-size: 1.25rem; font-weight: 800; margin-bottom: 6px;">
+                Action Required
+            </h2>
+            <p id="errorMessageText" style="color: var(--text-main); font-size: 0.88rem; line-height: 1.5; margin-bottom: 20px;">
+                An error occurred while processing your request.
+            </p>
+            <button onclick="closeErrorModal()" class="btn-submit" style="background: var(--border); color: var(--text-main);">
+                Dismiss & Retry
+            </button>
+        </div>
+    </div>
+
     <!-- RESET PASSWORD MODAL -->
     <div id="resetModal" class="modal-backdrop">
-        <div class="modal-content">
+        <div class="modal-content" style="text-align: left;">
             <div class="modal-header">
                 <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.05rem;">🔑 Reset Password / PIN</h3>
                 <span onclick="closeResetModal()" style="cursor: pointer; font-size: 1.3rem; color: var(--text-sub);">&times;</span>
@@ -212,6 +262,19 @@
             }
         }
 
+        function showErrorModal(message) {
+            document.getElementById('errorMessageText').innerText = message;
+            document.getElementById('fancyErrorModal').style.display = 'flex';
+        }
+
+        function closeErrorModal() {
+            document.getElementById('fancyErrorModal').style.display = 'none';
+        }
+
+        function proceedToDashboard() {
+            window.location.href = '/dashboard';
+        }
+
         async function handleSigninSubmit(e) {
             e.preventDefault();
             const rawPhone = document.getElementById('loginPhone').value;
@@ -231,7 +294,7 @@
                     window.location.href = '/dashboard';
                     return;
                 } else if (result.message) {
-                    alert(`❌ ${result.message}`);
+                    showErrorModal(result.message);
                     return;
                 }
             } catch (err) {
@@ -268,7 +331,7 @@
             const password = document.getElementById('regPassword').value;
 
             if (bvn.length !== 11) {
-                alert('⚠️ Please enter a valid 11-digit BVN or NIN for GTBank KYC clearance.');
+                showErrorModal('Please enter a valid 11-digit BVN or NIN for GTBank KYC verification.');
                 return;
             }
 
@@ -293,13 +356,12 @@
                 const result = await response.json();
                 if (result.status === 'success' && result.merchant) {
                     localStorage.setItem('activeMerchant', JSON.stringify(result.merchant));
-                    alert('🎉 Onboarding & KYC Verification Submitted! Dedicated GTBank Virtual Account Provisioned.');
-                    window.location.href = '/dashboard';
+                    document.getElementById('fancyOnboardingModal').style.display = 'flex';
                 } else {
-                    alert(`❌ Onboarding Failed: ${result.message || 'Error processing KYC data.'}`);
+                    showErrorModal(result.message || 'Error processing onboarding data.');
                 }
             } catch (err) {
-                alert('❌ Network error connecting to onboarding server.');
+                showErrorModal('Network connection error. Please try again.');
             }
         }
 
@@ -314,8 +376,8 @@
         function handlePasswordReset(e) {
             e.preventDefault();
             const id = document.getElementById('resetIdentifier').value.trim();
-            alert(`✅ Security recovery code dispatched to [${id}]. Please check your inbox and SMS alerts.`);
             closeResetModal();
+            showErrorModal(`Security recovery code dispatched to [${id}]. Please check your inbox and SMS alerts.`);
         }
     </script>
 </body>
