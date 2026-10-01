@@ -60,8 +60,9 @@
     </div>
 
     <form id="creditForm">
-        <!-- Hidden input to preserve exact API field binding without asking user -->
         <input type="hidden" id="merchantId" value="Authenticated Merchant">
+        <input type="hidden" id="merchantPhone" value="">
+        <input type="hidden" id="merchantEmail" value="">
 
         <div class="form-group">
             <label>Facility Amount Requested (Maximum ₦100,000) *</label>
@@ -140,12 +141,19 @@ function calculateBreakdown() {
 }
 
 window.onload = () => {
-    const session = localStorage.getItem('merchantSession');
-    if (session) {
-        const merchant = JSON.parse(session);
-        if (merchant.merchantName) {
-            document.getElementById('merchantDisplayName').textContent = merchant.merchantName;
-            document.getElementById('merchantId').value = merchant.merchantName;
+    // Check activeMerchant first, fallback to merchantSession
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession');
+    if (rawSession) {
+        try {
+            const merchant = JSON.parse(rawSession);
+            if (merchant.merchantName) {
+                document.getElementById('merchantDisplayName').textContent = merchant.merchantName;
+                document.getElementById('merchantId').value = merchant.merchantName;
+            }
+            if (merchant.phone) document.getElementById('merchantPhone').value = merchant.phone;
+            if (merchant.email) document.getElementById('merchantEmail').value = merchant.email;
+        } catch (e) {
+            console.error('Session parse error:', e);
         }
     }
     calculateBreakdown();
@@ -157,8 +165,9 @@ document.getElementById('creditForm').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.textContent = 'Submitting Application...';
 
-    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
     const merchantName = document.getElementById('merchantId').value;
+    const merchantPhone = document.getElementById('merchantPhone').value;
+    const merchantEmail = document.getElementById('merchantEmail').value;
     const creditAmount = parseFloat(document.getElementById('creditAmount').value);
     const turnover = document.getElementById('turnover').value;
 
@@ -168,35 +177,42 @@ document.getElementById('creditForm').addEventListener('submit', async (e) => {
     const dailyTarget = creditAmount * 0.05;
 
     try {
-        await fetch('/api/v1/credit/apply', {
+        const response = await fetch('/api/v1/credit/apply', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 merchantName,
+                merchantPhone,
+                merchantEmail,
                 creditAmount,
                 interest,
                 insurance,
                 upfrontTotal,
                 dailyTarget,
                 tenor: '20 Working Days (Starts Day 2 Post-Disbursement)',
-                turnover,
-                merchantEmail: merchant.email || ''
+                turnover
             })
         });
 
-        const modalBody = document.getElementById('modalBody');
-        modalBody.innerHTML = `
-            <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
-                <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ CREDIT APPLICATION RECEIVED</p>
-                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Merchant:</strong> ${merchantName}</p>
-                <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Facility Amount:</strong> ₦${creditAmount.toLocaleString('en-NG')}</p>
-                <p style="font-size:0.85rem; color:#f59e0b; margin-bottom:4px;"><strong>Upfront Fee (16%):</strong> ₦${upfrontTotal.toLocaleString('en-NG')}</p>
-                <p style="font-size:0.85rem; color:#10b981; margin-bottom:8px;"><strong>Daily Target (5%):</strong> ₦${dailyTarget.toLocaleString('en-NG')} / working day</p>
-                <p style="font-size:0.8rem; color:#38bdf8; margin-bottom:8px;"><strong>Evaluation Mode:</strong> Live Gateway Transaction Volume</p>
-                <p style="font-size:0.8rem; color:#94a3b8; margin-top:8px;">A breakdown has been sent to your email address. Our risk underwriting engine is assessing your live settlement turnover.</p>
-            </div>
-        `;
-        document.getElementById('customModal').style.display = 'flex';
+        const resData = await response.json();
+
+        if (response.ok && resData.status === 'success') {
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
+                    <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ CREDIT APPLICATION RECEIVED</p>
+                    <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Merchant:</strong> ${merchantName}</p>
+                    <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Facility Amount:</strong> ₦${creditAmount.toLocaleString('en-NG')}</p>
+                    <p style="font-size:0.85rem; color:#f59e0b; margin-bottom:4px;"><strong>Upfront Fee (16%):</strong> ₦${upfrontTotal.toLocaleString('en-NG')}</p>
+                    <p style="font-size:0.85rem; color:#10b981; margin-bottom:8px;"><strong>Daily Target (5%):</strong> ₦${dailyTarget.toLocaleString('en-NG')} / working day</p>
+                    <p style="font-size:0.8rem; color:#38bdf8; margin-bottom:8px;"><strong>Evaluation Mode:</strong> Live Gateway Transaction Volume</p>
+                    <p style="font-size:0.8rem; color:#94a3b8; margin-top:8px;">A breakdown has been sent to your email address. Our risk underwriting engine is assessing your live settlement turnover.</p>
+                </div>
+            `;
+            document.getElementById('customModal').style.display = 'flex';
+        } else {
+            alert(`⚠️ Application Warning: ${resData.message || 'Submission failed.'}`);
+        }
 
     } catch (err) {
         alert('❌ Connection error. Please try submitting again.');
