@@ -43,7 +43,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️ DB Read Error:', e.message);
+        console.error('⚠️️ DB Read Error:', e.message);
     }
     return {};
 }
@@ -271,7 +271,7 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200 response:', response.data);
+            console.warn('⚠️️ Squad returned non-200 response:', response.data);
             return {
                 success: false,
                 virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -370,7 +370,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 });
 
 // =========================================================================
-// 🔐 AUTHENTICATION & ONBOARDING
+// 🔐 AUTHENTICATION & ONBOARDING (PRO & STRICT SINGLE PHONE NUMBER)
 // =========================================================================
 
 app.post('/api/v1/auth/signup', async (req, res) => {
@@ -382,14 +382,21 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'All fields including BVN/NIN are required.' });
         }
 
+        // Single Phone Number Enforcement
         const cleanPhone = normalizePhoneNumber(phone);
-        const cleanEmail = email.trim().toLowerCase();
-        const cleanBvn = bvn.trim();
-
-        if (merchantAccounts[cleanPhone]) {
-            return res.status(400).json({ status: 'error', message: 'Phone number already registered.' });
+        if (!cleanPhone || cleanPhone.length < 11) {
+            return res.status(400).json({ status: 'error', message: 'Please enter a valid 11-digit phone number.' });
         }
 
+        if (merchantAccounts[cleanPhone]) {
+            return res.status(400).json({ 
+                status: 'error', 
+                message: `Phone number (${cleanPhone}) is already registered. Please sign in instead.` 
+            });
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanBvn = bvn.trim();
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const squadRes = await generateSquadVirtualAccount({
@@ -419,39 +426,77 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         merchantAccounts[cleanPhone] = newMerchant;
         saveAccounts(merchantAccounts);
 
+        // Catchy & Professional Corporate Email Template
         const welcomeMailHtml = `
-            <div style="background:#0d1322; color:#f1f5f9; padding:30px; font-family:'Segoe UI',Consolas,monospace; border-radius:12px; border:1px solid #38bdf8; max-width:600px; margin:0 auto;">
-                <h2 style="color:#38bdf8; text-align:center; margin-top:0;">@BL SOVEREIGN GATEWAY</h2>
-                <p style="text-align:center; font-weight:bold; color:#10b981; letter-spacing:1px; font-size:12px; margin-bottom:20px;">
-                    MERCHANT ONBOARDING CONFIRMATION
-                </p>
-                <div style="border-top:1px dashed #334155; border-bottom:1px dashed #334155; padding:15px 0; margin-bottom:20px; font-size:14px; line-height:1.6;">
-                    <p style="margin-top:0;">Welcome onboard, <strong>${merchantName}</strong>!</p>
-                    <p>Your dedicated GTBank multi-bank settlement NUBAN has been provisioned and linked to your gateway wallet balance.</p>
-                </div>
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0d1322; color: #f1f5f9; margin: 0; padding: 20px; }
+                    .card { background: #162032; border: 1px solid #38bdf8; border-radius: 12px; max-width: 580px; margin: 0 auto; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+                    .brand-header { text-align: center; border-bottom: 2px solid #233148; padding-bottom: 20px; margin-bottom: 25px; }
+                    .brand-title { color: #38bdf8; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; margin: 0; }
+                    .brand-subtitle { color: #10b981; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
+                    .welcome-text { font-size: 15px; line-height: 1.6; color: #cbd5e1; }
+                    .account-box { background: #0d1322; border: 1px solid #233148; border-left: 4px solid #10b981; padding: 18px; border-radius: 8px; margin: 20px 0; }
+                    .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+                    .info-label { color: #8295b3; font-weight: 600; }
+                    .info-val { color: #f1f5f9; font-weight: 700; font-family: Consolas, monospace; }
+                    .action-btn { display: block; width: 220px; margin: 25px auto 10px; background: #38bdf8; color: #0d1322; text-align: center; padding: 12px; border-radius: 6px; font-weight: 800; text-decoration: none; font-size: 14px; }
+                    .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #233148; font-size: 11px; color: #64748b; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="brand-header">
+                        <div class="brand-title">@BL SOVEREIGN GATEWAY</div>
+                        <div class="brand-subtitle">ALL TIME BUSINESS LTD • RC: 950444</div>
+                    </div>
+                    
+                    <div class="welcome-text">
+                        Hello <strong>${merchantName}</strong>,<br><br>
+                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all Nigerian financial institutions.
+                    </div>
 
-                <div style="background:#162032; border:1px solid #233148; padding:15px; border-radius:8px; margin-bottom:20px; font-size:13px; line-height:1.8;">
-                    <p style="margin:0; color:#38bdf8; font-weight:bold;">📌 ACCOUNT DETAILS</p>
-                    <hr style="border-color:#233148; margin:8px 0;">
-                    <p style="margin:0;">Account Name: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>${merchantName}</strong></p>
-                    <p style="margin:0;">Virtual NUBAN: &nbsp;&nbsp;&nbsp;&nbsp;<strong>${squadRes.virtualNuban}</strong></p>
-                    <p style="margin:0;">Primary Bank: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Guaranty Trust Bank (GTBank)</p>
-                    <p style="margin:0;">Status: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#10b981; font-weight:bold;">ACTIVE & READY FOR FUNDING</span></p>
-                </div>
+                    <div class="account-box">
+                        <div style="color: #38bdf8; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">📌 DEDICATED COLLECTION ACCOUNT DETAILS</div>
+                        <div class="info-row">
+                            <span class="info-label">Account Name:</span>
+                            <span class="info-val">${merchantName}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Virtual NUBAN:</span>
+                            <span class="info-val" style="color: #38bdf8; font-size: 15px;">${squadRes.virtualNuban}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Bank Name:</span>
+                            <span class="info-val">Guaranty Trust Bank (GTBank)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Settlement Mode:</span>
+                            <span class="info-val" style="color: #10b981;">AUTOMATED AUTO-SWEEP</span>
+                        </div>
+                    </div>
 
-                <div style="text-align:center; padding-top:10px; border-top:1px solid #233148;">
-                    <p style="font-size:13px; color:#8295b3; margin-bottom:12px;">Manage your desk at:</p>
-                    <a href="https://www.alltimebusiness.com.ng" style="display:inline-block; background:#38bdf8; color:#0d1322; padding:10px 20px; border-radius:6px; font-weight:bold; text-decoration:none; font-size:13px;">https://www.alltimebusiness.com.ng</a>
+                    <a href="https://www.alltimebusiness.com.ng" class="action-btn">ACCESS MERCHANT DESK</a>
+
+                    <div class="footer">
+                        © ALL TIME BUSINESS LTD. All rights reserved.<br>
+                        Official Website: <a href="https://www.alltimebusiness.com.ng" style="color: #38bdf8; text-decoration: none;">www.alltimebusiness.com.ng</a>
+                    </div>
                 </div>
-            </div>
+            </body>
+            </html>
         `;
 
-        await dispatchEmail(cleanEmail, '⚡ @BL SOVEREIGN GATEWAY — Merchant Onboarding Confirmation', welcomeMailHtml);
-        sendTermiiSMS(cleanPhone, `Welcome to @BL GATEWAY, ${merchantName}! Your GTBank NUBAN is ${squadRes.virtualNuban}. Login at www.alltimebusiness.com.ng`).catch(() => {});
+        await dispatchEmail(cleanEmail, '⚡ Welcome to @BL Sovereign Gateway — Dedicated Account Active', welcomeMailHtml);
+        sendTermiiSMS(cleanPhone, `Welcome to @BL Sovereign Gateway, ${merchantName}! Your dedicated GTBank NUBAN is ${squadRes.virtualNuban}. Manage your desk at www.alltimebusiness.com.ng`).catch(() => {});
 
         return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
 
     } catch (err) {
+        console.error('Signup Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Server error during onboarding.' });
     }
 });
@@ -786,5 +831,5 @@ app.get('*', (req, res) => {
 // Server Initialization
 app.listen(PORT, () => {
     console.log(`🚀 Master Server Engine running on port ${PORT}`);
-    console.log(`🔒 Admin Command Center: https://sovereign-rail-production-7218.up.railway.app/private`);
+    console.log(`🔒 Admin Command Center: https://www.alltimebusiness.com.ng/private`);
 });
