@@ -131,7 +131,7 @@ function calculateBreakdown() {
     const interest = amount * 0.15;
     const insurance = amount * 0.01;
     const upfrontTotal = interest + insurance;
-    const dailyTarget = amount * 0.05;
+    const dailyTarget = amount * 0.05; // Maintains exact ₦2,500.00 daily repayment calculation
 
     document.getElementById('dispApplied').textContent = `₦${amount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
     document.getElementById('dispInterest').textContent = `₦${interest.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
@@ -141,7 +141,6 @@ function calculateBreakdown() {
 }
 
 window.onload = () => {
-    // Check activeMerchant first, fallback to merchantSession
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession');
     if (rawSession) {
         try {
@@ -202,9 +201,9 @@ document.getElementById('creditForm').addEventListener('submit', async (e) => {
                 <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
                     <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ CREDIT APPLICATION RECEIVED</p>
                     <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Merchant:</strong> ${merchantName}</p>
-                    <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Facility Amount:</strong> ₦${creditAmount.toLocaleString('en-NG')}</p>
-                    <p style="font-size:0.85rem; color:#f59e0b; margin-bottom:4px;"><strong>Upfront Fee (16%):</strong> ₦${upfrontTotal.toLocaleString('en-NG')}</p>
-                    <p style="font-size:0.85rem; color:#10b981; margin-bottom:8px;"><strong>Daily Target (5%):</strong> ₦${dailyTarget.toLocaleString('en-NG')} / working day</p>
+                    <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Facility Amount:</strong> ₦${creditAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
+                    <p style="font-size:0.85rem; color:#f59e0b; margin-bottom:4px;"><strong>Upfront Fee (16%):</strong> ₦${upfrontTotal.toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
+                    <p style="font-size:0.85rem; color:#10b981; margin-bottom:8px;"><strong>Daily Target (5%):</strong> ₦${dailyTarget.toLocaleString('en-NG', {minimumFractionDigits: 2})} / working day</p>
                     <p style="font-size:0.8rem; color:#38bdf8; margin-bottom:8px;"><strong>Evaluation Mode:</strong> Live Gateway Transaction Volume</p>
                     <p style="font-size:0.8rem; color:#94a3b8; margin-top:8px;">A breakdown has been sent to your email address. Our risk underwriting engine is assessing your live settlement turnover.</p>
                 </div>
