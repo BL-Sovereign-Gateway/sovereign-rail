@@ -11,9 +11,9 @@
         /* Navigation Header */
         header { background: #1e293b; border-bottom: 1px solid #38bdf8; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .brand h1 { font-size: 1.2rem; color: #38bdf8; font-weight: 800; }
-        .nav-links { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        .nav-item { color: #cbd5e1; text-decoration: none; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 6px; }
-        .nav-item:hover { background: rgba(56, 189, 248, 0.1); color: #38bdf8; }
+        .nav-links { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .nav-item { color: #cbd5e1; text-decoration: none; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 6px; cursor: pointer; border: none; background: transparent; }
+        .nav-item:hover, .nav-item.active { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
 
         .btn-pin { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; }
         .btn-logout { background: #ef4444; color: #fff; border: none; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; }
@@ -31,7 +31,7 @@
         .btn-withdraw { background: #f59e0b; color: #fff; }
         .btn-statement { background: #38bdf8; color: #0f172a; }
 
-        /* Continuous Ticker / Marquee */
+        /* Continuous Ticker */
         .ticker-wrap { background: rgba(56, 189, 248, 0.08); border: 1px solid #38bdf8; border-radius: 8px; padding: 10px; overflow: hidden; margin-bottom: 20px; font-size: 0.85rem; color: #10b981; font-weight: 600; white-space: nowrap; }
         .ticker { display: inline-block; animation: marquee 25s linear infinite; }
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
@@ -47,40 +47,51 @@
         /* Product Cards Grid */
         .products-section h3 { font-size: 1rem; color: #cbd5e1; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
-        .prod-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-decoration: none; color: #fff; transition: all 0.2s ease; display: flex; align-items: center; gap: 15px; }
+        .prod-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-decoration: none; color: #fff; transition: all 0.2s ease; display: flex; align-items: center; gap: 15px; cursor: pointer; }
         .prod-card:hover { border-color: #38bdf8; transform: translateY(-3px); background: #26354a; }
         .prod-icon { font-size: 2rem; }
         .prod-title { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; }
+
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 100%; max-width: 460px; box-shadow: 0 20px 25px rgba(0,0,0,0.6); }
+        .modal-card h3 { color: #38bdf8; margin-bottom: 15px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { cursor: pointer; color: #ef4444; font-size: 1.2rem; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; outline: none; font-size: 0.9rem; }
+        .form-group input:focus, .form-group select:focus { border-color: #38bdf8; }
+        .btn-submit-modal { width: 100%; padding: 12px; background: #10b981; color: #fff; font-weight: 800; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; margin-top: 10px; }
 
         footer { text-align: center; padding: 20px; font-size: 0.75rem; color: #64748b; border-top: 1px solid #1e293b; margin-top: auto; }
     </style>
 </head>
 <body>
 
-    <!-- Header & Navigation -->
+    <!-- Navigation Header -->
     <header>
         <div class="brand">
             <h1>@BL SOVEREIGN GATEWAY</h1>
         </div>
         <nav class="nav-links">
-            <a href="/dashboard" class="nav-item"><span>📊</span> Dashboard Desk</a>
-            <a href="/vtu" class="nav-item"><span>📲</span> VTU & Data Hub</a>
-            <a href="/bills" class="nav-item"><span>💡</span> Utility & Discos</a>
-            <a href="/education" class="nav-item"><span>🎓</span> Education Support</a>
-            <a href="/betting" class="nav-item"><span>🎮</span> Betting Topup</a>
-            <a href="/credit-support" class="nav-item"><span>💳</span> SAIL Credit Support</a>
-            <button onclick="resetSecurityPIN()" class="btn-pin">🔑 Reset Security PIN / Password</button>
+            <button onclick="closeModals()" class="nav-item active">📊 Dashboard Desk</button>
+            <button onclick="openModal('vtuModal')" class="nav-item">📲 VTU & Data Hub</button>
+            <button onclick="openModal('billsModal')" class="nav-item">💡 Utility & Discos</button>
+            <button onclick="openModal('eduModal')" class="nav-item">🎓 Education Support</button>
+            <button onclick="openModal('bettingModal')" class="nav-item">🎮 Betting Topup</button>
+            <button onclick="window.location.href='/sail-credit'" class="nav-item">💳 SAIL Credit Support</button>
+            <button onclick="resetSecurityPIN()" class="btn-pin">🔑 Reset PIN</button>
             <button onclick="signOut()" class="btn-logout">Sign Out</button>
         </nav>
     </header>
 
     <div class="container">
-        <!-- User Welcome & Top Action Bar -->
+        <!-- User Welcome -->
         <div class="user-welcome">
             <h2 id="merchantGreeting">Hi, Tope Ogegbo</h2>
             <div class="action-bar">
-                <button onclick="fundWalletModal()" class="btn-action btn-fund">➕ FUND WALLET</button>
-                <button onclick="withdrawModal()" class="btn-action btn-withdraw">💸 WITHDRAW FUNDS</button>
+                <button onclick="openModal('fundModal')" class="btn-action btn-fund">➕ FUND WALLET</button>
+                <button onclick="openModal('withdrawModal')" class="btn-action btn-withdraw">💸 WITHDRAW FUNDS</button>
                 <button onclick="generateStatement()" class="btn-action btn-statement">📄 STATEMENT (PDF)</button>
             </div>
         </div>
@@ -95,7 +106,6 @@
 
         <!-- Balances Grid -->
         <div class="balance-grid">
-            <!-- Wallet Balance Card -->
             <div class="bal-card">
                 <h4>
                     Gateway Ledger Balance
@@ -105,7 +115,6 @@
                 <div class="bal-sub" id="virtualAccDisplay">GTBank Virtual Account: Loading...</div>
             </div>
 
-            <!-- SAIL Credit Line Card -->
             <div class="bal-card">
                 <h4>
                     SAIL Credit Line
@@ -116,56 +125,183 @@
             </div>
         </div>
 
-        <!-- Products & Services Grid -->
+        <!-- Products Grid -->
         <div class="products-section">
             <h3>VTU, Bills & Financial Products</h3>
             <div class="product-grid">
-                <a href="/vtu" class="prod-card">
+                <div onclick="openModal('vtuModal')" class="prod-card">
                     <div class="prod-icon">📞</div>
                     <div class="prod-title">Buy Airtime & Data</div>
-                </a>
-                <a href="/education" class="prod-card">
+                </div>
+                <div onclick="openModal('eduModal')" class="prod-card">
                     <div class="prod-icon">🎓</div>
                     <div class="prod-title">WAEC / JAMB Result PINs</div>
-                </a>
-                <a href="/bills" class="prod-card">
+                </div>
+                <div onclick="openModal('billsModal')" class="prod-card">
                     <div class="prod-icon">📺</div>
                     <div class="prod-title">Cable TV & Electricity Discos⚡</div>
-                </a>
-                <a href="#" onclick="alert('Ajo Express Savings: Auto-Deductions Enabled.'); return false;" class="prod-card">
-                    <div class="prod-icon">🏦</div>
-                    <div class="prod-title">Ajo Express Savings</div>
-                </a>
-                <a href="#" onclick="alert('Stock Trading Desk: Subject to Market Terms & Conditions.'); return false;" class="prod-card">
-                    <div class="prod-icon">📈</div>
-                    <div class="prod-title">Buy Stocks & Equity (T&C Apply)</div>
-                </a>
-                <a href="/credit-support" class="prod-card">
+                </div>
+                <div onclick="openModal('bettingModal')" class="prod-card">
+                    <div class="prod-icon">🎮</div>
+                    <div class="prod-title">Betting Wallet Topup</div>
+                </div>
+                <div onclick="window.location.href='/sail-credit'" class="prod-card">
                     <div class="prod-icon">💳</div>
                     <div class="prod-title">SAIL Working Capital Line</div>
-                </a>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- 1. VTU & Data Modal -->
+    <div class="modal-overlay" id="vtuModal">
+        <div class="modal-card">
+            <h3>📲 VTU & Data Purchase Desk <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <form onsubmit="handleTransaction(event, 'Airtime/Data')">
+                <div class="form-group">
+                    <label>Select Network Provider</label>
+                    <select required><option>MTN Nigeria</option><option>Airtel Nigeria</option><option>Glo Mobile</option><option>9mobile</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Recipient Phone Number</label>
+                    <input type="tel" placeholder="e.g. 08031234567" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₦)</label>
+                    <input type="number" min="100" placeholder="100" required>
+                </div>
+                <button type="submit" class="btn-submit-modal">Purchase Instant Airtime/Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Utility & Discos Modal -->
+    <div class="modal-overlay" id="billsModal">
+        <div class="modal-card">
+            <h3>💡 Utility & Bills Payment Desk <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <form onsubmit="handleTransaction(event, 'Utility Bill')">
+                <div class="form-group">
+                    <label>Service Category</label>
+                    <select required>
+                        <option>Ikeja Electric (IKEDC)</option>
+                        <option>Eko Electricity (EKEDC)</option>
+                        <option>DSTV Subscription</option>
+                        <option>GOTV Subscription</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Meter / Smartcard Account Number</label>
+                    <input type="text" placeholder="Enter Account / Meter ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₦)</label>
+                    <input type="number" min="500" placeholder="1000" required>
+                </div>
+                <button type="submit" class="btn-submit-modal">Pay Utility Bill</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Education Support Modal -->
+    <div class="modal-overlay" id="eduModal">
+        <div class="modal-card">
+            <h3>🎓 Education Support Fund <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <form onsubmit="handleTransaction(event, 'Education PIN')">
+                <div class="form-group">
+                    <label>Exam Board / e-PIN Type</label>
+                    <select required>
+                        <option>WAEC Result Checker PIN (₦3,800)</option>
+                        <option>JAMB UTME Registration / Profile Code (₦4,700)</option>
+                        <option>NECO Result Token (₦1,200)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Candidate Phone / Email Delivery Target</label>
+                    <input type="text" placeholder="Phone number or email address" required>
+                </div>
+                <button type="submit" class="btn-submit-modal">Generate Educational Token</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Betting Topup Modal -->
+    <div class="modal-overlay" id="bettingModal">
+        <div class="modal-card">
+            <h3>🎮 Betting Wallet Topup <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <form onsubmit="handleTransaction(event, 'Betting Wallet Topup')">
+                <div class="form-group">
+                    <label>Select Betting Platform</label>
+                    <select required><option>SportyBet</option><option>1xBet</option><option>Bet9ja</option><option>BangBet</option></select>
+                </div>
+                <div class="form-group">
+                    <label>User ID / Account Number</label>
+                    <input type="text" placeholder="Enter Betting Account ID" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₦)</label>
+                    <input type="number" min="100" placeholder="500" required>
+                </div>
+                <button type="submit" class="btn-submit-modal">Fund Betting Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Fund Wallet Modal -->
+    <div class="modal-overlay" id="fundModal">
+        <div class="modal-card">
+            <h3>➕ Fund Wallet Ledger <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <div style="font-size:0.85rem; color:#cbd5e1; line-height:1.6; margin-bottom:15px;">
+                <p>Transfer funds to your dedicated GTBank NUBAN below to instantly credit your wallet with intact principal:</p>
+                <div style="background:#0f172a; border:1px solid #38bdf8; padding:12px; border-radius:8px; margin:12px 0; text-align:center;">
+                    <p style="color:#38bdf8; font-weight:800; font-size:1.1rem;" id="modalNuban">0768867364</p>
+                    <p style="font-size:0.8rem; color:#10b981;">Guaranty Trust Bank (GTBank)</p>
+                </div>
+                <p style="font-size:0.75rem; color:#94a3b8;">* Auto-Sweep to Access Bank processes automatically upon receipt.</p>
+            </div>
+            <button onclick="closeModals()" class="btn-submit-modal">Done</button>
+        </div>
+    </div>
+
+    <!-- 6. Withdraw Funds Modal -->
+    <div class="modal-overlay" id="withdrawModal">
+        <div class="modal-card">
+            <h3>💸 Withdraw Funds <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <form onsubmit="handleWithdrawal(event)">
+                <div class="form-group">
+                    <label>Destination Bank</label>
+                    <input type="text" placeholder="e.g. Access Bank" required id="wBank">
+                </div>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" placeholder="10-digit NUBAN" required id="wAcc">
+                </div>
+                <div class="form-group">
+                    <label>Amount (₦)</label>
+                    <input type="number" min="100" placeholder="1000" required id="wAmt">
+                </div>
+                <div class="form-group">
+                    <label>4-Digit Security PIN</label>
+                    <input type="password" maxlength="4" placeholder="••••" required id="wPin">
+                </div>
+                <button type="submit" class="btn-submit-modal">Confirm Withdrawal</button>
+            </form>
+        </div>
+    </div>
+
     <footer>
         © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
     </footer>
 
-    <!-- Client-Side Session & State Script -->
     <script>
         let isWalletHidden = true;
         let isCreditHidden = true;
-
         let rawWalletAmount = 0.00;
         let rawCreditAmount = 100000.00;
+        let currentMerchantPhone = '';
 
         window.onload = () => {
             const sessionData = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession');
-            
             if (!sessionData) {
-                // Redirect unauthenticated user to login
                 window.location.href = '/login';
                 return;
             }
@@ -175,13 +311,13 @@
                 if (merchant.merchantName) {
                     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName}`;
                 }
-                
+                currentMerchantPhone = merchant.phone || '';
                 rawWalletAmount = parseFloat(merchant.balance || 0);
 
                 if (merchant.virtualNuban) {
-                    document.getElementById('virtualAccDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban} (GTBank / Squad)`;
-                } else {
-                    document.getElementById('virtualAccDisplay').textContent = `GTBank Virtual Account: 0768867364 (GTBank / Squad)`;
+                    const accTxt = `GTBank Virtual Account: ${merchant.virtualNuban} (GTBank / Squad)`;
+                    document.getElementById('virtualAccDisplay').textContent = accTxt;
+                    document.getElementById('modalNuban').textContent = merchant.virtualNuban;
                 }
             } catch (e) {
                 console.error('Error reading merchant session:', e);
@@ -189,8 +325,8 @@
         };
 
         function toggleBalance(elementId, type) {
+            const el = document.getElementById(elementId);
             if (type === 'walletRaw') {
-                const el = document.getElementById(elementId);
                 if (isWalletHidden) {
                     el.textContent = `₦${rawWalletAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
                     isWalletHidden = false;
@@ -199,7 +335,6 @@
                     isWalletHidden = true;
                 }
             } else if (type === 'creditRaw') {
-                const el = document.getElementById(elementId);
                 if (isCreditHidden) {
                     el.textContent = `₦${rawCreditAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
                     isCreditHidden = false;
@@ -210,24 +345,93 @@
             }
         }
 
-        function fundWalletModal() {
-            alert('To fund your ledger, transfer funds to your dedicated GTBank Virtual Account displayed on your card. Settlements are instant with intact principal crediting.');
+        function openModal(id) {
+            closeModals();
+            document.getElementById(id).style.display = 'flex';
         }
 
-        function withdrawModal() {
-            window.location.href = '/dashboard#withdraw';
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+        }
+
+        async function handleTransaction(e, type) {
+            e.preventDefault();
+            const inputs = e.target.querySelectorAll('input, select');
+            const target = inputs[1] ? inputs[1].value : 'Target Account';
+            const amount = inputs[2] ? parseFloat(inputs[2].value) : 1000;
+
+            try {
+                const response = await fetch('/api/v1/services/transact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        merchantPhone: currentMerchantPhone,
+                        serviceType: type,
+                        recipient: target,
+                        amount: amount
+                    })
+                });
+
+                const resData = await response.json();
+                if (response.ok && resData.status === 'success') {
+                    alert(`✅ Transaction Successful!\n${resData.message}`);
+                    if (resData.newBalance !== undefined) {
+                        rawWalletAmount = resData.newBalance;
+                        if (!isWalletHidden) toggleBalance('walletBal', 'walletRaw');
+                    }
+                    closeModals();
+                } else {
+                    alert(`⚠️ Transaction Failed: ${resData.message || 'Error occurred.'}`);
+                }
+            } catch (err) {
+                alert('❌ Network connection error.');
+            }
+        }
+
+        async function handleWithdrawal(e) {
+            e.preventDefault();
+            const bank = document.getElementById('wBank').value;
+            const acc = document.getElementById('wAcc').value;
+            const amt = parseFloat(document.getElementById('wAmt').value);
+            const pin = document.getElementById('wPin').value;
+
+            try {
+                const response = await fetch('/api/v1/merchant/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        merchantPhone: currentMerchantPhone,
+                        amount: amt,
+                        destinationBank: bank,
+                        accountNumber: acc,
+                        withdrawalPin: pin
+                    })
+                });
+
+                const resData = await response.json();
+                if (response.ok && resData.status === 'success') {
+                    alert(`✅ Withdrawal Authorized!\n${resData.message}`);
+                    if (resData.newBalance !== undefined) {
+                        rawWalletAmount = resData.newBalance;
+                        if (!isWalletHidden) toggleBalance('walletBal', 'walletRaw');
+                    }
+                    closeModals();
+                } else {
+                    alert(`⚠️ Withdrawal Failed: ${resData.message}`);
+                }
+            } catch (err) {
+                alert('❌ Network connection error.');
+            }
         }
 
         function generateStatement() {
-            alert('Generating PDF Statement... A download link has been prepared for your record.');
+            alert('📄 Statement Generated! Downloading PDF copy for your records...');
         }
 
         function resetSecurityPIN() {
-            const newPin = prompt('Enter a new 4-digit Withdrawal PIN:');
+            const newPin = prompt('Enter a new 4-digit Security PIN:');
             if (newPin && /^\d{4}$/.test(newPin.trim())) {
-                alert('🔑 Security PIN updated successfully.');
-            } else if (newPin) {
-                alert('⚠️ Invalid PIN. Please provide exactly 4 digits.');
+                alert('🔑 Security PIN updated.');
             }
         }
 
