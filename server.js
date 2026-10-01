@@ -6,7 +6,8 @@
  * Intact Merchant Principal Crediting | Dynamic Markup & Cashback Engine |
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
- * Merchant Account Lock/Unlock Enforcement | Admin Command Desk
+ * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
+ * SAIL Credit Line Application & Underwriting Dispatch Engine
  * ============================================================================
  */
 
@@ -64,7 +65,7 @@ function loadBroadcasts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️️ Broadcasts Read Error:', e.message);
+        console.error('⚠️ Broadcasts Read Error:', e.message);
     }
     return [];
 }
@@ -137,7 +138,7 @@ function normalizePhoneNumber(phone) {
 }
 
 // =========================================================================
-// 🧮 DYNAMIC TIERED MARKUP & CASHBACK CALCULATOR ENGINE
+// 🧮 DYNAMIC TIERED MARKUP CALCULATOR ENGINE
 // =========================================================================
 function calculateTieredMarkup(principalAmount) {
     const amount = parseFloat(principalAmount);
@@ -249,7 +250,7 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (DYNAMIC KYC BVN/NIN)
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -332,9 +333,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
             const paymentData = data || req.body;
             const txRef = paymentData.transaction_ref || paymentData.transaction_reference;
 
-            // Extract values directly from Squad's payload
             const rawPrincipal = parseFloat(paymentData.principal_amount || paymentData.amount || 0);
-            // Convert to standard Naira (handling both kobo and naira representations)
             const principalAmount = rawPrincipal > 100000 ? rawPrincipal / 100 : rawPrincipal;
             const squadFee = parseFloat(paymentData.fee_charged || 0);
             const settledAmount = parseFloat(paymentData.settled_amount || (principalAmount - squadFee));
@@ -358,11 +357,8 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
             if (targetAccount) {
                 const phone = normalizePhoneNumber(targetAccount.phone);
-                
-                // 💡 Calculate gateway tiered markup
                 const platformMarkup = calculateTieredMarkup(principalAmount);
 
-                // ⚡ GUARANTEE: Credit merchant wallet with 100% intact principal money
                 merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + principalAmount;
                 saveAccounts(merchantAccounts);
 
@@ -404,7 +400,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 });
 
 // =========================================================================
-// 🔐 AUTHENTICATION & ONBOARDING (PRO & STRICT SINGLE PHONE NUMBER)
+// 🔐 AUTHENTICATION & ONBOARDING
 // =========================================================================
 
 app.post('/api/v1/auth/signup', async (req, res) => {
@@ -416,7 +412,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'All fields including BVN/NIN are required.' });
         }
 
-        // Single Phone Number Enforcement
         const cleanPhone = normalizePhoneNumber(phone);
         if (!cleanPhone || cleanPhone.length < 11) {
             return res.status(400).json({ status: 'error', message: 'Please enter a valid 11-digit phone number.' });
@@ -577,7 +572,6 @@ app.post('/api/v1/services/transact', async (req, res) => {
         if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Transaction rejected: Merchant account is locked.' });
         if ((account.balance || 0) < txnAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
-        // 🎁 Debit transaction amount & apply ₦2.00 cashback
         const CASHBACK_BONUS = 2.00;
         account.balance = (account.balance - txnAmount) + CASHBACK_BONUS;
         saveAccounts(merchantAccounts);
@@ -634,6 +628,99 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         });
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Withdrawal processing failed.' });
+    }
+});
+
+// =========================================================================
+// 💳 SAIL CREDIT LINE APPLICATION ENDPOINT
+// =========================================================================
+
+app.post('/api/v1/credit/apply', async (req, res) => {
+    try {
+        const { merchantName, creditAmount, interest, insurance, upfrontTotal, dailyTarget, tenor, merchantPhone, merchantEmail } = req.body;
+
+        const reqAmount = parseFloat(creditAmount);
+        if (isNaN(reqAmount) || reqAmount < 5000 || reqAmount > 100000) {
+            return res.status(400).json({ status: 'error', message: 'Requested facility must be between ₦5,000 and ₦100,000.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        let account = merchantAccounts[cleanPhone];
+
+        if (!account && merchantEmail) {
+            account = Object.values(merchantAccounts).find(acc => acc.email === merchantEmail.trim().toLowerCase());
+        }
+
+        const applicantPhone = account ? account.phone : cleanPhone;
+        const applicantEmail = account ? account.email : (merchantEmail || 'ogegbodegreat@gmail.com');
+        const applicantName = account ? account.merchantName : merchantName;
+
+        const creditApplication = {
+            id: `SAIL-${Date.now()}`,
+            merchantName: applicantName,
+            merchantPhone: applicantPhone,
+            merchantEmail: applicantEmail,
+            creditAmount: reqAmount,
+            interest: parseFloat(interest),
+            insurance: parseFloat(insurance),
+            upfrontTotal: parseFloat(upfrontTotal),
+            dailyTarget: parseFloat(dailyTarget),
+            tenor: tenor || '20 Working Days (Starts Day 2 Post-Disbursement)',
+            status: 'UNDER_REVIEW',
+            appliedAt: new Date().toISOString()
+        };
+
+        if (account) {
+            account.creditApplications = account.creditApplications || [];
+            account.creditApplications.unshift(creditApplication);
+            saveAccounts(merchantAccounts);
+        }
+
+        console.log(`💳 SAIL Credit Application Received for [${applicantName}] | Amount: ₦${reqAmount.toLocaleString()}`);
+
+        const emailHtml = `
+            <div style="background:#0d1322; color:#f1f5f9; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8; max-width:600px; margin:0 auto;">
+                <div style="text-align:center; border-bottom:2px solid #233148; padding-bottom:15px; margin-bottom:20px;">
+                    <h2 style="color:#38bdf8; margin:0;">@BL SOVEREIGN GATEWAY</h2>
+                    <div style="color:#10b981; font-size:11px; font-weight:700; text-transform:uppercase;">SAIL Credit Support Line</div>
+                </div>
+                <p>Hello <strong>${applicantName}</strong>,</p>
+                <p>Your application for a <strong>SAIL Working Capital Credit Line</strong> has been successfully registered and is currently under underwriting evaluation.</p>
+                
+                <div style="background:#162032; border-left:4px solid #f59e0b; padding:15px; border-radius:8px; margin:20px 0; font-size:13px;">
+                    <p style="margin-bottom:6px;"><strong>Facility Amount:</strong> ₦${reqAmount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin-bottom:6px;"><strong>Upfront Fee (16%):</strong> ₦${parseFloat(upfrontTotal).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                    <p style="margin-bottom:6px;"><strong>Daily Target (5%):</strong> ₦${parseFloat(dailyTarget).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
+                    <p style="margin-bottom:0;"><strong>Tenor Schedule:</strong> ${tenor}</p>
+                </div>
+
+                <p style="font-size:12px; color:#cbd5e1;">Our risk assessment engine is evaluating your live transaction volume across GTBank Virtual NUBAN settlements. You will be notified once approved.</p>
+
+                <div style="text-align:center; font-size:11px; color:#64748b; margin-top:25px; border-top:1px solid #233148; padding-top:10px;">
+                    © ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
+                </div>
+            </div>
+        `;
+
+        await dispatchEmail(applicantEmail, '💳 SAIL Credit Line Application Received', emailHtml);
+
+        if (applicantPhone) {
+            sendTermiiSMS(
+                applicantPhone,
+                `OE Alert: SAIL Credit Application of NGN ${reqAmount.toLocaleString()} received for ${applicantName}. Underwriting review in progress. www.alltimebusiness.com.ng`
+            ).catch(() => {});
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Credit application submitted successfully.',
+            application: creditApplication
+        });
+
+    } catch (err) {
+        console.error('❌ SAIL Credit Application Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Failed to process credit application.' });
     }
 });
 
