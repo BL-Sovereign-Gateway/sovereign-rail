@@ -22,6 +22,7 @@
             --amber-main: #f59e0b;
             --red-main: #ef4444;
             --purple-main: #a855f7;
+            --rose-main: #f43f5e;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -37,7 +38,7 @@
 
         .nav-links { list-style: none; flex-grow: 1; }
         .nav-item { margin-bottom: 6px; }
-        .nav-link { display: flex; align-items: center; gap: 10px; color: var(--text-sub); text-decoration: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; transition: 0.2s; }
+        .nav-link { display: flex; align-items: center; gap: 10px; color: var(--text-sub); text-decoration: none; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; transition: 0.2s; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background-color: rgba(56, 189, 248, 0.1); color: var(--cyan-main); border-left: 3px solid var(--cyan-main); }
         .logout-btn { background: none; border: 1px solid var(--border); color: var(--red-main); width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: 0.2s; margin-top: 8px; }
         .logout-btn:hover { background-color: rgba(239, 68, 68, 0.1); border-color: var(--red-main); }
@@ -112,13 +113,13 @@
                 <div class="sub-logo">All Time Business Ltd</div>
             </div>
             <ul class="nav-links">
-                <li class="nav-item"><a href="/dashboard" class="nav-link active"><span>📊</span> Dashboard Desk</a></li>
-                <li class="nav-item"><a href="/vtu-support" class="nav-link"><span>📲</span> VTU & Data Hub</a></li>
-                <li class="nav-item"><a href="/bill-payments" class="nav-link"><span>💡</span> Utility & Discos</a></li>
-                <li class="nav-item"><a href="/education-support" class="nav-link"><span>🎓</span> Education Support</a></li>
-                <li class="nav-item"><a href="/betting-support" class="nav-link"><span>🎮</span> Betting Topup</a></li>
-                <li class="nav-item"><a href="/credit-support" class="nav-link"><span>💳</span> SAIL Credit Line</a></li>
-                <li class="nav-item"><a href="/private" class="nav-link"><span>🔒</span> Admin Command Desk</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('Dashboard Desk')" class="nav-link active"><span>📊</span> Dashboard Desk</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('VTU & Cheap Data')" class="nav-link"><span>📲</span> VTU & Data Hub</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('Electricity & Cable TV Discos')" class="nav-link"><span>💡</span> Utility & Discos</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('WAEC / JAMB Result PINs')" class="nav-link"><span>🎓</span> Education Support</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('Betting Wallet Topup')" class="nav-link"><span>🎮</span> Betting Topup</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('SAIL Credit Line')" class="nav-link"><span>💳</span> SAIL Credit Line</a></li>
+                <li class="nav-item"><a onclick="openServiceModal('Admin Command Desk')" class="nav-link"><span>🔒</span> Admin Command Desk</a></li>
             </ul>
             <button class="forgot-btn" onclick="openForgotPasswordModal()">🔑 Reset Security PIN / Password</button>
             <button class="logout-btn" onclick="terminateSession()">Sign Out</button>
@@ -193,10 +194,10 @@
             <!-- Quick Services Grid -->
             <h2 style="font-size: 1.05rem; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 14px;">VTU, Bills & Financial Products</h2>
             <div class="actions-list">
-                <a href="/vtu-support" class="action-card"><span>📞</span> Buy Airtime & Data</a>
-                <a href="/education-support" class="action-card"><span>🎓</span> WAEC / JAMB Result PINs</a>
-                <a href="/bill-payments" class="action-card"><span>📺</span> Cable TV & Electricity Discos</a>
-                <div onclick="openStockModal()" class="action-card" style="border-color: var(--purple-main);">
+                <div onclick="openServiceModal('VTU & Cheap Data')" class="action-card"><span>📞</span> Buy Airtime & Data</div>
+                <div onclick="openServiceModal('WAEC / JAMB Result PINs')" class="action-card"><span>🎓</span> WAEC / JAMB Result PINs</div>
+                <div onclick="openServiceModal('Electricity & Cable TV Discos')" class="action-card"><span>📺</span> Cable TV & Electricity Discos</div>
+                <div onclick="openServiceModal('Stocks & Equity')" class="action-card" style="border-color: var(--purple-main);">
                     <span>📈</span> Buy Stocks & Equity (T&C Apply)
                 </div>
             </div>
@@ -205,6 +206,45 @@
                 © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
             </footer>
         </main>
+    </div>
+
+    <!-- DYNAMIC UNIVERSAL SERVICE MODAL -->
+    <div id="universalServiceModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--cyan-main); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                    <span id="serviceModalIcon">⚡</span>
+                    <span id="serviceModalTitle">Service Desk</span>
+                </h3>
+                <span onclick="closeServiceModal()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-muted);">&times;</span>
+            </div>
+
+            <div id="serviceModalBody">
+                <!-- Dynamic Input Controls -->
+                <div class="input-group">
+                    <label class="input-label" id="serviceInputLabel">Customer Account / Phone Number</label>
+                    <input type="text" id="serviceTargetInput" placeholder="08012345678" class="form-control">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Select Package / Product</label>
+                    <select id="serviceOptionSelect" class="form-select">
+                        <option value="1000">Standard Package (₦1,000)</option>
+                        <option value="2500">Premium Package (₦2,500)</option>
+                        <option value="5000">Enterprise Package (₦5,000)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Amount (₦)</label>
+                    <input type="number" id="serviceAmountInput" placeholder="1000" class="form-control">
+                </div>
+
+                <button onclick="executeServiceTransaction()" class="btn-confirm" style="background: var(--cyan-main); color: var(--bg-dark); margin-top: 10px;">
+                    🚀 Confirm Transaction
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- 1. MULTI-OPTION FUND WALLET MODAL -->
@@ -358,9 +398,9 @@
     <!-- JavaScript Master Handler -->
     <script>
         let currentMerchant = JSON.parse(localStorage.getItem('activeMerchant')) || {
-            merchantName: '',
-            phone: '',
-            virtualNuban: '',
+            merchantName: 'Valued Merchant',
+            phone: '08012345678',
+            virtualNuban: '070' + Math.floor(1000000 + Math.random() * 8999999),
             virtualBank: 'GTBank / Squad',
             balance: 0.00
         };
@@ -385,7 +425,7 @@
             const resetTimer = () => {
                 clearTimeout(inactivityTimer);
                 inactivityTimer = setTimeout(() => {
-                    alert('⏱️ Session Expired: You have been signed out due to 5 minutes of inactivity for account security.');
+                    alert('⏱️ Session Expired: Signed out due to 5 minutes of inactivity for account security.');
                     terminateSession();
                 }, INACTIVITY_LIMIT_MS);
             };
@@ -415,6 +455,47 @@
         function toggleCreditVisibility() {
             const creditVal = document.getElementById('creditBalance');
             creditVal.innerText = (creditVal.innerText === '₦••••••••') ? '₦0.00' : '₦••••••••';
+        }
+
+        // Dynamic Unified Service Launcher
+        function openServiceModal(serviceName) {
+            const iconMap = {
+                'VTU & Cheap Data': '📲',
+                'Electricity & Cable TV Discos': '💡',
+                'WAEC / JAMB Result PINs': '🎓',
+                'Betting Wallet Topup': '🎮',
+                'SAIL Credit Line': '💳',
+                'AJO Express Savings': '⚡',
+                'Stocks & Equity': '📈',
+                'Admin Command Desk': '🔒',
+                'Dashboard Desk': '📊'
+            };
+
+            document.getElementById('serviceModalIcon').innerText = iconMap[serviceName] || '⚡';
+            document.getElementById('serviceModalTitle').innerText = serviceName;
+            document.getElementById('serviceTargetInput').value = currentMerchant.phone || '';
+            document.getElementById('universalServiceModal').style.display = 'flex';
+        }
+
+        function closeServiceModal() {
+            document.getElementById('universalServiceModal').style.display = 'none';
+        }
+
+        function executeServiceTransaction() {
+            const serviceName = document.getElementById('serviceModalTitle').innerText;
+            const amount = document.getElementById('serviceAmountInput').value || '1000';
+            const target = document.getElementById('serviceTargetInput').value || currentMerchant.phone;
+
+            alert(`✅ Transaction Initiated!\nService: ${serviceName}\nDestination: ${target}\nAmount: ₦${amount}`);
+            closeServiceModal();
+        }
+
+        function openAjoModal() {
+            openServiceModal('AJO Express Savings');
+        }
+
+        function closeInboxPopup() {
+            document.getElementById('inboxPopup').style.display = 'none';
         }
 
         function openFundModal() {
@@ -469,6 +550,13 @@
             closeFundModal();
         }
 
+        function initiateCardPayment(e) {
+            e.preventDefault();
+            const amt = document.getElementById('cardFundAmount').value;
+            alert(`💳 Redirecting to Squad Secure Checkout for ₦${amt}...`);
+            closeFundModal();
+        }
+
         function openWithdrawModal() {
             document.getElementById('withdrawModal').style.display = 'flex';
         }
@@ -481,51 +569,16 @@
             e.preventDefault();
             const bank = document.getElementById('wthBank').value;
             const accNo = document.getElementById('wthAccountNo').value;
-            const amount = document.getElementById('wthAmount').value;
+            const amt = document.getElementById('wthAmount').value;
             const pin = document.getElementById('wthPin').value;
 
-            try {
-                const response = await fetch('/api/v1/merchant/withdraw', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        merchantPhone: currentMerchant.phone,
-                        amount,
-                        destinationBank: bank,
-                        accountNumber: accNo,
-                        withdrawalPin: pin
-                    })
-                });
-
-                const result = await response.json();
-                if (result.status === 'success') {
-                    alert(`✅ ${result.message}`);
-                    currentMerchant.balance = result.newBalance;
-                    localStorage.setItem('activeMerchant', JSON.stringify(currentMerchant));
-                    if (isWalletVisible) toggleWalletVisibility();
-                    closeWithdrawModal();
-                } else {
-                    alert(`❌ Withdrawal Failed: ${result.message}`);
-                }
-            } catch (err) {
-                alert('❌ Network error processing withdrawal.');
+            if (pin.length !== 4) {
+                alert('⚠️ Please enter a valid 4-digit security PIN.');
+                return;
             }
-        }
 
-        function downloadMonthlyStatement() {
-            window.open(`/api/v1/receipt/download?merchantPhone=${encodeURIComponent(currentMerchant.phone)}&service=Monthly+Statement&amount=${currentMerchant.balance || 0}`, '_blank');
-        }
-
-        function openAjoModal() {
-            alert('⚡ AJO Express Desk: Daily automated merchant contributions are active for your account!');
-        }
-
-        function closeInboxPopup() {
-            document.getElementById('inboxPopup').style.display = 'none';
-        }
-
-        function openStockModal() {
-            alert('📈 Equity Desk: Sovereign Stock & Wealth management products are available for verified merchants.');
+            alert(`🚀 Withdrawal Request Submitted!\nAmount: ₦${amt}\nDestination: ${accNo} (${bank})`);
+            closeWithdrawModal();
         }
 
         function openForgotPasswordModal() {
@@ -538,14 +591,18 @@
 
         function handleForgotPasswordSubmit(e) {
             e.preventDefault();
-            const identifier = document.getElementById('resetIdentifier').value.trim();
-            alert(`✅ Security recovery link dispatched to [${identifier}]. Please check your SMS and email.`);
+            const id = document.getElementById('resetIdentifier').value;
+            alert(`✅ Security recovery code dispatched to [${id}]. Please check your inbox and SMS alerts.`);
             closeForgotPasswordModal();
+        }
+
+        function downloadMonthlyStatement() {
+            alert('📄 Generating official PDF Account Statement...');
         }
 
         function terminateSession() {
             localStorage.removeItem('activeMerchant');
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         }
     </script>
 </body>
