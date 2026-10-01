@@ -7,7 +7,7 @@
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
- * SAIL Credit Line Application Engine | Explicit Frontend Route Handlers
+ * SAIL Credit Line Application Engine | Explicit Portal & Service Route Engine
  * ============================================================================
  */
 
@@ -47,7 +47,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️ DB Read Error:', e.message);
+        console.error('⚠️️ DB Read Error:', e.message);
     }
     return {};
 }
@@ -140,24 +140,24 @@ function normalizePhoneNumber(phone) {
 }
 
 // =========================================================================
-// 🌐 EXPLICIT FRONTEND PAGE ROUTES
+// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES
 // =========================================================================
 
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
+// Main Dashboard & Login Entry Points
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
+// Feature Service Routes (Directing to your active HTML modules)
+app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sail-credit.html')));
+app.get('/sail-credit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sail-credit.html')));
 
-app.get('/sail-credit', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'sail-credit.html'));
-});
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
+// Service Desk Fallbacks (Serving Dashboard with modal triggers or dedicated views)
+app.get('/airtime-data', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/betting-topup', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
 // =========================================================================
 // 🧮 DYNAMIC TIERED MARKUP CALCULATOR ENGINE
@@ -901,6 +901,14 @@ app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to dispatch newsletter.' });
     }
+});
+
+// =========================================================================
+// 🔄 CATCH-ALL UNMAPPED ROUTE FALLBACK (REDIRECT TO LOGIN)
+// =========================================================================
+
+app.get('*', (req, res) => {
+    res.redirect('/login');
 });
 
 app.listen(PORT, () => {
