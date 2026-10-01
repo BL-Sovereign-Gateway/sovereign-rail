@@ -47,7 +47,7 @@ function loadAccounts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️️ DB Read Error:', e.message);
+        console.error('⚠️ DB Read Error:', e.message);
     }
     return {};
 }
@@ -67,7 +67,7 @@ function loadBroadcasts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️ Broadcasts Read Error:', e.message);
+        console.error('⚠️️ Broadcasts Read Error:', e.message);
     }
     return [];
 }
@@ -139,25 +139,51 @@ function normalizePhoneNumber(phone) {
     return cleaned;
 }
 
+// Helper to serve specific static HTML file if it exists, otherwise fall back to target
+function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
+    return (req, res) => {
+        const targetPath = path.join(__dirname, 'public', fileName);
+        if (fs.existsSync(targetPath)) {
+            res.sendFile(targetPath);
+        } else {
+            res.sendFile(path.join(__dirname, 'public', fallbackName));
+        }
+    };
+}
+
 // =========================================================================
-// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES
+// 🌐 PUBLIC & PORTAL DEDICATED NAVIGATION ROUTES
 // =========================================================================
 
-// Main Dashboard & Login Entry Points
+// Main Entry Points
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
-// Feature Service Routes (Directing to your active HTML modules)
-app.get('/credit-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sail-credit.html')));
-app.get('/sail-credit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sail-credit.html')));
+// 💳 Credit Support Page Route
+app.get('/credit-support', serveModuleFile('sail-credit.html'));
+app.get('/sail-credit', serveModuleFile('sail-credit.html'));
 
-// Service Desk Fallbacks (Serving Dashboard with modal triggers or dedicated views)
-app.get('/airtime-data', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/bill-payments', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/education-support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/betting-topup', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/newsletter', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+// 📰 Newsletter / Articles Page Route
+app.get('/newsletter', serveModuleFile('newsletter.html'));
+app.get('/articles', serveModuleFile('newsletter.html'));
+app.get('/news', serveModuleFile('newsletter.html'));
+
+// 📱 VTU / Airtime & Data Module
+app.get('/airtime-data', serveModuleFile('vtu.html'));
+app.get('/vtu', serveModuleFile('vtu.html'));
+
+// 💡 Bill Payments Module
+app.get('/bill-payments', serveModuleFile('bills.html'));
+app.get('/bills', serveModuleFile('bills.html'));
+
+// 🎓 Education Support Fund
+app.get('/education-support', serveModuleFile('education.html'));
+app.get('/education', serveModuleFile('education.html'));
+
+// ⚽ Betting Top-up Module
+app.get('/betting-topup', serveModuleFile('betting.html'));
+app.get('/betting', serveModuleFile('betting.html'));
 
 // =========================================================================
 // 🧮 DYNAMIC TIERED MARKUP CALCULATOR ENGINE
