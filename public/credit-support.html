@@ -131,7 +131,7 @@ function calculateBreakdown() {
     const interest = amount * 0.15;
     const insurance = amount * 0.01;
     const upfrontTotal = interest + insurance;
-    const dailyTarget = amount * 0.05; // Maintains exact ₦2,500.00 daily repayment calculation
+    const dailyTarget = amount * 0.05;
 
     document.getElementById('dispApplied').textContent = `₦${amount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
     document.getElementById('dispInterest').textContent = `₦${interest.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
