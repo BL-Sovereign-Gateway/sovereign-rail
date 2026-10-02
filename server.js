@@ -67,7 +67,7 @@ function loadBroadcasts() {
             return JSON.parse(data);
         }
     } catch (e) {
-        console.error('⚠️️ Broadcasts Read Error:', e.message);
+        console.error('⚠️ Broadcasts Read Error:', e.message);
     }
     return [];
 }
@@ -156,34 +156,36 @@ function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
 // =========================================================================
 
 // Main Entry Points
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/', serveModuleFile('index.html', 'login.html'));
+app.get('/login', serveModuleFile('login.html'));
+app.get('/register', serveModuleFile('register.html', 'login.html'));
+app.get('/signup', serveModuleFile('register.html', 'login.html'));
+app.get('/dashboard', serveModuleFile('dashboard.html'));
 
-// 💳 Credit Support Page Route
-app.get('/credit-support', serveModuleFile('sail-credit.html'));
-app.get('/sail-credit', serveModuleFile('sail-credit.html'));
+// Portal Modules
+app.get('/credit-support', serveModuleFile('credit-support.html', 'sail-credit.html'));
+app.get('/sail-credit', serveModuleFile('credit-support.html', 'sail-credit.html'));
 
-// 📰 Newsletter / Articles Page Route
 app.get('/newsletter', serveModuleFile('newsletter.html'));
 app.get('/articles', serveModuleFile('newsletter.html'));
-app.get('/news', serveModuleFile('newsletter.html'));
 
-// 📱 VTU / Airtime & Data Module
-app.get('/airtime-data', serveModuleFile('vtu.html'));
-app.get('/vtu', serveModuleFile('vtu.html'));
+app.get('/airtime-data', serveModuleFile('vtu-support.html', 'vtu.html'));
+app.get('/vtu', serveModuleFile('vtu-support.html', 'vtu.html'));
+app.get('/vtu-support', serveModuleFile('vtu-support.html', 'vtu.html'));
 
-// 💡 Bill Payments Module
-app.get('/bill-payments', serveModuleFile('bills.html'));
-app.get('/bills', serveModuleFile('bills.html'));
+app.get('/bill-payments', serveModuleFile('bill-payments.html', 'bills.html'));
+app.get('/bills', serveModuleFile('bill-payments.html', 'bills.html'));
 
-// 🎓 Education Support Fund
-app.get('/education-support', serveModuleFile('education.html'));
-app.get('/education', serveModuleFile('education.html'));
+app.get('/education-support', serveModuleFile('education-support.html', 'education.html'));
+app.get('/education', serveModuleFile('education-support.html', 'education.html'));
 
-// ⚽ Betting Top-up Module
-app.get('/betting-topup', serveModuleFile('betting.html'));
-app.get('/betting', serveModuleFile('betting.html'));
+app.get('/betting-topup', serveModuleFile('betting-support.html', 'betting.html'));
+app.get('/betting', serveModuleFile('betting-support.html', 'betting.html'));
+app.get('/betting-support', serveModuleFile('betting-support.html', 'betting.html'));
+
+// Admin & Publishing Pages
+app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
+app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
 // =========================================================================
 // 🧮 DYNAMIC TIERED MARKUP CALCULATOR ENGINE
@@ -639,6 +641,126 @@ app.post('/api/v1/services/transact', async (req, res) => {
     } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Transaction processing failed.' });
     }
+});
+
+app.post('/api/v1/checkout/wallet', async (req, res) => {
+    try {
+        const { merchantPhone, serviceType, targetInput, amount } = req.body;
+        const txnAmount = parseFloat(amount);
+
+        if (!merchantPhone || !serviceType || !targetInput || isNaN(txnAmount) || txnAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid checkout parameters.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account session not found. Please sign in.' });
+        }
+
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Transaction rejected: Account is locked.' });
+        }
+
+        if ((account.balance || 0) < txnAmount) {
+            return res.status(400).json({ status: 'error', message: `Insufficient wallet balance. Total required: ₦${txnAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}.` });
+        }
+
+        const CASHBACK_BONUS = 2.00;
+        account.balance = (account.balance - txnAmount) + CASHBACK_BONUS;
+        saveAccounts(merchantAccounts);
+
+        const orderRef = `ORD-${Date.now()}`;
+        const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+        dispatchImmediateTransactionSMS(cleanPhone, serviceType, targetInput, txnAmount, account.balance, txRef);
+
+        return res.status(200).json({
+            status: 'success',
+            message: `${serviceType} for ${targetInput} completed successfully! ₦2.00 cashback applied.`,
+            orderRef,
+            txRef,
+            token: `TKN-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+            pinToken: `${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            pinSerial: `SER-${Math.floor(10000000 + Math.random() * 90000000)}`,
+            newBalance: account.balance
+        });
+
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to process wallet transaction.' });
+    }
+});
+
+app.post('/api/v1/checkout/initialize', async (req, res) => {
+    try {
+        const { serviceType, targetInput, amount, paymentMethod } = req.body;
+        const payAmount = parseFloat(amount);
+
+        if (!serviceType || !targetInput || isNaN(payAmount) || payAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid payment parameters.' });
+        }
+
+        const orderRef = `SVR-${Date.now()}`;
+
+        if (paymentMethod === 'TRANSFER') {
+            return res.status(200).json({
+                status: 'success',
+                paymentMethod: 'TRANSFER',
+                orderRef: orderRef,
+                bankDetails: {
+                    bankName: 'Guaranty Trust Bank (GTBank)',
+                    accountNumber: '0765177477',
+                    accountName: 'ALL TIME BUSINESS LTD / SQUAD',
+                    amountToPay: `₦${payAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
+                },
+                message: 'Collection account details generated.'
+            });
+        } else {
+            return res.status(200).json({
+                status: 'success',
+                paymentMethod: 'CARD',
+                orderRef: orderRef,
+                checkoutUrl: `https://checkout.squadco.com/pay/${orderRef}`,
+                message: 'Card gateway initialized.'
+            });
+        }
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to initialize payment gateway.' });
+    }
+});
+
+app.get('/api/v1/betting/providers', (req, res) => {
+    return res.status(200).json({
+        status: 'success',
+        data: [
+            { id: 'SportyBet', name: 'SportyBet' },
+            { id: 'Bet9ja', name: 'Bet9ja' },
+            { id: '1xBet', name: '1xBet' },
+            { id: 'BetKing', name: 'BetKing' },
+            { id: 'MSport', name: 'MSport' },
+            { id: 'Betway', name: 'Betway' },
+            { id: 'Betano', name: 'Betano' },
+            { id: '1Win', name: '1Win' },
+            { id: '22Bet', name: '22Bet' },
+            { id: 'Melbet', name: 'Melbet' },
+            { id: 'BetWinner', name: 'BetWinner' },
+            { id: 'MozzartBet', name: 'MozzartBet' },
+            { id: 'BetPawa', name: 'BetPawa' },
+            { id: 'BangBet', name: 'BangBet' },
+            { id: 'Merrybet', name: 'Merrybet' },
+            { id: 'NairaBet', name: 'NairaBet' },
+            { id: 'AccessBet', name: 'AccessBet' },
+            { id: 'LiveScoreBet', name: 'LiveScoreBet' },
+            { id: 'iLotBet', name: 'iLotBet' },
+            { id: 'PariPesa', name: 'PariPesa' },
+            { id: 'ZEbet', name: 'ZEbet' },
+            { id: 'SureBet247', name: 'SureBet247' },
+            { id: 'Green Lotto', name: 'Green Lotto' },
+            { id: 'Winners Golden Bet', name: 'Winners Golden Bet' }
+        ]
+    });
 });
 
 app.post('/api/v1/merchant/withdraw', async (req, res) => {
