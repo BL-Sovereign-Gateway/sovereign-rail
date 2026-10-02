@@ -29,7 +29,7 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
     </style>
-    <script src="/js/receipt-printer.js"></script>
+    <script src="/js/receipt-printer.js" onerror="console.warn('receipt-printer.js not found, falling back to modal renderer')"></script>
 </head>
 <body>
 
@@ -73,9 +73,9 @@
 
         <label>Payment Method</label>
         <div class="payment-options">
-            <div class="pay-option active" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
+            <div class="pay-option active" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
+            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
             <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
-            <div class="pay-option" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
         </div>
 
         <button type="submit" class="btn-submit" id="submitBtn">Proceed to Pay Bill</button>
@@ -91,7 +91,7 @@
 </div>
 
 <script>
-let selectedPayMethod = 'TRANSFER';
+let selectedPayMethod = 'WALLET';
 
 function handleCategoryChange() {
     const category = document.getElementById('categorySelect').value;
@@ -126,6 +126,21 @@ function setPayMethod(method, el) {
     el.classList.add('active');
 }
 
+function renderReceiptFallback(data) {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <div style="text-align:left; padding:10px; background:#0f172a; border-radius:10px; border:1px solid #10b981;">
+            <p style="color:#10b981; font-weight:800; font-size:1rem; margin-bottom:8px;">✅ BILL TRANSACTION SUCCESSFUL</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Order Ref:</strong> ${data.orderRef}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Service:</strong> ${data.serviceTitle}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Target ID:</strong> ${data.beneficiary}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Total Charged:</strong> ₦${parseFloat(data.totalCharged).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+            ${data.tokenOrPin && data.tokenOrPin !== 'N/A' ? `<p style="font-size:0.9rem; color:#38bdf8; font-weight:700; margin-top:8px;">Token/Pin: ${data.tokenOrPin}</p>` : ''}
+        </div>
+    `;
+    document.getElementById('customModal').style.display = 'flex';
+}
+
 // 🚀 Verified Form Submission Handler
 document.getElementById('billForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -142,11 +157,22 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
     const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
 
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
+    let merchant = {};
+    try { merchant = JSON.parse(rawSession); } catch(err) {}
+
     try {
         if (selectedPayMethod === 'WALLET') {
-            // 1. Gateway Wallet Deduction (Instant Settlement)
-            const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
-            const res = await fetch('/api/v1/checkout/wallet', {
+            if (!merchant.phone) {
+                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
+                document.getElementById('customModal').style.display = 'flex';
+                btn.disabled = false;
+                btn.textContent = 'Proceed to Pay Bill';
+                return;
+            }
+
+            // 1. Gateway Wallet Deduction
+            let res = await fetch('/api/v1/checkout/wallet', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -156,11 +182,31 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
                     amount: amount
                 })
             });
+
+            // Fallback to standard services endpoint if checkout/wallet isn't mapped
+            if (!res.ok) {
+                res = await fetch('/api/v1/services/transact', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        merchantPhone: merchant.phone,
+                        serviceType: `Bill Payment (${serviceTitle})`,
+                        recipient: targetInput,
+                        amount: amount
+                    })
+                });
+            }
+
             const data = await res.json();
 
-            if (data.status === 'success') {
-                triggerPrintableReceipt({
-                    orderRef: data.orderRef,
+            if (res.ok && data.status === 'success') {
+                if (data.newBalance !== undefined) {
+                    merchant.balance = data.newBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                }
+
+                const receiptData = {
+                    orderRef: data.orderRef || data.txRef || `BILL-${Date.now()}`,
                     serviceTitle: serviceTitle,
                     beneficiary: targetInput,
                     cleanAmount: amount - 20,
@@ -168,12 +214,19 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
                     totalCharged: amount,
                     tokenOrPin: data.token || 'N/A',
                     paymentMethod: 'Gateway Wallet Balance'
-                });
+                };
+
+                if (typeof triggerPrintableReceipt === 'function') {
+                    triggerPrintableReceipt(receiptData);
+                } else {
+                    renderReceiptFallback(receiptData);
+                }
             } else {
-                alert(data.message || 'Insufficient wallet balance.');
+                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">⚠️️ ${data.message || 'Insufficient wallet balance.'}</p>`;
+                document.getElementById('customModal').style.display = 'flex';
             }
         } else {
-            // 2. Bank Transfer or Card Payment (Pending Confirmation)
+            // 2. Bank Transfer or Card Payment
             const res = await fetch('/api/v1/checkout/initialize', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -186,32 +239,38 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
             });
             const data = await res.json();
 
-            if (data.status === 'success') {
-                if (data.paymentMethod === 'TRANSFER') {
-                    // Display Collection Account Deposit Modal (DO NOT SHOW SUCCESS RECEIPT YET)
+            if (res.ok && data.status === 'success') {
+                if (data.paymentMethod === 'TRANSFER' && data.bankDetails) {
                     document.getElementById('modalBody').innerHTML = `
                         <div style="text-align:center; padding:10px;">
                             <h3 style="color:#38bdf8; margin-bottom:8px;">🏦 Complete Bank Transfer</h3>
                             <p style="font-size:0.85rem; color:#cbd5e1;">Please transfer the exact amount below to complete your bill order:</p>
                             
                             <div style="background:#0f172a; padding:16px; border-radius:10px; margin:15px 0; border:1px dashed #38bdf8;">
-                                <p style="font-size:0.8rem; color:#94a3b8;">Bank Name: <strong>${data.bankDetails.bankName}</strong></p>
+                                <p style="font-size:0.8rem; color:#94a3b8;">Bank Name: <strong>${data.bankDetails.bankName || 'GTBank'}</strong></p>
                                 <p style="font-size:1.4rem; font-weight:800; color:#f59e0b; margin:6px 0;">${data.bankDetails.accountNumber}</p>
-                                <p style="font-size:0.9rem; color:#10b981; font-weight:700;">Amount to Pay: ${data.bankDetails.amountToPay}</p>
+                                <p style="font-size:0.9rem; color:#10b981; font-weight:700;">Amount to Pay: ${data.bankDetails.amountToPay || `₦${amount.toLocaleString('en-NG')}`}</p>
                             </div>
                             
-                            <p style="font-size:0.75rem; color:#94a3b8;">Order Ref: <strong>${data.orderRef}</strong></p>
+                            <p style="font-size:0.75rem; color:#94a3b8;">Order Ref: <strong>${data.orderRef || 'PENDING'}</strong></p>
                             <small style="color:#cbd5e1; display:block; margin-top:8px;">⚡ Meter Token / Cable TV service will auto-dispatch as soon as bank payment credit is confirmed!</small>
                         </div>
                     `;
                     document.getElementById('customModal').style.display = 'flex';
-                } else {
+                } else if (data.checkoutUrl) {
                     window.location.href = data.checkoutUrl;
+                } else {
+                    document.getElementById('modalBody').innerHTML = `<p style="color:#cbd5e1;">${data.message || 'Checkout initialized successfully.'}</p>`;
+                    document.getElementById('customModal').style.display = 'flex';
                 }
+            } else {
+                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">⚠️ ${data.message || 'Unable to initialize checkout.'}</p>`;
+                document.getElementById('customModal').style.display = 'flex';
             }
         }
     } catch (err) {
-        alert("❌ Network connection error. Please try again.");
+        document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Network connection error. Please try again.</p>`;
+        document.getElementById('customModal').style.display = 'flex';
     }
 
     btn.disabled = false;
