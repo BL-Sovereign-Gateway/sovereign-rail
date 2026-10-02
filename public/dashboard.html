@@ -8,85 +8,85 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* Navigation Header */
-        header { background: #1e293b; border-bottom: 1px solid #38bdf8; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .brand h1 { font-size: 1.2rem; color: #38bdf8; font-weight: 800; }
-        .nav-links { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .nav-item { color: #cbd5e1; text-decoration: none; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 6px; cursor: pointer; border: none; background: transparent; }
-        .nav-item:hover, .nav-item.active { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        /* Top Header & Nav */
+        header { background: #1e293b; border-bottom: 1px solid #38bdf8; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .brand h1 { font-size: 1.1rem; color: #38bdf8; font-weight: 800; letter-spacing: 0.5px; }
+        .nav-links { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .nav-btn { color: #cbd5e1; text-decoration: none; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; background: transparent; border: none; cursor: pointer; }
+        .nav-btn:hover, .nav-btn.active { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
 
-        .btn-pin { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; }
-        .btn-logout { background: #ef4444; color: #fff; border: none; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+        .btn-pin { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; font-size: 0.75rem; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+        .btn-logout { background: #ef4444; color: #fff; border: none; font-size: 0.75rem; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; }
 
-        /* Main Desk Container */
+        /* Container */
         .container { max-width: 900px; width: 100%; margin: 20px auto; padding: 0 15px; flex: 1; }
 
-        /* User Header Bar */
-        .user-welcome { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; }
+        /* Welcome & Action Bar */
+        .user-welcome { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #1e293b; padding: 15px 20px; border-radius: 12px; border: 1px solid #334155; flex-wrap: wrap; gap: 12px; }
         .user-welcome h2 { font-size: 1.1rem; color: #38bdf8; }
 
         .action-bar { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn-action { padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-action { padding: 9px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; border: none; cursor: pointer; text-decoration: none; }
         .btn-fund { background: #10b981; color: #fff; }
         .btn-withdraw { background: #f59e0b; color: #fff; }
         .btn-statement { background: #38bdf8; color: #0f172a; }
 
-        /* Continuous Ticker */
-        .ticker-wrap { background: rgba(56, 189, 248, 0.08); border: 1px solid #38bdf8; border-radius: 8px; padding: 10px; overflow: hidden; margin-bottom: 20px; font-size: 0.85rem; color: #10b981; font-weight: 600; white-space: nowrap; }
+        /* Marquee Ticker */
+        .ticker-wrap { background: rgba(56, 189, 248, 0.08); border: 1px solid #38bdf8; border-radius: 8px; padding: 8px 12px; overflow: hidden; margin-bottom: 20px; font-size: 0.8rem; color: #10b981; font-weight: 600; white-space: nowrap; }
         .ticker { display: inline-block; animation: marquee 25s linear infinite; }
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
-        /* Balances & Virtual Account Cards */
-        .balance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .bal-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; position: relative; }
-        .bal-card h4 { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .bal-amount { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
-        .bal-sub { font-size: 0.8rem; color: #38bdf8; margin-top: 8px; font-family: Consolas, monospace; }
-        .toggle-eye { cursor: pointer; font-size: 1rem; color: #38bdf8; }
+        /* Balances Grid */
+        .balance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .bal-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+        .bal-card h4 { font-size: 0.82rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .bal-amount { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
+        .bal-sub { font-size: 0.78rem; color: #38bdf8; margin-top: 8px; font-family: Consolas, monospace; }
+        .toggle-eye { cursor: pointer; font-size: 0.95rem; color: #38bdf8; }
 
-        /* Product Cards Grid */
-        .products-section h3 { font-size: 1rem; color: #cbd5e1; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
-        .prod-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-decoration: none; color: #fff; transition: all 0.2s ease; display: flex; align-items: center; gap: 15px; cursor: pointer; }
-        .prod-card:hover { border-color: #38bdf8; transform: translateY(-3px); background: #26354a; }
-        .prod-icon { font-size: 2rem; }
-        .prod-title { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; }
+        /* Products Grid */
+        .products-section h3 { font-size: 0.95rem; color: #cbd5e1; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #334155; padding-bottom: 6px; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .prod-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; text-decoration: none; color: #fff; transition: all 0.2s ease; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .prod-card:hover { border-color: #38bdf8; transform: translateY(-2px); background: #26354a; }
+        .prod-icon { font-size: 1.8rem; }
+        .prod-title { font-size: 0.88rem; font-weight: 700; color: #f1f5f9; }
 
         /* Modals */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-        .modal-card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 100%; max-width: 460px; box-shadow: 0 20px 25px rgba(0,0,0,0.6); }
-        .modal-card h3 { color: #38bdf8; margin-bottom: 15px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { cursor: pointer; color: #ef4444; font-size: 1.2rem; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; outline: none; font-size: 0.9rem; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+        .modal-card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 14px; padding: 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 25px rgba(0,0,0,0.6); }
+        .modal-card h3 { color: #38bdf8; margin-bottom: 14px; font-size: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { cursor: pointer; color: #ef4444; font-size: 1.1rem; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #cbd5e1; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; outline: none; font-size: 0.85rem; }
         .form-group input:focus, .form-group select:focus { border-color: #38bdf8; }
-        .btn-submit-modal { width: 100%; padding: 12px; background: #10b981; color: #fff; font-weight: 800; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; margin-top: 10px; }
+        .btn-submit-modal { width: 100%; padding: 11px; background: #10b981; color: #fff; font-weight: 800; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin-top: 8px; }
 
-        footer { text-align: center; padding: 20px; font-size: 0.75rem; color: #64748b; border-top: 1px solid #1e293b; margin-top: auto; }
+        footer { text-align: center; padding: 18px; font-size: 0.72rem; color: #64748b; border-top: 1px solid #1e293b; margin-top: auto; }
     </style>
 </head>
 <body>
 
-    <!-- Navigation Header -->
+    <!-- Header Navigation -->
     <header>
         <div class="brand">
             <h1>@BL SOVEREIGN GATEWAY</h1>
         </div>
         <nav class="nav-links">
-            <button onclick="closeModals()" class="nav-item active">📊 Dashboard Desk</button>
-            <button onclick="openModal('vtuModal')" class="nav-item">📲 VTU & Data Hub</button>
-            <button onclick="openModal('billsModal')" class="nav-item">💡 Utility & Discos</button>
-            <button onclick="openModal('eduModal')" class="nav-item">🎓 Education Support</button>
-            <button onclick="openModal('bettingModal')" class="nav-item">🎮 Betting Topup</button>
-            <button onclick="window.location.href='/sail-credit'" class="nav-item">💳 SAIL Credit Support</button>
+            <button onclick="closeModals()" class="nav-btn active">📊 Dashboard Desk</button>
+            <button onclick="openModal('vtuModal')" class="nav-btn">📲 VTU & Data Hub</button>
+            <button onclick="openModal('billsModal')" class="nav-btn">💡 Utility & Discos</button>
+            <button onclick="openModal('eduModal')" class="nav-btn">🎓 Education Support</button>
+            <button onclick="openModal('bettingModal')" class="nav-btn">🎮 Betting Topup</button>
+            <button onclick="window.location.href='/newsletter'" class="nav-btn">📰 Newsletter</button>
             <button onclick="resetSecurityPIN()" class="btn-pin">🔑 Reset PIN</button>
             <button onclick="signOut()" class="btn-logout">Sign Out</button>
         </nav>
     </header>
 
     <div class="container">
-        <!-- User Welcome -->
+        <!-- User Welcome Bar -->
         <div class="user-welcome">
             <h2 id="merchantGreeting">Hi, Tope Ogegbo</h2>
             <div class="action-bar">
@@ -104,28 +104,28 @@
             </div>
         </div>
 
-        <!-- Balances Grid -->
+        <!-- Balance Display Cards -->
         <div class="balance-grid">
             <div class="bal-card">
                 <h4>
                     Gateway Ledger Balance
-                    <span class="toggle-eye" onclick="toggleBalance('walletBal', 'walletRaw')">👁️</span>
+                    <span class="toggle-eye" id="eyeWallet" onclick="toggleBalance('wallet')">👁️</span>
                 </h4>
                 <div class="bal-amount" id="walletBal">₦••••••••</div>
-                <div class="bal-sub" id="virtualAccDisplay">GTBank Virtual Account: Loading...</div>
+                <div class="bal-sub" id="virtualAccDisplay">GTBank Virtual Account: 0765177477</div>
             </div>
 
             <div class="bal-card">
                 <h4>
                     SAIL Credit Line
-                    <span class="toggle-eye" onclick="toggleBalance('creditBal', 'creditRaw')">👁️</span>
+                    <span class="toggle-eye" id="eyeCredit" onclick="toggleBalance('credit')">👁️</span>
                 </h4>
                 <div class="bal-amount" id="creditBal">₦••••••••</div>
                 <div class="bal-sub" style="color: #f59e0b;">Status: Awaiting Volume</div>
             </div>
         </div>
 
-        <!-- Products Grid -->
+        <!-- Services Grid -->
         <div class="products-section">
             <h3>VTU, Bills & Financial Products</h3>
             <div class="product-grid">
@@ -141,57 +141,58 @@
                     <div class="prod-icon">📺</div>
                     <div class="prod-title">Cable TV & Electricity Discos⚡</div>
                 </div>
-                <div onclick="openModal('bettingModal')" class="prod-card">
-                    <div class="prod-icon">🎮</div>
-                    <div class="prod-title">Betting Wallet Topup</div>
-                </div>
                 <div onclick="window.location.href='/sail-credit'" class="prod-card">
                     <div class="prod-icon">💳</div>
-                    <div class="prod-title">SAIL Working Capital Line</div>
+                    <div class="prod-title">SAIL Credit supports</div>
+                </div>
+                <div onclick="alert('Stocks Desk: Subject to Market Terms & Conditions.');" class="prod-card">
+                    <div class="prod-icon">📈</div>
+                    <div class="prod-title">Buy Stocks & Equity</div>
+                </div>
+                <div onclick="openModal('bettingModal')" class="prod-card">
+                    <div class="prod-icon">🎮</div>
+                    <div class="prod-title">Betting Topup</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 1. VTU & Data Modal -->
+    <!-- Modals -->
+
+    <!-- VTU Modal -->
     <div class="modal-overlay" id="vtuModal">
         <div class="modal-card">
-            <h3>📲 VTU & Data Purchase Desk <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <h3>📲 VTU & Data Purchase <span class="close-btn" onclick="closeModals()">✖</span></h3>
             <form onsubmit="handleTransaction(event, 'Airtime/Data')">
                 <div class="form-group">
-                    <label>Select Network Provider</label>
-                    <select required><option>MTN Nigeria</option><option>Airtel Nigeria</option><option>Glo Mobile</option><option>9mobile</option></select>
+                    <label>Network</label>
+                    <select required><option>MTN Nigeria</option><option>Airtel</option><option>Glo</option><option>9mobile</option></select>
                 </div>
                 <div class="form-group">
                     <label>Recipient Phone Number</label>
-                    <input type="tel" placeholder="e.g. 08031234567" required>
+                    <input type="tel" placeholder="08031234567" required>
                 </div>
                 <div class="form-group">
                     <label>Amount (₦)</label>
                     <input type="number" min="100" placeholder="100" required>
                 </div>
-                <button type="submit" class="btn-submit-modal">Purchase Instant Airtime/Data</button>
+                <button type="submit" class="btn-submit-modal">Buy Instant Airtime/Data</button>
             </form>
         </div>
     </div>
 
-    <!-- 2. Utility & Discos Modal -->
+    <!-- Bills Modal -->
     <div class="modal-overlay" id="billsModal">
         <div class="modal-card">
-            <h3>💡 Utility & Bills Payment Desk <span class="close-btn" onclick="closeModals()">✖</span></h3>
+            <h3>💡 Cable TV & Electricity Discos <span class="close-btn" onclick="closeModals()">✖</span></h3>
             <form onsubmit="handleTransaction(event, 'Utility Bill')">
                 <div class="form-group">
-                    <label>Service Category</label>
-                    <select required>
-                        <option>Ikeja Electric (IKEDC)</option>
-                        <option>Eko Electricity (EKEDC)</option>
-                        <option>DSTV Subscription</option>
-                        <option>GOTV Subscription</option>
-                    </select>
+                    <label>Provider</label>
+                    <select required><option>IKEDC (Ikeja Electric)</option><option>EKEDC (Eko Electric)</option><option>DSTV</option><option>GOTV</option></select>
                 </div>
                 <div class="form-group">
-                    <label>Meter / Smartcard Account Number</label>
-                    <input type="text" placeholder="Enter Account / Meter ID" required>
+                    <label>Meter / Smartcard ID</label>
+                    <input type="text" placeholder="Enter ID Number" required>
                 </div>
                 <div class="form-group">
                     <label>Amount (₦)</label>
@@ -202,40 +203,36 @@
         </div>
     </div>
 
-    <!-- 3. Education Support Modal -->
+    <!-- Education Support Modal -->
     <div class="modal-overlay" id="eduModal">
         <div class="modal-card">
             <h3>🎓 Education Support Fund <span class="close-btn" onclick="closeModals()">✖</span></h3>
             <form onsubmit="handleTransaction(event, 'Education PIN')">
                 <div class="form-group">
-                    <label>Exam Board / e-PIN Type</label>
-                    <select required>
-                        <option>WAEC Result Checker PIN (₦3,800)</option>
-                        <option>JAMB UTME Registration / Profile Code (₦4,700)</option>
-                        <option>NECO Result Token (₦1,200)</option>
-                    </select>
+                    <label>e-PIN Type</label>
+                    <select required><option>WAEC Result Checker PIN (₦3,800)</option><option>JAMB Profile PIN (₦4,700)</option><option>NECO Token (₦1,200)</option></select>
                 </div>
                 <div class="form-group">
-                    <label>Candidate Phone / Email Delivery Target</label>
-                    <input type="text" placeholder="Phone number or email address" required>
+                    <label>Recipient Phone / Email</label>
+                    <input type="text" placeholder="Phone or Email address" required>
                 </div>
-                <button type="submit" class="btn-submit-modal">Generate Educational Token</button>
+                <button type="submit" class="btn-submit-modal">Generate PIN Token</button>
             </form>
         </div>
     </div>
 
-    <!-- 4. Betting Topup Modal -->
+    <!-- Betting Topup Modal -->
     <div class="modal-overlay" id="bettingModal">
         <div class="modal-card">
             <h3>🎮 Betting Wallet Topup <span class="close-btn" onclick="closeModals()">✖</span></h3>
-            <form onsubmit="handleTransaction(event, 'Betting Wallet Topup')">
+            <form onsubmit="handleTransaction(event, 'Betting Topup')">
                 <div class="form-group">
-                    <label>Select Betting Platform</label>
-                    <select required><option>SportyBet</option><option>1xBet</option><option>Bet9ja</option><option>BangBet</option></select>
+                    <label>Platform</label>
+                    <select required><option>SportyBet</option><option>Bet9ja</option><option>1xBet</option><option>BangBet</option></select>
                 </div>
                 <div class="form-group">
-                    <label>User ID / Account Number</label>
-                    <input type="text" placeholder="Enter Betting Account ID" required>
+                    <label>Betting User ID</label>
+                    <input type="text" placeholder="User ID / Account ID" required>
                 </div>
                 <div class="form-group">
                     <label>Amount (₦)</label>
@@ -246,29 +243,29 @@
         </div>
     </div>
 
-    <!-- 5. Fund Wallet Modal -->
+    <!-- Fund Wallet Modal -->
     <div class="modal-overlay" id="fundModal">
         <div class="modal-card">
             <h3>➕ Fund Wallet Ledger <span class="close-btn" onclick="closeModals()">✖</span></h3>
-            <div style="font-size:0.85rem; color:#cbd5e1; line-height:1.6; margin-bottom:15px;">
-                <p>Transfer funds to your dedicated GTBank NUBAN below to instantly credit your wallet with intact principal:</p>
-                <div style="background:#0f172a; border:1px solid #38bdf8; padding:12px; border-radius:8px; margin:12px 0; text-align:center;">
-                    <p style="color:#38bdf8; font-weight:800; font-size:1.1rem;" id="modalNuban">0768867364</p>
-                    <p style="font-size:0.8rem; color:#10b981;">Guaranty Trust Bank (GTBank)</p>
+            <div style="font-size:0.82rem; color:#cbd5e1; line-height:1.5; text-align:center;">
+                <p>Transfer funds directly to your dedicated GTBank NUBAN for instant credit:</p>
+                <div style="background:#0f172a; border:1px solid #38bdf8; padding:12px; border-radius:8px; margin:12px 0;">
+                    <p style="color:#38bdf8; font-weight:800; font-size:1.1rem;" id="modalNuban">0765177477</p>
+                    <p style="font-size:0.78rem; color:#10b981;">Guaranty Trust Bank (GTBank / Squad)</p>
                 </div>
-                <p style="font-size:0.75rem; color:#94a3b8;">* Auto-Sweep to Access Bank processes automatically upon receipt.</p>
+                <p style="font-size:0.75rem; color:#94a3b8;">* Intact principal credited. Auto-sweep processes automatically.</p>
             </div>
-            <button onclick="closeModals()" class="btn-submit-modal">Done</button>
+            <button onclick="closeModals()" class="btn-submit-modal" style="margin-top:12px;">Close</button>
         </div>
     </div>
 
-    <!-- 6. Withdraw Funds Modal -->
+    <!-- Withdraw Modal -->
     <div class="modal-overlay" id="withdrawModal">
         <div class="modal-card">
             <h3>💸 Withdraw Funds <span class="close-btn" onclick="closeModals()">✖</span></h3>
             <form onsubmit="handleWithdrawal(event)">
                 <div class="form-group">
-                    <label>Destination Bank</label>
+                    <label>Bank Name</label>
                     <input type="text" placeholder="e.g. Access Bank" required id="wBank">
                 </div>
                 <div class="form-group">
@@ -283,11 +280,12 @@
                     <label>4-Digit Security PIN</label>
                     <input type="password" maxlength="4" placeholder="••••" required id="wPin">
                 </div>
-                <button type="submit" class="btn-submit-modal">Confirm Withdrawal</button>
+                <button type="submit" class="btn-submit-modal">Authorize Withdrawal</button>
             </form>
         </div>
     </div>
 
+    <!-- Footer -->
     <footer>
         © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
     </footer>
@@ -295,48 +293,48 @@
     <script>
         let isWalletHidden = true;
         let isCreditHidden = true;
-        let rawWalletAmount = 0.00;
-        let rawCreditAmount = 100000.00;
-        let currentMerchantPhone = '';
+        let rawWallet = 0.00;
+        let rawCredit = 100000.00;
+        let merchantPhone = '';
 
         window.onload = () => {
-            const sessionData = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession');
-            if (!sessionData) {
+            const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession');
+            if (!rawSession) {
                 window.location.href = '/login';
                 return;
             }
 
             try {
-                const merchant = JSON.parse(sessionData);
+                const merchant = JSON.parse(rawSession);
                 if (merchant.merchantName) {
                     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName}`;
                 }
-                currentMerchantPhone = merchant.phone || '';
-                rawWalletAmount = parseFloat(merchant.balance || 0);
+                merchantPhone = merchant.phone || '';
+                rawWallet = parseFloat(merchant.balance || 0);
 
                 if (merchant.virtualNuban) {
-                    const accTxt = `GTBank Virtual Account: ${merchant.virtualNuban} (GTBank / Squad)`;
-                    document.getElementById('virtualAccDisplay').textContent = accTxt;
+                    document.getElementById('virtualAccDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban}`;
                     document.getElementById('modalNuban').textContent = merchant.virtualNuban;
                 }
             } catch (e) {
-                console.error('Error reading merchant session:', e);
+                console.error('Session load error:', e);
             }
         };
 
-        function toggleBalance(elementId, type) {
-            const el = document.getElementById(elementId);
-            if (type === 'walletRaw') {
+        function toggleBalance(type) {
+            if (type === 'wallet') {
+                const el = document.getElementById('walletBal');
                 if (isWalletHidden) {
-                    el.textContent = `₦${rawWalletAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+                    el.textContent = `₦${rawWallet.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
                     isWalletHidden = false;
                 } else {
                     el.textContent = '₦••••••••';
                     isWalletHidden = true;
                 }
-            } else if (type === 'creditRaw') {
+            } else if (type === 'credit') {
+                const el = document.getElementById('creditBal');
                 if (isCreditHidden) {
-                    el.textContent = `₦${rawCreditAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+                    el.textContent = `₦${rawCredit.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
                     isCreditHidden = false;
                 } else {
                     el.textContent = '₦••••••••';
@@ -357,34 +355,29 @@
         async function handleTransaction(e, type) {
             e.preventDefault();
             const inputs = e.target.querySelectorAll('input, select');
-            const target = inputs[1] ? inputs[1].value : 'Target Account';
+            const target = inputs[1] ? inputs[1].value : 'Target';
             const amount = inputs[2] ? parseFloat(inputs[2].value) : 1000;
 
             try {
                 const response = await fetch('/api/v1/services/transact', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        merchantPhone: currentMerchantPhone,
-                        serviceType: type,
-                        recipient: target,
-                        amount: amount
-                    })
+                    body: JSON.stringify({ merchantPhone, serviceType: type, recipient: target, amount })
                 });
 
                 const resData = await response.json();
                 if (response.ok && resData.status === 'success') {
-                    alert(`✅ Transaction Successful!\n${resData.message}`);
+                    alert(`✅ Transaction Completed!\n${resData.message}`);
                     if (resData.newBalance !== undefined) {
-                        rawWalletAmount = resData.newBalance;
-                        if (!isWalletHidden) toggleBalance('walletBal', 'walletRaw');
+                        rawWallet = resData.newBalance;
+                        if (!isWalletHidden) toggleBalance('wallet');
                     }
                     closeModals();
                 } else {
-                    alert(`⚠️ Transaction Failed: ${resData.message || 'Error occurred.'}`);
+                    alert(`⚠️ Transaction Error: ${resData.message || 'Failed.'}`);
                 }
             } catch (err) {
-                alert('❌ Network connection error.');
+                alert('❌ Connection error.');
             }
         }
 
@@ -400,7 +393,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        merchantPhone: currentMerchantPhone,
+                        merchantPhone,
                         amount: amt,
                         destinationBank: bank,
                         accountNumber: acc,
@@ -410,28 +403,28 @@
 
                 const resData = await response.json();
                 if (response.ok && resData.status === 'success') {
-                    alert(`✅ Withdrawal Authorized!\n${resData.message}`);
+                    alert(`✅ Withdrawal Successful!\n${resData.message}`);
                     if (resData.newBalance !== undefined) {
-                        rawWalletAmount = resData.newBalance;
-                        if (!isWalletHidden) toggleBalance('walletBal', 'walletRaw');
+                        rawWallet = resData.newBalance;
+                        if (!isWalletHidden) toggleBalance('wallet');
                     }
                     closeModals();
                 } else {
                     alert(`⚠️ Withdrawal Failed: ${resData.message}`);
                 }
             } catch (err) {
-                alert('❌ Network connection error.');
+                alert('❌ Connection error.');
             }
         }
 
         function generateStatement() {
-            alert('📄 Statement Generated! Downloading PDF copy for your records...');
+            alert('📄 PDF Statement generated and queued for download.');
         }
 
         function resetSecurityPIN() {
-            const newPin = prompt('Enter a new 4-digit Security PIN:');
+            const newPin = prompt('Enter a new 4-digit Withdrawal PIN:');
             if (newPin && /^\d{4}$/.test(newPin.trim())) {
-                alert('🔑 Security PIN updated.');
+                alert('🔑 Security PIN updated successfully.');
             }
         }
 
