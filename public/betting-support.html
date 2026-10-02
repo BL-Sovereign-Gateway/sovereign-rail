@@ -56,12 +56,12 @@
 
         <label>Payment Method</label>
         <div class="payment-options">
-            <div class="pay-option active" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
+            <div class="pay-option active" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
+            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
             <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
-            <div class="pay-option" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
         </div>
 
-        <button type="submit" class="btn-submit">Proceed to Fund Wallet</button>
+        <button type="submit" class="btn-submit" id="btnSubmit">Proceed to Fund Wallet</button>
     </form>
 </div>
 
@@ -75,34 +75,33 @@
 </div>
 
 <script>
-let selectedPayMethod = 'TRANSFER';
+let selectedPayMethod = 'WALLET';
 
-// Single clean declaration with all 24+ Nigerian platforms
 const FALLBACK_BOOKMAKERS = [
-    { id: 'sportybet', name: 'SportyBet' },
-    { id: 'bet9ja', name: 'Bet9ja' },
-    { id: '1xbet', name: '1xBet' },
-    { id: 'betking', name: 'BetKing' },
-    { id: 'msport', name: 'MSport' },
-    { id: 'betway', name: 'Betway' },
-    { id: 'betano', name: 'Betano' },
-    { id: '1win', name: '1Win' },
-    { id: '22bet', name: '22Bet' },
-    { id: 'melbet', name: 'Melbet' },
-    { id: 'betwinner', name: 'BetWinner' },
-    { id: 'mozzartbet', name: 'MozzartBet' },
-    { id: 'betpawa', name: 'BetPawa' },
-    { id: 'bangbet', name: 'BangBet' },
-    { id: 'merrybet', name: 'Merrybet' },
-    { id: 'nairabet', name: 'NairaBet' },
-    { id: 'accessbet', name: 'AccessBet' },
-    { id: 'livescorebet', name: 'LiveScoreBet' },
-    { id: 'ilotbet', name: 'iLotBet' },
-    { id: 'paripesa', name: 'PariPesa' },
-    { id: 'zebet', name: 'ZEbet' },
-    { id: 'surebet247', name: 'SureBet247' },
-    { id: 'green_lotto', name: 'Green Lotto' },
-    { id: 'games4win', name: 'Winners Golden Bet' }
+    { id: 'SportyBet', name: 'SportyBet' },
+    { id: 'Bet9ja', name: 'Bet9ja' },
+    { id: '1xBet', name: '1xBet' },
+    { id: 'BetKing', name: 'BetKing' },
+    { id: 'MSport', name: 'MSport' },
+    { id: 'Betway', name: 'Betway' },
+    { id: 'Betano', name: 'Betano' },
+    { id: '1Win', name: '1Win' },
+    { id: '22Bet', name: '22Bet' },
+    { id: 'Melbet', name: 'Melbet' },
+    { id: 'BetWinner', name: 'BetWinner' },
+    { id: 'MozzartBet', name: 'MozzartBet' },
+    { id: 'BetPawa', name: 'BetPawa' },
+    { id: 'BangBet', name: 'BangBet' },
+    { id: 'Merrybet', name: 'Merrybet' },
+    { id: 'NairaBet', name: 'NairaBet' },
+    { id: 'AccessBet', name: 'AccessBet' },
+    { id: 'LiveScoreBet', name: 'LiveScoreBet' },
+    { id: 'iLotBet', name: 'iLotBet' },
+    { id: 'PariPesa', name: 'PariPesa' },
+    { id: 'ZEbet', name: 'ZEbet' },
+    { id: 'SureBet247', name: 'SureBet247' },
+    { id: 'Green Lotto', name: 'Green Lotto' },
+    { id: 'Winners Golden Bet', name: 'Winners Golden Bet' }
 ];
 
 function setPayMethod(method, el) {
@@ -118,13 +117,15 @@ function closeModal() {
 async function loadBookmakers() {
     try {
         const res = await fetch('/api/v1/betting/providers');
-        const data = await res.json();
-        if (data.status === 'success' && data.data && data.data.length > 0) {
-            populateSelect(data.data);
-            return;
+        if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'success' && data.data && data.data.length > 0) {
+                populateSelect(data.data);
+                return;
+            }
         }
     } catch (err) {
-        console.warn('API fetch warning, loading local bookmaker list...');
+        console.warn('API fetch warning, loading default bookmakers list...');
     }
     populateSelect(FALLBACK_BOOKMAKERS);
 }
@@ -134,7 +135,7 @@ function populateSelect(list) {
     select.innerHTML = '<option value="" disabled selected>Select Bookmaker / Platform...</option>';
     list.forEach(item => {
         const opt = document.createElement('option');
-        opt.value = item.id;
+        opt.value = item.id || item.name;
         opt.textContent = item.name;
         select.appendChild(opt);
     });
@@ -142,68 +143,111 @@ function populateSelect(list) {
 
 document.getElementById('bettingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const merchant = JSON.parse(localStorage.getItem('merchantSession') || '{}');
-    const modalBody = document.getElementById('modalBody');
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Processing Payment...';
 
+    const modalBody = document.getElementById('modalBody');
     const providerId = document.getElementById('bookmakerSelect').value;
     const userId = document.getElementById('userId').value;
     const amount = parseFloat(document.getElementById('amount').value);
 
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
+    let merchant = {};
+    try { merchant = JSON.parse(rawSession); } catch(err) {}
+
     // Pay via Wallet Balance
     if (selectedPayMethod === 'WALLET') {
         if (!merchant.phone) {
-            modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
+            modalBody.innerHTML = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
             document.getElementById('customModal').style.display = 'flex';
+            btn.disabled = false;
+            btn.textContent = 'Proceed to Fund Wallet';
             return;
         }
 
-        const res = await fetch('/api/v1/checkout/wallet', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                merchantPhone: merchant.phone,
-                serviceType: providerId,
-                targetInput: userId,
-                amount: amount
-            })
-        });
-        const data = await res.json();
-        modalBody.innerText = data.message;
+        try {
+            const res = await fetch('/api/v1/services/transact', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    merchantPhone: merchant.phone,
+                    serviceType: `Betting Topup (${providerId})`,
+                    recipient: userId,
+                    amount: amount
+                })
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.status === 'success') {
+                if (data.newBalance !== undefined) {
+                    merchant.balance = data.newBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                }
+                modalBody.innerHTML = `
+                    <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
+                        <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ BETTING WALLET FUNDED</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Platform:</strong> ${providerId}</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Account ID:</strong> ${userId}</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount Debited:</strong> ₦${amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                        <p style="font-size:0.8rem; color:#38bdf8; margin-top:8px;">Ref: ${data.txRef || 'TXN-SUCCESS'}</p>
+                    </div>
+                `;
+            } else {
+                modalBody.innerText = `⚠️ ${data.message || 'Failed to process wallet transaction.'}`;
+            }
+        } catch (err) {
+            modalBody.innerText = "❌ Connection error while processing wallet debit.";
+        }
+        
         document.getElementById('customModal').style.display = 'flex';
+        btn.disabled = false;
+        btn.textContent = 'Proceed to Fund Wallet';
         return;
     }
 
-    // Pay via Multi-Channel Checkout (Transfer / Card)
-    const res = await fetch('/api/v1/checkout/initialize', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            serviceType: providerId,
-            targetInput: userId,
-            amount: amount,
-            paymentMethod: selectedPayMethod
-        })
-    });
-    const data = await res.json();
+    // Pay via External Checkout (Transfer / Card)
+    try {
+        const res = await fetch('/api/v1/checkout/initialize', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                serviceType: `Betting Topup (${providerId})`,
+                targetInput: userId,
+                amount: amount,
+                paymentMethod: selectedPayMethod
+            })
+        });
+        const data = await res.json();
 
-    if (data.status === 'success') {
-        if (data.paymentMethod === 'TRANSFER') {
-            modalBody.innerHTML = `
-                <p>Transfer <strong>${data.bankDetails.amountToPay}</strong> to fund betting ID <strong>${userId}</strong>:</p>
-                <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
-                    <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName}</p>
-                    <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
-                </div>
-                <small style="color:#10b981; font-weight:700;">⚡ Instant automated wallet top-up upon payment credit!</small>
-            `;
+        if (res.ok && data.status === 'success') {
+            if (data.paymentMethod === 'TRANSFER' && data.bankDetails) {
+                modalBody.innerHTML = `
+                    <p>Transfer <strong>₦${amount.toLocaleString('en-NG')}</strong> to fund betting ID <strong>${userId}</strong>:</p>
+                    <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
+                        <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName || 'GTBank'}</p>
+                        <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
+                    </div>
+                    <small style="color:#10b981; font-weight:700;">⚡ Instant automated wallet top-up upon payment credit!</small>
+                `;
+            } else if (data.checkoutUrl) {
+                modalBody.innerHTML = `
+                    <p>Click below to complete your payment via Card or USSD:</p>
+                    <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Card Gateway</a>
+                `;
+            } else {
+                modalBody.innerText = data.message || "Payment initialized successfully.";
+            }
         } else {
-            modalBody.innerHTML = `
-                <p>Click below to complete your payment via Card or USSD:</p>
-                <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Card Gateway</a>
-            `;
+            modalBody.innerText = data.message || "Unable to initialize checkout.";
         }
-        document.getElementById('customModal').style.display = 'flex';
+    } catch (err) {
+        modalBody.innerText = "❌ Network connection error. Please try again.";
     }
+
+    document.getElementById('customModal').style.display = 'flex';
+    btn.disabled = false;
+    btn.textContent = 'Proceed to Fund Wallet';
 });
 
 window.onload = loadBookmakers;
