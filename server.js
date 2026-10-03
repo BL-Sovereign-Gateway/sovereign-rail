@@ -3,11 +3,10 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
- * Squad Decal Master NUBAN (5000759098) | Intact Merchant Principal Crediting |
- * Dynamic Tiered Commission & Statutory Squad Fee Engine | Access Bank Auto-Sweep |
- * ClubKonnect Real-Time Auto-Dispatch Engine | Flat ₦6.00 Termii SMS Engine |
- * Resend Email Engine | Universal PDF Receipts | Merchant Lock Enforcement |
- * Admin Command Desk | SAIL Credit Line Engine | Single-Header Navigation Gateway
+ * Squad Decal Master NUBAN (5000759098) | Squad USSD Code (411727) |
+ * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
+ * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
+ * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer
  * ============================================================================
  */
 
@@ -42,6 +41,7 @@ const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'ck_live_secret_k
 // Persistent Master Account Credentials (from Squad Decal)
 const MASTER_SQUAD_NUBAN = '5000759098';
 const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
+const MASTER_SQUAD_USSD_MERCHANT_CODE = '411727';
 
 // Persistent Database Handlers
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -55,7 +55,7 @@ function loadAccounts() {
             return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
         }
     } catch (e) {
-        console.error('⚠️️ DB Read Error:', e.message);
+        console.error('⚠️ DB Read Error:', e.message);
     }
     return {};
 }
@@ -215,17 +215,15 @@ async function executeClubKonnectFulfillment(orderData) {
 }
 
 // =========================================================================
-// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES (CLEAN UNIFIED HEADER)
+// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES
 // =========================================================================
 
-// Core Pages
 app.get('/', serveModuleFile('index.html', 'login.html'));
 app.get('/login', serveModuleFile('login.html'));
 app.get('/register', serveModuleFile('register.html', 'login.html'));
 app.get('/signup', serveModuleFile('register.html', 'login.html'));
 app.get('/dashboard', serveModuleFile('dashboard.html'));
 
-// Direct Portal Navigation Services
 app.get('/airtime-data', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu-support', serveModuleFile('vtu-support.html', 'vtu.html'));
@@ -247,37 +245,31 @@ app.get('/newsletter', serveModuleFile('newsletter.html'));
 app.get('/articles', serveModuleFile('newsletter.html'));
 app.get('/news', serveModuleFile('newsletter.html'));
 
-// Admin & Management Pages
 app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
 // =========================================================================
-// 🧮 UPDATED DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
+// 🧮 DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
 // =========================================================================
 
 function calculateTotalPayableAmount(principalAmount) {
     const amount = parseFloat(principalAmount);
     if (isNaN(amount) || amount <= 0) return 0;
 
-    // 1. Tiered Platform Commission (Including < ₦1,000 Rule)
     let platformMarkup = 0;
     if (amount < 1000) {
-        platformMarkup = 10.00; // ₦10 for transactions below ₦1,000
+        platformMarkup = 10.00; // ₦10 markup for transactions below ₦1,000
     } else if (amount >= 1000 && amount <= 20000) {
-        platformMarkup = 20.00; // ₦20 for ₦1,000 - ₦20,000
+        platformMarkup = 20.00;
     } else if (amount >= 20001 && amount <= 50000) {
-        platformMarkup = 25.00; // ₦25 for ₦20,001 - ₦50,000
+        platformMarkup = 25.00;
     } else if (amount >= 50001) {
-        platformMarkup = 30.00; // ₦30 for ₦50,001 and above
+        platformMarkup = 30.00;
     }
 
-    // 2. Squad Virtual Account Processing Charge (0.25%, capped at ₦1,000)
     let squadFee = Math.min(amount * 0.0025, 1000.00);
-
-    // 3. Statutory 7.5% VAT on Squad Processing Fee
     let vatOnSquadFee = squadFee * 0.075;
 
-    // Total Amount Payable by Merchant/Customer
     const totalPayable = amount + platformMarkup + squadFee + vatOnSquadFee;
     return Math.ceil(totalPayable);
 }
@@ -461,7 +453,8 @@ app.get('/api/v1/webhook/squad', (req, res) => {
         status: 'active',
         message: '@BL Sovereign Gateway Squad Webhook Engine Live',
         entity: 'ALL TIME BUSINESS LTD',
-        masterAccount: MASTER_SQUAD_NUBAN
+        masterAccount: MASTER_SQUAD_NUBAN,
+        ussdMerchantCode: MASTER_SQUAD_USSD_MERCHANT_CODE
     });
 });
 
@@ -541,7 +534,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
                 dispatchImmediateTransactionSMS(
                     phone,
-                    'Deposit (GTBank Virtual Acc)',
+                    'Deposit (GTBank Virtual Acc / USSD)',
                     paymentData.virtual_account_number || MASTER_SQUAD_NUBAN,
                     principalAmount,
                     merchantAccounts[phone].balance,
@@ -665,8 +658,8 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                             <span class="info-val">${squadRes.virtualBank}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Settlement Mode:</span>
-                            <span class="info-val" style="color: #10b981;">AUTOMATED AUTO-SWEEP</span>
+                            <span class="info-label">USSD Merchant Code:</span>
+                            <span class="info-val" style="color: #f59e0b;">*BankCode*000*898+411727+AMOUNT#</span>
                         </div>
                     </div>
 
@@ -715,7 +708,7 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 });
 
 // =========================================================================
-// 🛒 SERVICE TRANSACTION & WITHDRAWAL ENDPOINTS WITH ₦2.00 CASHBACK
+// 🛒 SERVICE TRANSACTION & WITHDRAWAL ENDPOINTS WITH SECURITY PIN VALIDATION
 // =========================================================================
 
 app.post('/api/v1/services/transact', async (req, res) => {
@@ -852,7 +845,7 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
                     bankName: MASTER_SQUAD_BANK,
                     accountNumber: MASTER_SQUAD_NUBAN,
                     accountName: 'ALL TIME BUSINESS LTD / SQUAD',
-                    ussdCode: `*BankCode*000*898+411727+${Math.round(finalPayableAmount)}#`,
+                    ussdCode: `*BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+${Math.round(finalPayableAmount)}#`,
                     amountToPay: `₦${finalPayableAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
                 },
                 message: 'Collection account details generated with statutory fees applied.'
@@ -903,13 +896,14 @@ app.get('/api/v1/betting/providers', (req, res) => {
     });
 });
 
+// WITHDRAWAL ENDPOINT (SMART LOGIC FOR REGISTERED VS THIRD-PARTY ACCOUNTS)
 app.post('/api/v1/merchant/withdraw', async (req, res) => {
     try {
         const { merchantPhone, amount, destinationBank, accountNumber, withdrawalPin } = req.body;
         const withdrawAmount = parseFloat(amount);
 
-        if (!merchantPhone || isNaN(withdrawAmount) || withdrawAmount < 100 || !destinationBank || !accountNumber || !withdrawalPin) {
-            return res.status(400).json({ status: 'error', message: 'All fields including 4-digit PIN are required.' });
+        if (!merchantPhone || isNaN(withdrawAmount) || withdrawAmount < 100 || !destinationBank || !accountNumber) {
+            return res.status(400).json({ status: 'error', message: 'All destination bank details are required.' });
         }
 
         merchantAccounts = loadAccounts();
@@ -918,10 +912,17 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Withdrawal rejected: Merchant account is locked.' });
-        if ((account.balance || 0) < withdrawAmount) return res.status(400).json({ status: 'error', message: 'Insufficient balance.' });
+        if ((account.balance || 0) < withdrawAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
-        const setPin = account.withdrawalPin || '1234';
-        if (withdrawalPin.trim() !== setPin) return res.status(401).json({ status: 'error', message: 'Invalid 4-digit PIN.' });
+        const isRegisteredAccount = (account.settlementAccount === accountNumber.trim());
+
+        // Validate 4-digit PIN for Third-Party Transfers
+        if (!isRegisteredAccount) {
+            const setPin = account.withdrawalPin || '1234';
+            if (!withdrawalPin || withdrawalPin.trim() !== setPin) {
+                return res.status(401).json({ status: 'error', message: 'Invalid 4-digit Security PIN for third-party withdrawal.' });
+            }
+        }
 
         account.balance -= withdrawAmount;
         saveAccounts(merchantAccounts);
@@ -933,7 +934,7 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
 
         return res.status(200).json({
             status: 'success',
-            message: `Withdrawal of ₦${withdrawAmount.toLocaleString()} to ${destinationBank} (${accountNumber}) authorized!`,
+            message: `Withdrawal of ₦${withdrawAmount.toLocaleString()} to ${destinationBank} (${accountNumber}) authorized successfully!`,
             txRef,
             newBalance: account.balance
         });
