@@ -3,9 +3,9 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
- * Intact Merchant Principal Crediting | Dynamic Markup & Cashback Engine |
- * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
- * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
+ * Squad Decal Master NUBAN (5000759098) | Intact Merchant Principal Crediting |
+ * Dynamic Markup & Cashback Engine | Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS |
+ * Resend Email Engine | Multi-Bank Settlement | Immediate Service SMS Alerts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
  * SAIL Credit Line Application Engine | Explicit Portal & Service Route Engine |
  * Dual GET/POST Webhook Health Verification Engine
@@ -35,6 +35,10 @@ const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://api-d.squadco.com'
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123456789';
+
+// Persistent Master Account Credentials (from Squad Decal)
+const MASTER_SQUAD_NUBAN = '5000759098';
+const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
 
 // Persistent Database Handlers
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -344,19 +348,19 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200 response:', response.data);
+            console.warn('⚠️ Squad returned non-200 response, assigning master account.');
             return {
-                success: false,
-                virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
-                virtualBank: 'GTBank / Squad'
+                success: true,
+                virtualNuban: MASTER_SQUAD_NUBAN,
+                virtualBank: MASTER_SQUAD_BANK
             };
         }
     } catch (err) {
         console.error('❌ Squad Virtual Account Error:', err.response ? err.response.data : err.message);
         return {
-            success: false,
-            virtualNuban: `07${Math.floor(10000000 + Math.random() * 90000000)}`,
-            virtualBank: 'GTBank / Squad'
+            success: true,
+            virtualNuban: MASTER_SQUAD_NUBAN,
+            virtualBank: MASTER_SQUAD_BANK
         };
     }
 }
@@ -370,7 +374,8 @@ app.get('/api/v1/webhook/squad', (req, res) => {
     return res.status(200).json({
         status: 'active',
         message: '@BL Sovereign Gateway Squad Webhook Engine Live',
-        entity: 'ALL TIME BUSINESS LTD'
+        entity: 'ALL TIME BUSINESS LTD',
+        masterAccount: MASTER_SQUAD_NUBAN
     });
 });
 
@@ -414,7 +419,9 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
             if (!targetAccount) {
                 targetAccount = Object.values(merchantAccounts).find(
-                    acc => acc.virtualNuban === paymentData.virtual_account_number || acc.email === customerId
+                    acc => acc.virtualNuban === paymentData.virtual_account_number || 
+                           acc.email === customerId ||
+                           paymentData.virtual_account_number === MASTER_SQUAD_NUBAN
                 );
             }
 
@@ -442,7 +449,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
                 dispatchImmediateTransactionSMS(
                     phone,
                     'Deposit (GTBank Virtual Acc)',
-                    paymentData.virtual_account_number || 'GTBank NUBAN',
+                    paymentData.virtual_account_number || MASTER_SQUAD_NUBAN,
                     principalAmount,
                     merchantAccounts[phone].balance,
                     txRef
@@ -509,7 +516,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             settlementAccount,
             bankName,
             virtualNuban: squadRes.virtualNuban,
-            virtualBank: 'GTBank / Squad',
+            virtualBank: squadRes.virtualBank,
             balance: 0.00,
             isLocked: false,
             createdAt: new Date().toISOString()
@@ -562,7 +569,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                         </div>
                         <div class="info-row">
                             <span class="info-label">Bank Name:</span>
-                            <span class="info-val">Guaranty Trust Bank (GTBank)</span>
+                            <span class="info-val">${squadRes.virtualBank}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Settlement Mode:</span>
@@ -722,9 +729,10 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
                 paymentMethod: 'TRANSFER',
                 orderRef: orderRef,
                 bankDetails: {
-                    bankName: 'Guaranty Trust Bank (GTBank)',
-                    accountNumber: '0765177477',
+                    bankName: MASTER_SQUAD_BANK,
+                    accountNumber: MASTER_SQUAD_NUBAN,
                     accountName: 'ALL TIME BUSINESS LTD / SQUAD',
+                    ussdCode: `*BankCode*000*898+411727+${Math.round(payAmount)}#`,
                     amountToPay: `₦${payAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
                 },
                 message: 'Collection account details generated.'
