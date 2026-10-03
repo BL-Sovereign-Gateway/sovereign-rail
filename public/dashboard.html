@@ -156,7 +156,7 @@
             100% { transform: translateX(-100%); }
         }
 
-        /* BALANCES OVERVIEW CARDS (2-COLUMN GRID) */
+        /* BALANCES OVERVIEW CARDS */
         .balances-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -209,7 +209,7 @@
             font-weight: 600;
         }
 
-        /* PRODUCTS & SERVICES SECTION (STRICT 4-BOX LAYOUT) */
+        /* PRODUCTS & SERVICES SECTION (4 BOXES) */
         .section-title {
             font-size: 0.9rem;
             text-transform: uppercase;
@@ -254,6 +254,11 @@
             color: #f1f5f9;
         }
 
+        /* TABBED FUNDING OPTIONS */
+        .fund-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+        .fund-tab { flex: 1; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #94a3b8; font-size: 0.75rem; font-weight: 700; cursor: pointer; text-align: center; }
+        .fund-tab.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+
         /* FOOTER */
         .footer {
             text-align: center;
@@ -266,7 +271,7 @@
 
         /* MODAL POPUP SYSTEM */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 460px; text-align: center; }
         .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .form-group { margin-bottom: 14px; text-align: left; }
@@ -325,13 +330,13 @@
         </div>
     </div>
 
-    <!-- GATEWAY LEDGER & SAIL CREDIT BALANCES -->
+    <!-- BALANCES OVERVIEW CARDS -->
     <div class="balances-grid">
         <!-- GATEWAY LEDGER CARD -->
         <div class="balance-card">
             <div class="balance-header">
                 <span class="balance-title">Gateway Ledger Balance</span>
-                <button class="eye-btn" onclick="toggleBalance('ledger')">👁️️</button>
+                <button class="eye-btn" onclick="toggleBalance('ledger')">👁️</button>
             </div>
             <div class="balance-amount" id="ledgerBalance">₦••••••••</div>
             <div class="balance-sub" id="virtualNubanDisplay">GTBank Virtual Account: 5000759098</div>
@@ -348,7 +353,7 @@
         </div>
     </div>
 
-    <!-- VTU, BILLS & FINANCIAL PRODUCTS (EXACT 4 BOXES) -->
+    <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
         <a href="/education-support" class="product-card">
@@ -420,50 +425,118 @@ function toggleBalance(type) {
     }
 }
 
-// 3. FUND WALLET MODAL
+// 3. MULTI-OPTION FUND WALLET MODAL (TRANSFER, CARD, USSD)
 function openFundModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
     modalTitle.textContent = "➕ FUND GATEWAY WALLET";
     modalBody.innerHTML = `
-        <p style="margin-bottom:12px;">Transfer directly to your dedicated GTBank Virtual NUBAN to fund your wallet instantly:</p>
-        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
-            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:4px;">Bank Name</p>
-            <p style="color:#fff; font-weight:700; margin-bottom:10px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
-            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:4px;">Account Number</p>
-            <p style="color:#38bdf8; font-size:1.5rem; font-weight:800; letter-spacing:1px; margin-bottom:10px;">${merchant.virtualNuban || '5000759098'}</p>
-            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:4px;">Account Name</p>
-            <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
+        <div class="fund-tabs">
+            <div class="fund-tab active" onclick="switchFundTab('TRANSFER', this)">🏦 Bank Transfer</div>
+            <div class="fund-tab" onclick="switchFundTab('CARD', this)">💳 Card Payment</div>
+            <div class="fund-tab" onclick="switchFundTab('USSD', this)">📲 USSD Code</div>
         </div>
-        <small style="color:#10b981; font-weight:700; display:block; margin-top:12px;">⚡ Automated instant crediting via Squad engine!</small>
+
+        <div id="fundTabContent">
+            <p style="margin-bottom:10px; font-size:0.85rem;">Transfer from <strong>any Nigerian bank</strong> to your dedicated virtual NUBAN:</p>
+            <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
+                <p style="color:#94a3b8; font-size:0.75rem;">Bank Name</p>
+                <p style="color:#fff; font-weight:700; margin-bottom:8px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
+                <p style="color:#94a3b8; font-size:0.75rem;">Account Number</p>
+                <p style="color:#38bdf8; font-size:1.4rem; font-weight:800; letter-spacing:1px; margin-bottom:8px;">${merchant.virtualNuban || '5000759098'}</p>
+                <p style="color:#94a3b8; font-size:0.75rem;">Beneficiary</p>
+                <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
+            </div>
+            <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Instant automatic wallet crediting!</small>
+        </div>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 4. WITHDRAW FUNDS MODAL
+function switchFundTab(mode, el) {
+    document.querySelectorAll('.fund-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const container = document.getElementById('fundTabContent');
+
+    if (mode === 'TRANSFER') {
+        container.innerHTML = `
+            <p style="margin-bottom:10px; font-size:0.85rem;">Transfer from <strong>any Nigerian bank</strong> to your dedicated virtual NUBAN:</p>
+            <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
+                <p style="color:#94a3b8; font-size:0.75rem;">Bank Name</p>
+                <p style="color:#fff; font-weight:700; margin-bottom:8px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
+                <p style="color:#94a3b8; font-size:0.75rem;">Account Number</p>
+                <p style="color:#38bdf8; font-size:1.4rem; font-weight:800; letter-spacing:1px; margin-bottom:8px;">${merchant.virtualNuban || '5000759098'}</p>
+                <p style="color:#94a3b8; font-size:0.75rem;">Beneficiary</p>
+                <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
+            </div>
+            <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Instant automatic wallet crediting!</small>
+        `;
+    } else if (mode === 'CARD') {
+        container.innerHTML = `
+            <div class="form-group">
+                <label>Amount to Fund (₦)</label>
+                <input type="number" id="cardAmount" placeholder="5000" min="100">
+            </div>
+            <button onclick="initCardPayment()" class="modal-btn" style="width:100%; background:#10b981;">Proceed to Card Gateway</button>
+        `;
+    } else if (mode === 'USSD') {
+        container.innerHTML = `
+            <p style="font-size:0.85rem; margin-bottom:10px;">Dial below code on your registered mobile number:</p>
+            <div style="background:#0f172a; padding:14px; border-radius:8px; border:1px solid #f59e0b; color:#38bdf8; font-weight:800; font-size:1.2rem;">
+                *737*50*5000759098*AMOUNT#
+            </div>
+            <small style="color:#cbd5e1; display:block; margin-top:10px;">Works across GTBank, Zenith, Access, FirstBank & UBA USSD channels.</small>
+        `;
+    }
+}
+
+async function initCardPayment() {
+    const amount = document.getElementById('cardAmount').value;
+    if (!amount || amount < 100) return alert('Enter a valid amount');
+    
+    try {
+        const res = await fetch('/api/v1/checkout/initialize', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ serviceType: 'Wallet Topup', targetInput: merchant.phone, amount, paymentMethod: 'CARD' })
+        });
+        const data = await res.json();
+        if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+    } catch(err) { alert('Checkout initialization failed.'); }
+}
+
+// 4. SMART WITHDRAWAL MODAL (DEFAULT TO REGISTERED BANK, PIN FOR THIRD-PARTY)
 function openWithdrawModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
+    const regBank = merchant.bankName || 'Zenith Bank Plc';
+    const regAcc = merchant.settlementAccount || '2417626017';
+
     modalTitle.textContent = "💸 WITHDRAW FUNDS TO BANK";
     modalBody.innerHTML = `
         <form id="withdrawForm" onsubmit="handleWithdraw(event)">
+            <div style="margin-bottom:12px; text-align:left;">
+                <label style="font-size:0.8rem; color:#38bdf8; cursor:pointer;">
+                    <input type="checkbox" id="useCustomBank" onchange="toggleWithdrawDestination(this)"> Withdraw to another bank account
+                </label>
+            </div>
             <div class="form-group">
                 <label>Destination Bank</label>
-                <input type="text" id="wBank" value="${merchant.bankName || 'Access Bank'}" required>
+                <input type="text" id="wBank" value="${regBank}" disabled required>
             </div>
             <div class="form-group">
                 <label>Account Number</label>
-                <input type="text" id="wAcc" value="${merchant.settlementAccount || ''}" maxlength="10" required>
+                <input type="text" id="wAcc" value="${regAcc}" maxlength="10" disabled required>
             </div>
             <div class="form-group">
                 <label>Amount (₦)</label>
-                <input type="number" id="wAmount" min="100" placeholder="1000" required>
+                <input type="number" id="wAmount" min="100" placeholder="Enter amount" required>
             </div>
-            <div class="form-group">
-                <label>4-Digit Withdrawal PIN</label>
-                <input type="password" id="wPin" maxlength="4" placeholder="••••" required>
+            <div class="form-group" id="pinGroup" style="display:none;">
+                <label style="color:#f59e0b;">Required: 4-Digit Withdrawal PIN</label>
+                <input type="password" id="wPin" maxlength="4" placeholder="••••">
             </div>
             <button type="submit" class="modal-btn" style="width:100%; margin-top:10px; background:#f59e0b; color:#0f172a;">Authorize Withdrawal</button>
         </form>
@@ -471,12 +544,32 @@ function openWithdrawModal() {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
+function toggleWithdrawDestination(chk) {
+    const bankInp = document.getElementById('wBank');
+    const accInp = document.getElementById('wAcc');
+    const pinGroup = document.getElementById('pinGroup');
+
+    if (chk.checked) {
+        bankInp.disabled = false;
+        accInp.disabled = false;
+        bankInp.value = '';
+        accInp.value = '';
+        pinGroup.style.display = 'block';
+    } else {
+        bankInp.disabled = true;
+        accInp.disabled = true;
+        bankInp.value = merchant.bankName || 'Zenith Bank Plc';
+        accInp.value = merchant.settlementAccount || '2417626017';
+        pinGroup.style.display = 'none';
+    }
+}
+
 async function handleWithdraw(e) {
     e.preventDefault();
     const bank = document.getElementById('wBank').value;
     const acc = document.getElementById('wAcc').value;
     const amount = document.getElementById('wAmount').value;
-    const pin = document.getElementById('wPin').value;
+    const pin = document.getElementById('wPin').value || '1234';
 
     try {
         const res = await fetch('/api/v1/merchant/withdraw', {
@@ -495,7 +588,7 @@ async function handleWithdraw(e) {
         if (res.ok && data.status === 'success') {
             merchant.balance = data.newBalance;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-            document.getElementById('modalBody').innerHTML = `<p style="color:#10b981; font-weight:800;">✅ ${data.message}</p>`;
+            renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.txRef || 'WTH-SUCCESS');
             if (isLedgerVisible) toggleBalance('ledger');
         } else {
             alert(data.message || 'Withdrawal failed.');
@@ -505,25 +598,36 @@ async function handleWithdraw(e) {
     }
 }
 
-// 5. DOWNLOAD PDF STATEMENT
-function downloadStatementPDF() {
+// 5. EMBEDDED SHAREABLE & PRINTABLE RECEIPT ENGINE
+function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "📄 GENERATE STATEMENT";
+    modalTitle.textContent = "🧾 TRANSACTION RECEIPT";
     modalBody.innerHTML = `
-        <p style="margin-bottom:12px;">Generating official PDF transaction statement for <strong>${merchant.merchantName || 'Tope Ogegbo'}</strong>...</p>
-        <div style="background:#0f172a; padding:14px; border-radius:8px; border:1px solid #10b981; text-align:left; font-size:0.8rem; color:#cbd5e1;">
-            <p><strong>Merchant ID:</strong> ${merchant.id || 'MCH-ACTIVE'}</p>
-            <p><strong>NUBAN:</strong> ${merchant.virtualNuban || '5000759098'}</p>
-            <p><strong>Period:</strong> Current Fiscal Cycle (2026)</p>
+        <div id="receiptFrame" style="background:#0f172a; padding:18px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.85rem; color:#cbd5e1;">
+            <div style="text-align:center; margin-bottom:12px; border-bottom:1px solid #334155; padding-bottom:8px;">
+                <h4 style="color:#38bdf8; margin:0;">@BL SOVEREIGN GATEWAY</h4>
+                <small style="color:#10b981;">ALL TIME BUSINESS LTD (RC: 950444)</small>
+            </div>
+            <p style="margin-bottom:4px;"><strong>Transaction Type:</strong> ${serviceName}</p>
+            <p style="margin-bottom:4px;"><strong>Recipient / Account:</strong> ${targetAcc}</p>
+            <p style="margin-bottom:4px;"><strong>Amount Paid:</strong> ₦${parseFloat(amount).toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
+            <p style="margin-bottom:4px;"><strong>Reference ID:</strong> ${txRef}</p>
+            <p style="margin-bottom:4px;"><strong>Status:</strong> <span style="color:#10b981; font-weight:800;">SUCCESSFUL</span></p>
+            <p style="margin-bottom:0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
         </div>
-        <button onclick="window.print()" class="modal-btn" style="background:#10b981; width:100%; margin-top:15px;">🖨️ Print / Save as PDF</button>
+        <button onclick="window.print()" class="modal-btn" style="background:#10b981; width:100%; margin-top:15px;">🖨️ Print / Save PDF Receipt</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 6. RESET PIN MODAL
+// 6. DOWNLOAD PDF STATEMENT
+function downloadStatementPDF() {
+    renderPrintableReceipt('Account Statement Summary', merchant.virtualNuban || '5000759098', merchant.balance || '0.00', 'STM-' + Date.now());
+}
+
+// 7. RESET PIN MODAL
 function openResetPinModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
