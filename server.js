@@ -7,7 +7,8 @@
  * Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS Engine | Resend Email |
  * Universal PDF Receipts | Multi-Bank Settlement | Immediate Service SMS Alerts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
- * SAIL Credit Line Application Engine | Explicit Portal & Service Route Engine
+ * SAIL Credit Line Application Engine | Explicit Portal & Service Route Engine |
+ * Dual GET/POST Webhook Health Verification Engine
  * ============================================================================
  */
 
@@ -168,6 +169,7 @@ app.get('/sail-credit', serveModuleFile('credit-support.html', 'sail-credit.html
 
 app.get('/newsletter', serveModuleFile('newsletter.html'));
 app.get('/articles', serveModuleFile('newsletter.html'));
+app.get('/news', serveModuleFile('newsletter.html'));
 
 app.get('/airtime-data', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu', serveModuleFile('vtu-support.html', 'vtu.html'));
@@ -360,9 +362,19 @@ async function generateSquadVirtualAccount(merchantData) {
 }
 
 // =========================================================================
-// 🔔 SQUAD WEBHOOK PAYMENT LISTENER ENGINE (INTACT PRINCIPAL CREDITING)
+// 🔔 SQUAD WEBHOOK PAYMENT LISTENER ENGINE
 // =========================================================================
 
+// GET Route for Browser Verification & Squad Uptime Checks
+app.get('/api/v1/webhook/squad', (req, res) => {
+    return res.status(200).json({
+        status: 'active',
+        message: '@BL Sovereign Gateway Squad Webhook Engine Live',
+        entity: 'ALL TIME BUSINESS LTD'
+    });
+});
+
+// POST Route for Squad Automated Payment Notifications (INTACT PRINCIPAL CREDITING)
 app.post('/api/v1/webhook/squad', async (req, res) => {
     try {
         const squadSignature = req.headers['x-squad-encrypted-body'];
