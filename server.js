@@ -4,7 +4,7 @@
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
  * Squad Decal Master NUBAN (5000759098) | Intact Merchant Principal Crediting |
- * Dynamic Markup & Cashback Engine (₦2.00 Cashback) | Access Bank Auto-Sweep |
+ * Dynamic Tiered Commission & Statutory Squad Fee Engine | Access Bank Auto-Sweep |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Universal PDF Receipts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
  * SAIL Credit Line Application Engine | Single-Header Navigation Gateway |
@@ -157,17 +157,17 @@ function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
 }
 
 // =========================================================================
-// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES (STREAMLINED HEADER PATHS)
+// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES (CLEAN UNIFIED HEADER)
 // =========================================================================
 
-// Main Entry Points
+// Core Pages
 app.get('/', serveModuleFile('index.html', 'login.html'));
 app.get('/login', serveModuleFile('login.html'));
 app.get('/register', serveModuleFile('register.html', 'login.html'));
 app.get('/signup', serveModuleFile('register.html', 'login.html'));
 app.get('/dashboard', serveModuleFile('dashboard.html'));
 
-// Direct Portal Services Matching Unified Header Menu
+// Direct Portal Navigation Services
 app.get('/airtime-data', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu-support', serveModuleFile('vtu-support.html', 'vtu.html'));
@@ -194,8 +194,33 @@ app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
 // =========================================================================
-// 🧮 DYNAMIC TIERED MARKUP CALCULATOR ENGINE
+// 🧮 DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
 // =========================================================================
+
+function calculateTotalPayableAmount(principalAmount) {
+    const amount = parseFloat(principalAmount);
+    if (isNaN(amount) || amount <= 0) return 0;
+
+    // 1. Tiered Platform Commission
+    let platformMarkup = 0;
+    if (amount >= 1000 && amount <= 20000) {
+        platformMarkup = 20.00;
+    } else if (amount >= 20001 && amount <= 50000) {
+        platformMarkup = 25.00;
+    } else if (amount >= 51001) {
+        platformMarkup = 30.00;
+    }
+
+    // 2. Squad Virtual Account Processing Charge (0.25%, capped at ₦1,000)
+    let squadFee = Math.min(amount * 0.0025, 1000.00);
+
+    // 3. Statutory 7.5% VAT on Squad Processing Fee
+    let vatOnSquadFee = squadFee * 0.075;
+
+    // Total Amount Payable by Merchant/Customer
+    const totalPayable = amount + platformMarkup + squadFee + vatOnSquadFee;
+    return Math.ceil(totalPayable); // Round up to nearest whole Naira
+}
 
 function calculateTieredMarkup(principalAmount) {
     const amount = parseFloat(principalAmount);
@@ -205,7 +230,7 @@ function calculateTieredMarkup(principalAmount) {
         markup = 20.00; // ₦20 on ₦1k - ₦20k
     } else if (amount >= 20001 && amount <= 50000) {
         markup = 25.00; // ₦25 on ₦21k - ₦50k
-    } else if (amount >= 50001) {
+    } else if (amount >= 51001) {
         markup = 30.00; // ₦30 on ₦51k and above
     }
 
@@ -712,15 +737,18 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
     }
 });
 
+// UPDATED CHECKOUT INITIALIZE ENDPOINT WITH INTEGRATED STATUTORY FEE CALCULATOR
 app.post('/api/v1/checkout/initialize', async (req, res) => {
     try {
         const { serviceType, targetInput, amount, paymentMethod } = req.body;
-        const payAmount = parseFloat(amount);
+        const principalAmount = parseFloat(amount);
 
-        if (!serviceType || !targetInput || isNaN(payAmount) || payAmount <= 0) {
+        if (!serviceType || !targetInput || isNaN(principalAmount) || principalAmount <= 0) {
             return res.status(400).json({ status: 'error', message: 'Invalid payment parameters.' });
         }
 
+        // Calculate full fee structure paid by merchant (Commission + Squad 0.25% + VAT)
+        const finalPayableAmount = calculateTotalPayableAmount(principalAmount);
         const orderRef = `SVR-${Date.now()}`;
 
         if (paymentMethod === 'TRANSFER') {
@@ -732,10 +760,10 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
                     bankName: MASTER_SQUAD_BANK,
                     accountNumber: MASTER_SQUAD_NUBAN,
                     accountName: 'ALL TIME BUSINESS LTD / SQUAD',
-                    ussdCode: `*BankCode*000*898+411727+${Math.round(payAmount)}#`,
-                    amountToPay: `₦${payAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
+                    ussdCode: `*BankCode*000*898+411727+${Math.round(finalPayableAmount)}#`,
+                    amountToPay: `₦${finalPayableAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
                 },
-                message: 'Collection account details generated.'
+                message: 'Collection account details generated with all statutory fees applied.'
             });
         } else {
             return res.status(200).json({
