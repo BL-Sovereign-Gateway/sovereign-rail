@@ -3,72 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTU Airtime & Data | @BL SOVEREIGN GATEWAY</title>
+    <title>Airtime & Data Recharge | @BL SOVEREIGN GATEWAY</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 30px; width: 100%; max-width: 480px; box-shadow: 0 20px 25px rgba(0,0,0,0.5); }
+        
+        /* 2-COLUMN GRID CONTAINER FOR AIRTIME & DATA */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            width: 100%;
+            max-width: 980px;
+        }
+
+        .card { 
+            background: #1e293b; 
+            border: 1px solid #38bdf8; 
+            border-radius: 16px; 
+            padding: 28px; 
+            box-shadow: 0 20px 25px rgba(0,0,0,0.5); 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
         .brand-header { text-align: center; margin-bottom: 20px; }
-        .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
-        .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+        .brand-header h2 { font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin: 0; }
+        .brand-header p { font-size: 0.72rem; color: #94a3b8; letter-spacing: 1px; margin-top: 3px; text-transform: uppercase; }
+
         .form-group { margin-bottom: 14px; }
-        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; font-weight: 600; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
         input:focus, select:focus { border-color: #38bdf8; }
-        
-        .payment-options { display: flex; gap: 10px; margin: 15px 0; }
-        .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
+
+        .payment-options { display: flex; gap: 8px; margin: 15px 0; }
+        .pay-option { flex: 1; padding: 10px 4px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #cbd5e1; }
         .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
-        
-        .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+
+        .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.95rem; margin-top: 10px; }
         .btn-submit:hover { background: #059669; }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
-        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 440px; text-align: center; }
+        .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+
+        /* Responsive Layout for Mobile Devices */
+        @media (max-width: 768px) {
+            .grid-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="brand-header">
-        <h2>📱 AIRTIME & DATA RECHARGE</h2>
-        <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+<div class="grid-container">
+
+    <!-- COLUMN 1: INSTANT AIRTIME RECHARGE -->
+    <div class="card">
+        <div class="brand-header">
+            <h2>📞 INSTANT AIRTIME</h2>
+            <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+        </div>
+
+        <form id="airtimeForm">
+            <div class="form-group">
+                <label>Select Network Operator *</label>
+                <select id="airtimeNetworkSelect" required>
+                    <option value="MTN Nigeria">MTN Nigeria</option>
+                    <option value="Airtel Nigeria">Airtel Nigeria</option>
+                    <option value="Glo Nigeria">Glo Nigeria</option>
+                    <option value="9mobile Nigeria">9mobile Nigeria</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Phone Number *</label>
+                <input type="tel" id="airtimePhoneNumber" placeholder="08012345678" maxlength="11" required>
+            </div>
+
+            <div class="form-group">
+                <label>Airtime Amount (₦) *</label>
+                <input type="number" id="airtimeAmount" placeholder="1000" min="100" required>
+            </div>
+
+            <label>Payment Method</label>
+            <div class="payment-options">
+                <div class="pay-option active" onclick="setPayMethod('WALLET', this, 'AIRTIME')">💼 Wallet</div>
+                <div class="pay-option" onclick="setPayMethod('TRANSFER', this, 'AIRTIME')">🏦 Transfer</div>
+                <div class="pay-option" onclick="setPayMethod('CARD', this, 'AIRTIME')">💳 Card/USSD</div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="airtimeSubmitBtn">Buy Airtime</button>
+        </form>
     </div>
 
-    <form id="vtuForm">
-        <div class="form-group">
-            <label>Select Network Operator *</label>
-            <select id="networkSelect" required>
-                <option value="MTN Nigeria">MTN Nigeria</option>
-                <option value="Airtel Nigeria">Airtel Nigeria</option>
-                <option value="Glo Nigeria">Glo Nigeria</option>
-                <option value="9mobile Nigeria">9mobile Nigeria</option>
-            </select>
+    <!-- COLUMN 2: MOBILE DATA BUNDLES -->
+    <div class="card">
+        <div class="brand-header">
+            <h2>📶 MOBILE DATA BUNDLES</h2>
+            <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
         </div>
 
-        <div class="form-group">
-            <label>Phone Number *</label>
-            <input type="tel" id="phoneNumber" placeholder="08012345678" maxlength="11" required>
-        </div>
+        <form id="dataForm">
+            <div class="form-group">
+                <label>Select Network Operator *</label>
+                <select id="dataNetworkSelect" required onchange="updateDataPlans()">
+                    <option value="MTN Nigeria">MTN Nigeria</option>
+                    <option value="Airtel Nigeria">Airtel Nigeria</option>
+                    <option value="Glo Nigeria">Glo Nigeria</option>
+                    <option value="9mobile Nigeria">9mobile Nigeria</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label>Recharge Amount (₦) *</label>
-            <input type="number" id="amount" placeholder="1000" min="100" required>
-        </div>
+            <div class="form-group">
+                <label>Select Data Plan *</label>
+                <select id="dataPlanSelect" required>
+                    <!-- Dynamically Populated by Network Selection -->
+                </select>
+            </div>
 
-        <label>Payment Method</label>
-        <div class="payment-options">
-            <div class="pay-option active" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
-            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
-            <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
-        </div>
+            <div class="form-group">
+                <label>Recipient Phone Number *</label>
+                <input type="tel" id="dataPhoneNumber" placeholder="08012345678" maxlength="11" required>
+            </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn">Proceed to Payment</button>
-    </form>
+            <label>Payment Method</label>
+            <div class="payment-options">
+                <div class="pay-option active" onclick="setPayMethod('WALLET', this, 'DATA')">💼 Wallet</div>
+                <div class="pay-option" onclick="setPayMethod('TRANSFER', this, 'DATA')">🏦 Transfer</div>
+                <div class="pay-option" onclick="setPayMethod('CARD', this, 'DATA')">💳 Card/USSD</div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="dataSubmitBtn">Purchase Data Bundle</button>
+        </form>
+    </div>
+
 </div>
 
-<!-- Modal Popup -->
+<!-- Universal Modal Popup -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
@@ -78,11 +150,55 @@
 </div>
 
 <script>
-let selectedPayMethod = 'WALLET';
+let selectedPayMethodAirtime = 'WALLET';
+let selectedPayMethodData = 'WALLET';
 
-function setPayMethod(method, el) {
-    selectedPayMethod = method;
-    document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
+// Available Data Plans Map
+const dataPlans = {
+    "MTN Nigeria": [
+        { plan: "1.0GB SME Data (30 Days)", price: 300 },
+        { plan: "2.0GB SME Data (30 Days)", price: 600 },
+        { plan: "5.0GB SME Data (30 Days)", price: 1500 },
+        { plan: "10.0GB SME Data (30 Days)", price: 3000 }
+    ],
+    "Airtel Nigeria": [
+        { plan: "1.5GB Monthly Data (30 Days)", price: 1000 },
+        { plan: "3.0GB Monthly Data (30 Days)", price: 1500 },
+        { plan: "10.0GB Monthly Data (30 Days)", price: 3000 }
+    ],
+    "Glo Nigeria": [
+        { plan: "1.35GB Monthly Data (30 Days)", price: 500 },
+        { plan: "2.9GB Monthly Data (30 Days)", price: 1000 },
+        { plan: "5.8GB Monthly Data (30 Days)", price: 2000 }
+    ],
+    "9mobile Nigeria": [
+        { plan: "1.0GB Monthly Data (30 Days)", price: 1000 },
+        { plan: "2.5GB Monthly Data (30 Days)", price: 1500 },
+        { plan: "7.0GB Monthly Data (30 Days)", price: 2500 }
+    ]
+};
+
+function updateDataPlans() {
+    const network = document.getElementById('dataNetworkSelect').value;
+    const planSelect = document.getElementById('dataPlanSelect');
+    planSelect.innerHTML = '';
+    
+    (dataPlans[network] || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.price;
+        opt.dataset.planName = p.plan;
+        opt.textContent = `${p.plan} - ₦${p.price.toLocaleString('en-NG')}`;
+        planSelect.appendChild(opt);
+    });
+}
+
+function setPayMethod(method, el, section) {
+    if (section === 'AIRTIME') {
+        selectedPayMethodAirtime = method;
+    } else {
+        selectedPayMethodData = method;
+    }
+    el.parentElement.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
     el.classList.add('active');
 }
 
@@ -90,9 +206,15 @@ function closeModal() {
     document.getElementById('customModal').style.display = 'none';
 }
 
-document.getElementById('vtuForm').addEventListener('submit', async (e) => {
+// Initial plan load
+updateDataPlans();
+
+/* ==========================================
+   1. AIRTIME FORM SUBMISSION
+   ========================================== */
+document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('submitBtn');
+    const btn = document.getElementById('airtimeSubmitBtn');
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
@@ -101,41 +223,38 @@ document.getElementById('vtuForm').addEventListener('submit', async (e) => {
     try { merchant = JSON.parse(rawSession); } catch(err) {}
 
     const modalBody = document.getElementById('modalBody');
-
-    const network = document.getElementById('networkSelect').value;
-    const phone = document.getElementById('phoneNumber').value;
-    const amount = parseFloat(document.getElementById('amount').value);
+    const network = document.getElementById('airtimeNetworkSelect').value;
+    const phone = document.getElementById('airtimePhoneNumber').value;
+    const amount = parseFloat(document.getElementById('airtimeAmount').value);
 
     try {
-        if (selectedPayMethod === 'WALLET') {
+        if (selectedPayMethodAirtime === 'WALLET') {
             if (!merchant.phone) {
                 modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
                 document.getElementById('customModal').style.display = 'flex';
                 btn.disabled = false;
-                btn.textContent = 'Proceed to Payment';
+                btn.textContent = 'Buy Airtime';
                 return;
             }
 
-            // 1. Try Wallet Checkout Endpoint
             let res = await fetch('/api/v1/checkout/wallet', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     merchantPhone: merchant.phone,
-                    serviceType: `Airtime/Data (${network})`,
+                    serviceType: `Airtime (${network})`,
                     targetInput: phone,
                     amount: amount
                 })
             });
 
-            // Fallback to core service transaction API if wallet checkout endpoint isn't mapped
             if (!res.ok) {
                 res = await fetch('/api/v1/services/transact', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         merchantPhone: merchant.phone,
-                        serviceType: `Airtime/Data (${network})`,
+                        serviceType: `Airtime (${network})`,
                         recipient: phone,
                         amount: amount
                     })
@@ -151,7 +270,7 @@ document.getElementById('vtuForm').addEventListener('submit', async (e) => {
                 }
                 modalBody.innerHTML = `
                     <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
-                        <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ RECHARGE SUCCESSFUL</p>
+                        <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ AIRTIME RECHARGE SUCCESSFUL</p>
                         <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Network:</strong> ${network}</p>
                         <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Recipient:</strong> ${phone}</p>
                         <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount:</strong> ₦${amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
@@ -163,15 +282,14 @@ document.getElementById('vtuForm').addEventListener('submit', async (e) => {
             }
             document.getElementById('customModal').style.display = 'flex';
         } else {
-            // 2. Bank Transfer or Card Payment Initializer
             const res = await fetch('/api/v1/checkout/initialize', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    serviceType: network,
+                    serviceType: `Airtime (${network})`,
                     targetInput: phone,
                     amount: amount,
-                    paymentMethod: selectedPayMethod
+                    paymentMethod: selectedPayMethodAirtime
                 })
             });
             const data = await res.json();
@@ -184,7 +302,7 @@ document.getElementById('vtuForm').addEventListener('submit', async (e) => {
                             <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName || 'GTBank'}</p>
                             <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
                         </div>
-                        <small style="color:#10b981; font-weight:700;">⚡ Airtime/Data dispatches automatically upon credit!</small>
+                        <small style="color:#10b981; font-weight:700;">⚡ Airtime dispatches automatically upon credit!</small>
                     `;
                 } else if (data.checkoutUrl) {
                     modalBody.innerHTML = `
@@ -205,7 +323,127 @@ document.getElementById('vtuForm').addEventListener('submit', async (e) => {
     }
 
     btn.disabled = false;
-    btn.textContent = 'Proceed to Payment';
+    btn.textContent = 'Buy Airtime';
+});
+
+/* ==========================================
+   2. DATA BUNDLE FORM SUBMISSION
+   ========================================== */
+document.getElementById('dataForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('dataSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
+    let merchant = {};
+    try { merchant = JSON.parse(rawSession); } catch(err) {}
+
+    const modalBody = document.getElementById('modalBody');
+    const network = document.getElementById('dataNetworkSelect').value;
+    const planSelect = document.getElementById('dataPlanSelect');
+    const amount = parseFloat(planSelect.value);
+    const planName = planSelect.options[planSelect.selectedIndex].dataset.planName;
+    const phone = document.getElementById('dataPhoneNumber').value;
+
+    try {
+        if (selectedPayMethodData === 'WALLET') {
+            if (!merchant.phone) {
+                modalBody.innerText = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
+                document.getElementById('customModal').style.display = 'flex';
+                btn.disabled = false;
+                btn.textContent = 'Purchase Data Bundle';
+                return;
+            }
+
+            let res = await fetch('/api/v1/checkout/wallet', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    merchantPhone: merchant.phone,
+                    serviceType: `Data Bundle (${network} - ${planName})`,
+                    targetInput: phone,
+                    amount: amount
+                })
+            });
+
+            if (!res.ok) {
+                res = await fetch('/api/v1/services/transact', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        merchantPhone: merchant.phone,
+                        serviceType: `Data Bundle (${network} - ${planName})`,
+                        recipient: phone,
+                        amount: amount
+                    })
+                });
+            }
+
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success') {
+                if (data.newBalance !== undefined) {
+                    merchant.balance = data.newBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                }
+                modalBody.innerHTML = `
+                    <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
+                        <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ DATA BUNDLE DISPATCHED</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Network:</strong> ${network}</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Plan:</strong> ${planName}</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Recipient:</strong> ${phone}</p>
+                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount:</strong> ₦${amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                        <p style="font-size:0.8rem; color:#38bdf8; margin-top:8px;">Ref: ${data.txRef || 'TXN-SUCCESS'} (₦2.00 Cashback Applied)</p>
+                    </div>
+                `;
+            } else {
+                modalBody.innerText = `⚠️ ${data.message || 'Transaction failed. Please check wallet balance.'}`;
+            }
+            document.getElementById('customModal').style.display = 'flex';
+        } else {
+            const res = await fetch('/api/v1/checkout/initialize', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    serviceType: `Data (${network} - ${planName})`,
+                    targetInput: phone,
+                    amount: amount,
+                    paymentMethod: selectedPayMethodData
+                })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success') {
+                if (data.paymentMethod === 'TRANSFER' && data.bankDetails) {
+                    modalBody.innerHTML = `
+                        <p>Transfer <strong>${data.bankDetails.amountToPay || `₦${amount.toLocaleString('en-NG')}`}</strong> to credit <strong>${phone}</strong> with ${planName}:</p>
+                        <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
+                            <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName || 'GTBank'}</p>
+                            <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
+                        </div>
+                        <small style="color:#10b981; font-weight:700;">⚡ Data bundle dispatches automatically upon credit!</small>
+                    `;
+                } else if (data.checkoutUrl) {
+                    modalBody.innerHTML = `
+                        <p>Click below to complete your payment via Card or USSD:</p>
+                        <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Payment Gateway</a>
+                    `;
+                } else {
+                    modalBody.innerText = data.message || "Payment initialized successfully.";
+                }
+            } else {
+                modalBody.innerText = `⚠️ ${data.message || 'Unable to initialize checkout.'}`;
+            }
+            document.getElementById('customModal').style.display = 'flex';
+        }
+    } catch (err) {
+        modalBody.innerText = "❌ Network connection error. Please try again.";
+        document.getElementById('customModal').style.display = 'flex';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Purchase Data Bundle';
 });
 </script>
 
