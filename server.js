@@ -4,10 +4,10 @@
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
  * Squad Decal Master NUBAN (5000759098) | Intact Merchant Principal Crediting |
- * Dynamic Markup & Cashback Engine | Access Bank Auto-Sweep | Flat ₦6.00 Termii SMS |
- * Resend Email Engine | Multi-Bank Settlement | Immediate Service SMS Alerts |
+ * Dynamic Markup & Cashback Engine (₦2.00 Cashback) | Access Bank Auto-Sweep |
+ * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Universal PDF Receipts |
  * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
- * SAIL Credit Line Application Engine | Explicit Portal & Service Route Engine |
+ * SAIL Credit Line Application Engine | Single-Header Navigation Gateway |
  * Dual GET/POST Webhook Health Verification Engine
  * ============================================================================
  */
@@ -157,7 +157,7 @@ function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
 }
 
 // =========================================================================
-// 🌐 PUBLIC & PORTAL DEDICATED NAVIGATION ROUTES
+// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES (STREAMLINED HEADER PATHS)
 // =========================================================================
 
 // Main Entry Points
@@ -167,14 +167,7 @@ app.get('/register', serveModuleFile('register.html', 'login.html'));
 app.get('/signup', serveModuleFile('register.html', 'login.html'));
 app.get('/dashboard', serveModuleFile('dashboard.html'));
 
-// Portal Modules
-app.get('/credit-support', serveModuleFile('credit-support.html', 'sail-credit.html'));
-app.get('/sail-credit', serveModuleFile('credit-support.html', 'sail-credit.html'));
-
-app.get('/newsletter', serveModuleFile('newsletter.html'));
-app.get('/articles', serveModuleFile('newsletter.html'));
-app.get('/news', serveModuleFile('newsletter.html'));
-
+// Direct Portal Services Matching Unified Header Menu
 app.get('/airtime-data', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu', serveModuleFile('vtu-support.html', 'vtu.html'));
 app.get('/vtu-support', serveModuleFile('vtu-support.html', 'vtu.html'));
@@ -189,7 +182,14 @@ app.get('/betting-topup', serveModuleFile('betting-support.html', 'betting.html'
 app.get('/betting', serveModuleFile('betting-support.html', 'betting.html'));
 app.get('/betting-support', serveModuleFile('betting-support.html', 'betting.html'));
 
-// Admin & Publishing Pages
+app.get('/credit-support', serveModuleFile('credit-support.html', 'sail-credit.html'));
+app.get('/sail-credit', serveModuleFile('credit-support.html', 'sail-credit.html'));
+
+app.get('/newsletter', serveModuleFile('newsletter.html'));
+app.get('/articles', serveModuleFile('newsletter.html'));
+app.get('/news', serveModuleFile('newsletter.html'));
+
+// Admin & Management Pages
 app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
@@ -580,7 +580,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     <a href="https://www.alltimebusiness.com.ng" class="action-btn">ACCESS MERCHANT DESK</a>
 
                     <div class="footer">
-                        © ALL TIME BUSINESS LTD. All rights reserved.<br>
+                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway<br>
                         Official Website: <a href="https://www.alltimebusiness.com.ng" style="color: #38bdf8; text-decoration: none;">www.alltimebusiness.com.ng</a>
                     </div>
                 </div>
@@ -889,7 +889,7 @@ app.post('/api/v1/credit/apply', async (req, res) => {
                 <p style="font-size:12px; color:#cbd5e1;">Our risk assessment engine is evaluating your live transaction volume across GTBank Virtual NUBAN settlements. You will be notified once approved.</p>
 
                 <div style="text-align:center; font-size:11px; color:#64748b; margin-top:25px; border-top:1px solid #233148; padding-top:10px;">
-                    © ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
+                    © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
                 </div>
             </div>
         `;
@@ -1054,7 +1054,7 @@ app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
                 <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY BULLETIN</h2>
                 <div style="margin:20px 0; line-height:1.6;">${body}</div>
                 <div style="text-align:center; font-size:11px; color:#64748b; margin-top:20px; border-top:1px solid #233148; padding-top:10px;">
-                    ALL TIME BUSINESS LTD • www.alltimebusiness.com.ng
+                    © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
                 </div>
             </div>
         `;
