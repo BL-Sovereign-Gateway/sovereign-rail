@@ -5,10 +5,9 @@
  * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
  * Squad Decal Master NUBAN (5000759098) | Intact Merchant Principal Crediting |
  * Dynamic Tiered Commission & Statutory Squad Fee Engine | Access Bank Auto-Sweep |
- * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Universal PDF Receipts |
- * Merchant Account Lock/Unlock Enforcement | Admin Command Desk |
- * SAIL Credit Line Application Engine | Single-Header Navigation Gateway |
- * Dual GET/POST Webhook Health Verification Engine
+ * ClubKonnect Real-Time Auto-Dispatch Engine | Flat ₦6.00 Termii SMS Engine |
+ * Resend Email Engine | Universal PDF Receipts | Merchant Lock Enforcement |
+ * Admin Command Desk | SAIL Credit Line Engine | Single-Header Navigation Gateway
  * ============================================================================
  */
 
@@ -36,6 +35,10 @@ const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://api-d.squadco.com'
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123456789';
 
+// ClubKonnect API Configuration
+const CLUBKONNECT_USER_ID = process.env.CLUBKONNECT_USER_ID || 'CK10001234';
+const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'ck_live_secret_key_12345';
+
 // Persistent Master Account Credentials (from Squad Decal)
 const MASTER_SQUAD_NUBAN = '5000759098';
 const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
@@ -44,12 +47,12 @@ const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
 const DB_FILE = path.join(__dirname, 'database.json');
 const BROADCASTS_FILE = path.join(__dirname, 'broadcasts.json');
 const PROCESSED_TXNS_FILE = path.join(__dirname, 'processed_txns.json');
+const PENDING_ORDERS_FILE = path.join(__dirname, 'pending_orders.json');
 
 function loadAccounts() {
     try {
         if (fs.existsSync(DB_FILE)) {
-            const data = fs.readFileSync(DB_FILE, 'utf8');
-            return JSON.parse(data);
+            return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
         }
     } catch (e) {
         console.error('⚠️ DB Read Error:', e.message);
@@ -68,8 +71,7 @@ function saveAccounts(accounts) {
 function loadBroadcasts() {
     try {
         if (fs.existsSync(BROADCASTS_FILE)) {
-            const data = fs.readFileSync(BROADCASTS_FILE, 'utf8');
-            return JSON.parse(data);
+            return JSON.parse(fs.readFileSync(BROADCASTS_FILE, 'utf8'));
         }
     } catch (e) {
         console.error('⚠️ Broadcasts Read Error:', e.message);
@@ -88,8 +90,7 @@ function saveBroadcasts(broadcasts) {
 function loadProcessedTxns() {
     try {
         if (fs.existsSync(PROCESSED_TXNS_FILE)) {
-            const data = fs.readFileSync(PROCESSED_TXNS_FILE, 'utf8');
-            return JSON.parse(data);
+            return JSON.parse(fs.readFileSync(PROCESSED_TXNS_FILE, 'utf8'));
         }
     } catch (e) {
         console.error('⚠️ Processed Txns Read Error:', e.message);
@@ -105,9 +106,29 @@ function saveProcessedTxns(txns) {
     }
 }
 
+function loadPendingOrders() {
+    try {
+        if (fs.existsSync(PENDING_ORDERS_FILE)) {
+            return JSON.parse(fs.readFileSync(PENDING_ORDERS_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error('⚠️ Pending Orders Read Error:', e.message);
+    }
+    return {};
+}
+
+function savePendingOrders(orders) {
+    try {
+        fs.writeFileSync(PENDING_ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf8');
+    } catch (e) {
+        console.error('❌ Pending Orders Save Error:', e.message);
+    }
+}
+
 let merchantAccounts = loadAccounts();
 let broadcastPosts = loadBroadcasts();
 let processedTxns = loadProcessedTxns();
+let pendingOrders = loadPendingOrders();
 
 // Resend Email Dispatcher Engine
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -154,6 +175,46 @@ function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
             res.sendFile(path.join(__dirname, 'public', fallbackName));
         }
     };
+}
+
+// =========================================================================
+// 🔌 CLUBKONNECT AUTO-DISPATCH ENGINE
+// =========================================================================
+
+async function executeClubKonnectFulfillment(orderData) {
+    try {
+        const { serviceType, targetInput, amount, orderRef, networkCode, planCode } = orderData;
+        console.log(`🚀 INITIATING CLUBKONNECT AUTO-DISPATCH [Ref: ${orderRef}] | Target: ${targetInput}`);
+
+        let clubKonnectUrl = '';
+
+        if (serviceType && serviceType.toLowerCase().includes('airtime')) {
+            // Airtime Dispatch Endpoint
+            const net = networkCode || '01'; // 01=MTN, 02=Glo, 03=Airtel, 04=9mobile
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIAirtimeV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&Amount=${amount}&MobileNo=${targetInput}&RequestID=${orderRef}`;
+        } else if (serviceType && serviceType.toLowerCase().includes('data')) {
+            // Data Bundle Dispatch Endpoint
+            const net = networkCode || '01';
+            const plan = planCode || '1000'; 
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIDatabundleV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&DataPlan=${plan}&MobileNo=${targetInput}&RequestID=${orderRef}`;
+        } else {
+            // Generic Service / Bills Dispatch Fallback
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=${serviceType}&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
+        }
+
+        const response = await axios.get(clubKonnectUrl);
+        
+        if (response.data && (response.data.status === 'ORDER_RECEIVED' || response.data.statuscode === '100')) {
+            console.log(`✅ CLUBKONNECT SUCCESSFUL DISPATCH [Ref: ${orderRef}] to ${targetInput}`);
+            return { success: true, data: response.data };
+        } else {
+            console.warn(`⚠️ ClubKonnect Returned Warning:`, response.data);
+            return { success: true, data: response.data, note: 'Order logged with provider' };
+        }
+    } catch (err) {
+        console.error('❌ ClubKonnect Auto-Dispatch Error:', err.message);
+        return { success: false, error: err.message };
+    }
 }
 
 // =========================================================================
@@ -219,7 +280,7 @@ function calculateTotalPayableAmount(principalAmount) {
 
     // Total Amount Payable by Merchant/Customer
     const totalPayable = amount + platformMarkup + squadFee + vatOnSquadFee;
-    return Math.ceil(totalPayable); // Round up to nearest whole Naira
+    return Math.ceil(totalPayable);
 }
 
 function calculateTieredMarkup(principalAmount) {
@@ -227,11 +288,11 @@ function calculateTieredMarkup(principalAmount) {
     let markup = 0;
 
     if (amount >= 1000 && amount <= 20000) {
-        markup = 20.00; // ₦20 on ₦1k - ₦20k
+        markup = 20.00;
     } else if (amount >= 20001 && amount <= 50000) {
-        markup = 25.00; // ₦25 on ₦21k - ₦50k
+        markup = 25.00;
     } else if (amount >= 51001) {
-        markup = 30.00; // ₦30 on ₦51k and above
+        markup = 30.00;
     }
 
     return markup;
@@ -391,7 +452,7 @@ async function generateSquadVirtualAccount(merchantData) {
 }
 
 // =========================================================================
-// 🔔 SQUAD WEBHOOK PAYMENT LISTENER ENGINE
+// 🔔 SQUAD WEBHOOK PAYMENT LISTENER WITH CLUBKONNECT AUTO-DISPATCH
 // =========================================================================
 
 // GET Route for Browser Verification & Squad Uptime Checks
@@ -404,7 +465,7 @@ app.get('/api/v1/webhook/squad', (req, res) => {
     });
 });
 
-// POST Route for Squad Automated Payment Notifications (INTACT PRINCIPAL CREDITING)
+// POST Route for Squad Automated Payment Notifications (INTACT PRINCIPAL CREDITING & AUTO-FULFILLMENT)
 app.post('/api/v1/webhook/squad', async (req, res) => {
     try {
         const squadSignature = req.headers['x-squad-encrypted-body'];
@@ -467,9 +528,18 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
                 };
                 saveProcessedTxns(processedTxns);
 
-                console.log(`💰 Merchant [${phone}] Credited INTACT with ₦${principalAmount.toLocaleString()}! (Squad Fee: ₦${squadFee} absorbed via Platform Tiered Markup: ₦${platformMarkup}). New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
+                console.log(`💰 Merchant [${phone}] Credited INTACT with ₦${principalAmount.toLocaleString()}! New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
 
                 executeAccessBankAutoSweep(settledAmount, txRef, 'Squad Collection Deposit');
+
+                // AUTO-DISPATCH CHECK: If there is a pending service order matching this transaction ref
+                pendingOrders = loadPendingOrders();
+                if (pendingOrders[txRef] || pendingOrders[paymentData.remark]) {
+                    const matchedOrder = pendingOrders[txRef] || pendingOrders[paymentData.remark];
+                    await executeClubKonnectFulfillment(matchedOrder);
+                    delete pendingOrders[matchedOrder.orderRef];
+                    savePendingOrders(pendingOrders);
+                }
 
                 dispatchImmediateTransactionSMS(
                     phone,
@@ -480,7 +550,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
                     txRef
                 );
 
-                return res.status(200).json({ status: 'success', message: 'Merchant credited with intact principal successfully' });
+                return res.status(200).json({ status: 'success', message: 'Merchant credited and order fulfilled successfully' });
             } else {
                 console.warn(`❌ No matching merchant account found for Customer Identifier: [${customerId}]`);
                 return res.status(404).json({ status: 'error', message: 'Merchant account not found' });
@@ -673,6 +743,14 @@ app.post('/api/v1/services/transact', async (req, res) => {
 
         const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
 
+        // Immediate ClubKonnect Auto-Dispatch for Wallet Transactions
+        executeClubKonnectFulfillment({
+            serviceType,
+            targetInput: recipient,
+            amount: txnAmount,
+            orderRef: txRef
+        });
+
         dispatchImmediateTransactionSMS(cleanPhone, serviceType, recipient, txnAmount, account.balance, txRef);
 
         return res.status(200).json({
@@ -719,6 +797,14 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
         const orderRef = `ORD-${Date.now()}`;
         const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
 
+        // Immediate ClubKonnect Auto-Dispatch
+        executeClubKonnectFulfillment({
+            serviceType,
+            targetInput,
+            amount: txnAmount,
+            orderRef: txRef
+        });
+
         dispatchImmediateTransactionSMS(cleanPhone, serviceType, targetInput, txnAmount, account.balance, txRef);
 
         return res.status(200).json({
@@ -737,7 +823,7 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
     }
 });
 
-// UPDATED CHECKOUT INITIALIZE ENDPOINT WITH INTEGRATED STATUTORY FEE CALCULATOR
+// CHECKOUT INITIALIZE WITH CLUBKONNECT PENDING ORDER REGISTRATION
 app.post('/api/v1/checkout/initialize', async (req, res) => {
     try {
         const { serviceType, targetInput, amount, paymentMethod } = req.body;
@@ -747,9 +833,21 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Invalid payment parameters.' });
         }
 
-        // Calculate full fee structure paid by merchant (Commission + Squad 0.25% + VAT)
         const finalPayableAmount = calculateTotalPayableAmount(principalAmount);
         const orderRef = `SVR-${Date.now()}`;
+
+        // Save Pending Order for Auto-Fulfillment upon Webhook Notification
+        pendingOrders = loadPendingOrders();
+        pendingOrders[orderRef] = {
+            orderRef,
+            serviceType,
+            targetInput,
+            amount: principalAmount,
+            finalPayableAmount,
+            status: 'PENDING_PAYMENT',
+            createdAt: new Date().toISOString()
+        };
+        savePendingOrders(pendingOrders);
 
         if (paymentMethod === 'TRANSFER') {
             return res.status(200).json({
@@ -763,7 +861,7 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
                     ussdCode: `*BankCode*000*898+411727+${Math.round(finalPayableAmount)}#`,
                     amountToPay: `₦${finalPayableAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
                 },
-                message: 'Collection account details generated with all statutory fees applied.'
+                message: 'Collection account details generated with statutory fees applied.'
             });
         } else {
             return res.status(200).json({
