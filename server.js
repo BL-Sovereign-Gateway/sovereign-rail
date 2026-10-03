@@ -55,7 +55,7 @@ function loadAccounts() {
             return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
         }
     } catch (e) {
-        console.error('⚠️ DB Read Error:', e.message);
+        console.error('⚠️️ DB Read Error:', e.message);
     }
     return {};
 }
@@ -189,16 +189,13 @@ async function executeClubKonnectFulfillment(orderData) {
         let clubKonnectUrl = '';
 
         if (serviceType && serviceType.toLowerCase().includes('airtime')) {
-            // Airtime Dispatch Endpoint
-            const net = networkCode || '01'; // 01=MTN, 02=Glo, 03=Airtel, 04=9mobile
+            const net = networkCode || '01';
             clubKonnectUrl = `https://www.nellobytesystems.com/APIAirtimeV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&Amount=${amount}&MobileNo=${targetInput}&RequestID=${orderRef}`;
         } else if (serviceType && serviceType.toLowerCase().includes('data')) {
-            // Data Bundle Dispatch Endpoint
             const net = networkCode || '01';
             const plan = planCode || '1000'; 
             clubKonnectUrl = `https://www.nellobytesystems.com/APIDatabundleV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&DataPlan=${plan}&MobileNo=${targetInput}&RequestID=${orderRef}`;
         } else {
-            // Generic Service / Bills Dispatch Fallback
             clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=${serviceType}&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
         }
 
@@ -255,21 +252,23 @@ app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
 // =========================================================================
-// 🧮 DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
+// 🧮 UPDATED DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
 // =========================================================================
 
 function calculateTotalPayableAmount(principalAmount) {
     const amount = parseFloat(principalAmount);
     if (isNaN(amount) || amount <= 0) return 0;
 
-    // 1. Tiered Platform Commission
+    // 1. Tiered Platform Commission (Including < ₦1,000 Rule)
     let platformMarkup = 0;
-    if (amount >= 1000 && amount <= 20000) {
-        platformMarkup = 20.00;
+    if (amount < 1000) {
+        platformMarkup = 10.00; // ₦10 for transactions below ₦1,000
+    } else if (amount >= 1000 && amount <= 20000) {
+        platformMarkup = 20.00; // ₦20 for ₦1,000 - ₦20,000
     } else if (amount >= 20001 && amount <= 50000) {
-        platformMarkup = 25.00;
-    } else if (amount >= 51001) {
-        platformMarkup = 30.00;
+        platformMarkup = 25.00; // ₦25 for ₦20,001 - ₦50,000
+    } else if (amount >= 50001) {
+        platformMarkup = 30.00; // ₦30 for ₦50,001 and above
     }
 
     // 2. Squad Virtual Account Processing Charge (0.25%, capped at ₦1,000)
@@ -287,11 +286,13 @@ function calculateTieredMarkup(principalAmount) {
     const amount = parseFloat(principalAmount);
     let markup = 0;
 
-    if (amount >= 1000 && amount <= 20000) {
+    if (amount < 1000) {
+        markup = 10.00;
+    } else if (amount >= 1000 && amount <= 20000) {
         markup = 20.00;
     } else if (amount >= 20001 && amount <= 50000) {
         markup = 25.00;
-    } else if (amount >= 51001) {
+    } else if (amount >= 50001) {
         markup = 30.00;
     }
 
@@ -455,7 +456,6 @@ async function generateSquadVirtualAccount(merchantData) {
 // 🔔 SQUAD WEBHOOK PAYMENT LISTENER WITH CLUBKONNECT AUTO-DISPATCH
 // =========================================================================
 
-// GET Route for Browser Verification & Squad Uptime Checks
 app.get('/api/v1/webhook/squad', (req, res) => {
     return res.status(200).json({
         status: 'active',
@@ -465,7 +465,6 @@ app.get('/api/v1/webhook/squad', (req, res) => {
     });
 });
 
-// POST Route for Squad Automated Payment Notifications (INTACT PRINCIPAL CREDITING & AUTO-FULFILLMENT)
 app.post('/api/v1/webhook/squad', async (req, res) => {
     try {
         const squadSignature = req.headers['x-squad-encrypted-body'];
@@ -532,7 +531,6 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
                 executeAccessBankAutoSweep(settledAmount, txRef, 'Squad Collection Deposit');
 
-                // AUTO-DISPATCH CHECK: If there is a pending service order matching this transaction ref
                 pendingOrders = loadPendingOrders();
                 if (pendingOrders[txRef] || pendingOrders[paymentData.remark]) {
                     const matchedOrder = pendingOrders[txRef] || pendingOrders[paymentData.remark];
@@ -743,7 +741,6 @@ app.post('/api/v1/services/transact', async (req, res) => {
 
         const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
 
-        // Immediate ClubKonnect Auto-Dispatch for Wallet Transactions
         executeClubKonnectFulfillment({
             serviceType,
             targetInput: recipient,
@@ -797,7 +794,6 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
         const orderRef = `ORD-${Date.now()}`;
         const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
 
-        // Immediate ClubKonnect Auto-Dispatch
         executeClubKonnectFulfillment({
             serviceType,
             targetInput,
@@ -823,7 +819,6 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
     }
 });
 
-// CHECKOUT INITIALIZE WITH CLUBKONNECT PENDING ORDER REGISTRATION
 app.post('/api/v1/checkout/initialize', async (req, res) => {
     try {
         const { serviceType, targetInput, amount, paymentMethod } = req.body;
@@ -836,7 +831,6 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
         const finalPayableAmount = calculateTotalPayableAmount(principalAmount);
         const orderRef = `SVR-${Date.now()}`;
 
-        // Save Pending Order for Auto-Fulfillment upon Webhook Notification
         pendingOrders = loadPendingOrders();
         pendingOrders[orderRef] = {
             orderRef,
