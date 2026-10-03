@@ -209,7 +209,7 @@
             font-weight: 600;
         }
 
-        /* PRODUCTS & SERVICES SECTION */
+        /* PRODUCTS & SERVICES SECTION (STRICT 4-BOX LAYOUT) */
         .section-title {
             font-size: 0.9rem;
             text-transform: uppercase;
@@ -221,20 +221,20 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 16px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
         .product-card {
             background: #1e293b;
             border: 1px solid #334155;
             border-radius: 12px;
-            padding: 20px;
+            padding: 24px;
             text-decoration: none;
             color: #fff;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 16px;
             transition: all 0.2s ease;
         }
 
@@ -245,11 +245,11 @@
         }
 
         .product-icon {
-            font-size: 1.8rem;
+            font-size: 2rem;
         }
 
         .product-name {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 700;
             color: #f1f5f9;
         }
@@ -277,6 +277,7 @@
             .top-nav { flex-direction: column; gap: 12px; padding: 12px; }
             .nav-links { flex-wrap: wrap; justify-content: center; }
             .balances-grid { grid-template-columns: 1fr; }
+            .products-grid { grid-template-columns: 1fr; }
             .greeting-bar { flex-direction: column; align-items: flex-start; }
             .quick-actions { width: 100%; flex-wrap: wrap; }
             .btn-action { flex: 1; justify-content: center; }
@@ -309,7 +310,7 @@
 
     <!-- USER GREETING & QUICK ACTION DESK -->
     <div class="greeting-bar">
-        <h2 id="merchantGreeting">Hi, Merchant</h2>
+        <h2 id="merchantGreeting">Hi, Tope Ogegbo</h2>
         <div class="quick-actions">
             <button class="btn-action btn-fund" onclick="openFundModal()">➕ FUND WALLET</button>
             <button class="btn-action btn-withdraw" onclick="openWithdrawModal()">💸 WITHDRAW FUNDS</button>
@@ -330,10 +331,10 @@
         <div class="balance-card">
             <div class="balance-header">
                 <span class="balance-title">Gateway Ledger Balance</span>
-                <button class="eye-btn" onclick="toggleBalance('ledger')">👁️</button>
+                <button class="eye-btn" onclick="toggleBalance('ledger')">👁️️</button>
             </div>
             <div class="balance-amount" id="ledgerBalance">₦••••••••</div>
-            <div class="balance-sub" id="virtualNubanDisplay">GTBank Virtual Account: Loading...</div>
+            <div class="balance-sub" id="virtualNubanDisplay">GTBank Virtual Account: 5000759098</div>
         </div>
 
         <!-- SAIL CREDIT LINE CARD -->
@@ -347,13 +348,9 @@
         </div>
     </div>
 
-    <!-- PRODUCTS & SERVICES PORTAL -->
+    <!-- VTU, BILLS & FINANCIAL PRODUCTS (EXACT 4 BOXES) -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
-        <a href="/vtu-support" class="product-card">
-            <div class="product-icon">📞</div>
-            <div class="product-name">Buy Airtime & Data</div>
-        </a>
         <a href="/education-support" class="product-card">
             <div class="product-icon">🎓</div>
             <div class="product-name">WAEC / JAMB Result PINs</div>
@@ -369,10 +366,6 @@
         <a href="#" class="product-card" onclick="alert('Stocks & Equity Module coming soon!')">
             <div class="product-icon">📈</div>
             <div class="product-name">Buy Stocks & Equity</div>
-        </a>
-        <a href="/betting-topup" class="product-card">
-            <div class="product-icon">🎮</div>
-            <div class="product-name">Betting Topup</div>
         </a>
     </div>
 
@@ -411,8 +404,7 @@ function initSession() {
         return;
     }
 
-    // Set Name & Virtual NUBAN Details
-    document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Merchant'}`;
+    document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
 }
 
@@ -520,7 +512,7 @@ function downloadStatementPDF() {
 
     modalTitle.textContent = "📄 GENERATE STATEMENT";
     modalBody.innerHTML = `
-        <p style="margin-bottom:12px;">Generating official PDF transaction statement for <strong>${merchant.merchantName}</strong>...</p>
+        <p style="margin-bottom:12px;">Generating official PDF transaction statement for <strong>${merchant.merchantName || 'Tope Ogegbo'}</strong>...</p>
         <div style="background:#0f172a; padding:14px; border-radius:8px; border:1px solid #10b981; text-align:left; font-size:0.8rem; color:#cbd5e1;">
             <p><strong>Merchant ID:</strong> ${merchant.id || 'MCH-ACTIVE'}</p>
             <p><strong>NUBAN:</strong> ${merchant.virtualNuban || '5000759098'}</p>
