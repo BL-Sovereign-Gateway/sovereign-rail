@@ -748,235 +748,254 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                         </div>
                         <div class="info-row">
                             <span class="info-label">USSD Merchant Code:</span>
-                            <span class="info-val" style="color: #f59e0b;">*BankCode*000*898+411727+AMOUNT#</span>
+                            <span class="info-val" style="color: #f59e0b;">*737*000*411727+AMOUNT#</span>
                         </div>
                     </div>
 
-                    <a href="https://www.alltimebusiness.com.ng" class="action-btn">ACCESS MERCHANT DESK</a>
+                    <a href="https://www.alltimebusiness.com.ng/login" class="action-btn">ACCESS MERCHANT PORTAL</a>
 
                     <div class="footer">
-                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway<br>
-                        Official Website: <a href="https://www.alltimebusiness.com.ng" style="color: #38bdf8; text-decoration: none;">www.alltimebusiness.com.ng</a>
+                        ALL TIME BUSINESS LTD (RC: 950444)<br>
+                        Powered by Squad Co GTBank Infrastructure Engine.<br>
+                        Need support? Contact support@alltimebusiness.com.ng
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        await dispatchEmail(cleanEmail, '⚡ Welcome to @BL Sovereign Gateway — Dedicated Account Active', welcomeMailHtml);
-        sendTermiiSMS(cleanPhone, `Welcome to @BL Sovereign Gateway, ${merchantName}! Your dedicated GTBank NUBAN is ${squadRes.virtualNuban}. Manage your desk at www.alltimebusiness.com.ng`).catch(() => {});
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Account Provisioned', welcomeMailHtml);
 
-        return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
-
+        return res.status(201).json({
+            status: 'success',
+            message: 'Registration successful! Your dedicated collection NUBAN is active.',
+            data: {
+                merchantName,
+                phone: cleanPhone,
+                virtualNuban: squadRes.virtualNuban,
+                virtualBank: squadRes.virtualBank
+            }
+        });
     } catch (err) {
-        console.error('Signup Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Server error during onboarding.' });
+        console.error('❌ Signup Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error during onboarding.' });
     }
 });
 
-app.post('/api/v1/auth/signin', async (req, res) => {
+app.post('/api/v1/auth/login', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
         const { phone, password } = req.body;
+
+        if (!phone || !password) {
+            return res.status(400).json({ status: 'error', message: 'Phone number and password are required.' });
+        }
+
         const cleanPhone = normalizePhoneNumber(phone);
-
-        const account = merchantAccounts[cleanPhone];
-        if (!account) return res.status(404).json({ status: 'error', message: 'Account not found.' });
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked by management. Please contact support.' });
-        }
-
-        const isMatch = await bcrypt.compare(password, account.password);
-        if (!isMatch) return res.status(401).json({ status: 'error', message: 'Incorrect password.' });
-
-        return res.status(200).json({ status: 'success', message: 'Signed in successfully!', merchant: account });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Sign in processing failed.' });
-    }
-});
-
-// =========================================================================
-// 🛒 SERVICE TRANSACTION & WITHDRAWAL ENDPOINTS WITH SECURITY PIN VALIDATION
-// =========================================================================
-
-app.post('/api/v1/services/transact', async (req, res) => {
-    try {
-        const { merchantPhone, serviceType, recipient, amount, pin, networkCode, planCode } = req.body;
-        const txnAmount = parseFloat(amount);
-
-        if (!merchantPhone || !serviceType || !recipient || isNaN(txnAmount) || txnAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid transaction parameters.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
         const account = merchantAccounts[cleanPhone];
 
-        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please check details or sign up.' });
+        }
 
         if (account.isLocked) {
             return res.status(403).json({ status: 'error', message: 'Account is locked. Contact support.' });
         }
 
-        if (account.withdrawalPin && pin && account.withdrawalPin !== pin.trim()) {
-            return res.status(401).json({ status: 'error', message: 'Invalid Security PIN.' });
+        const isMatch = await bcrypt.compare(password, account.password);
+        if (!isMatch) {
+            return res.status(401).json({ status: 'error', message: 'Invalid credentials provided.' });
         }
 
-        if ((account.balance || 0) < txnAmount) {
+        return res.status(200).json({
+            status: 'success',
+            message: 'Authentication successful.',
+            user: {
+                id: account.id,
+                merchantName: account.merchantName,
+                phone: account.phone,
+                email: account.email,
+                balance: account.balance,
+                virtualNuban: account.virtualNuban,
+                virtualBank: account.virtualBank,
+                settlementAccount: account.settlementAccount,
+                bankName: account.bankName
+            }
+        });
+    } catch (err) {
+        console.error('❌ Login Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error during login.' });
+    }
+});
+
+// Fetch Current Merchant Account Details
+app.get('/api/v1/account/me', (req, res) => {
+    try {
+        const phone = req.query.phone;
+        if (!phone) {
+            return res.status(400).json({ status: 'error', message: 'Phone identifier parameter required.' });
+        }
+
+        merchantAccounts = loadAccounts();
+        const cleanPhone = normalizePhoneNumber(phone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            account: {
+                merchantName: account.merchantName,
+                phone: account.phone,
+                email: account.email,
+                balance: account.balance,
+                virtualNuban: account.virtualNuban,
+                virtualBank: account.virtualBank,
+                settlementAccount: account.settlementAccount,
+                bankName: account.bankName,
+                isLocked: account.isLocked
+            }
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Error retrieving account info.' });
+    }
+});
+
+// =========================================================================
+// 🚀 UTILITY & FULFILLMENT ROUTES (VTU, BILLS, LEAVE / BROADCASTS)
+// =========================================================================
+
+app.post('/api/v1/vtu/purchase', async (req, res) => {
+    try {
+        const { merchantPhone, serviceType, targetInput, amount, networkCode, planCode, securityPin } = req.body;
+        
+        merchantAccounts = loadAccounts();
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        if (securityPin && account.withdrawalPin && securityPin !== account.withdrawalPin) {
+            return res.status(401).json({ status: 'error', message: 'Invalid security PIN.' });
+        }
+
+        const cost = parseFloat(amount);
+        if (isNaN(cost) || cost <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
+        }
+
+        if ((account.balance || 0) < cost) {
             return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
         }
 
         const orderRef = `ORD-${Date.now()}`;
-        account.balance -= txnAmount;
-        saveAccounts(merchantAccounts);
-
-        const orderData = {
-            orderRef,
+        const fulfillmentRes = await executeClubKonnectFulfillment({
             serviceType,
-            targetInput: recipient,
-            amount: txnAmount,
-            networkCode,
-            planCode,
-            merchantPhone: cleanPhone
-        };
-
-        const dispatchResult = await executeClubKonnectFulfillment(orderData);
-
-        if (!dispatchResult.success) {
-            pendingOrders = loadPendingOrders();
-            pendingOrders[orderRef] = orderData;
-            savePendingOrders(pendingOrders);
-        }
-
-        dispatchImmediateTransactionSMS(cleanPhone, serviceType, recipient, txnAmount, account.balance, orderRef);
-
-        return res.status(200).json({
-            status: 'success',
-            message: `${serviceType} order submitted successfully!`,
+            targetInput,
+            amount: cost,
             orderRef,
-            newBalance: account.balance,
-            dispatchStatus: dispatchResult
+            networkCode,
+            planCode
         });
+
+        if (fulfillmentRes.success) {
+            account.balance -= cost;
+            saveAccounts(merchantAccounts);
+
+            dispatchImmediateTransactionSMS(
+                cleanPhone,
+                serviceType || 'VTU Order',
+                targetInput,
+                cost,
+                account.balance,
+                orderRef
+            );
+
+            return res.status(200).json({
+                status: 'success',
+                message: 'Order processed and auto-dispatched successfully.',
+                orderRef,
+                newBalance: account.balance
+            });
+        } else {
+            return res.status(500).json({ status: 'error', message: 'Failed to process order with provider.' });
+        }
     } catch (err) {
-        console.error('Transaction API Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Server error processing transaction.' });
+        return res.status(500).json({ status: 'error', message: 'Server error fulfilling VTU purchase.' });
     }
 });
 
-// =========================================================================
-// 📰 NEWSLETTER & ARTICLE PUBLISHING ENGINE
-// =========================================================================
-
-// Newsletter Subscription API
+// Newsletter Subscriber Registration
 app.post('/api/v1/newsletter/subscribe', (req, res) => {
     try {
         const { email } = req.body;
         if (!email || !email.includes('@')) {
-            return res.status(400).json({ status: 'error', message: 'Please provide a valid email address.' });
+            return res.status(400).json({ status: 'error', message: 'Please enter a valid email address.' });
         }
 
-        const cleanEmail = email.trim().toLowerCase();
         newsletterSubscribers = loadNewsletterSubscribers();
+        const cleanEmail = email.trim().toLowerCase();
 
-        if (newsletterSubscribers.includes(cleanEmail)) {
-            return res.status(200).json({ status: 'success', message: 'You are already subscribed to our newsletter.' });
+        if (!newsletterSubscribers.includes(cleanEmail)) {
+            newsletterSubscribers.push(cleanEmail);
+            saveNewsletterSubscribers(newsletterSubscribers);
         }
 
-        newsletterSubscribers.push(cleanEmail);
-        saveNewsletterSubscribers(newsletterSubscribers);
-
-        const welcomeHtml = `
-            <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0d1322; color: #ffffff;">
-                <h2 style="color: #38bdf8;">ALL TIME BUSINESS LTD</h2>
-                <p>Thank you for subscribing to our official newsletter!</p>
-                <p>You will now receive primary updates on Nigerian business opportunities, market intelligence, and fintech solutions directly in your inbox.</p>
-                <br>
-                <p style="font-size: 12px; color: #94a3b8;">www.alltimebusiness.com.ng | @BL SOVEREIGN GATEWAY</p>
-            </div>
-        `;
-        dispatchEmail(cleanEmail, 'Subscribed to ALL TIME BUSINESS Updates', welcomeHtml).catch(() => {});
-
-        return res.status(201).json({ status: 'success', message: 'Subscription successful! Thank you.' });
+        return res.status(200).json({ status: 'success', message: 'Subscribed to newsletter successfully!' });
     } catch (err) {
-        console.error('Newsletter Subscribe Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Failed to complete newsletter subscription.' });
+        return res.status(500).json({ status: 'error', message: 'Subscription failed.' });
     }
 });
 
-// Get Broadcast Articles / Newsletter Posts
-app.get('/api/v1/newsletter/posts', (req, res) => {
+// Get Broadcast Articles
+app.get('/api/v1/broadcasts', (req, res) => {
     try {
         broadcastPosts = loadBroadcasts();
         return res.status(200).json({ status: 'success', posts: broadcastPosts });
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to retrieve newsletter posts.' });
+        return res.status(500).json({ status: 'error', message: 'Failed to load broadcasts.' });
     }
 });
 
-// Publish Article / Broadcast Post (Handles admin command center payloads seamlessly)
-app.post('/api/v1/newsletter/publish', async (req, res) => {
+// Publish Broadcast Article
+app.post('/api/v1/broadcasts/publish', (req, res) => {
     try {
-        const { title, headline, subject, content, message, emailContent, category, summary, author, notifySubscribers } = req.body;
-
-        const resolvedTitle = title || headline || subject;
-        const resolvedContent = content || emailContent || message;
-
-        if (!resolvedTitle || !resolvedContent) {
-            return res.status(400).json({ status: 'error', message: 'Broadcast Title/Subject and Content are required.' });
+        const { title, content, author, category } = req.body;
+        if (!title || !content) {
+            return res.status(400).json({ status: 'error', message: 'Title and content are required.' });
         }
 
         broadcastPosts = loadBroadcasts();
         const newPost = {
             id: `POST-${Date.now()}`,
-            title: resolvedTitle,
-            category: category || 'Business Intelligence',
-            summary: summary || resolvedTitle,
-            content: resolvedContent,
-            author: author || 'ALL TIME BUSINESS Editorial Desk',
-            timestamp: new Date().toISOString()
+            title,
+            content,
+            author: author || 'ALL TIME BUSINESS LTD',
+            category: category || 'General',
+            createdAt: new Date().toISOString()
         };
 
         broadcastPosts.unshift(newPost);
         saveBroadcasts(broadcastPosts);
 
-        if (notifySubscribers) {
-            newsletterSubscribers = loadNewsletterSubscribers();
-            const emailHtml = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0d1322; color: #ffffff; max-width: 600px; margin: 0 auto; border-radius: 8px;">
-                    <h2 style="color: #38bdf8; margin-bottom: 5px;">${resolvedTitle}</h2>
-                    <p style="color: #10b981; font-size: 12px; font-weight: bold; text-transform: uppercase;">Category: ${newPost.category}</p>
-                    <hr style="border: 0; border-top: 1px solid #233148; margin: 20px 0;" />
-                    <div style="color: #f1f5f9; font-size: 14px; line-height: 1.6;">${resolvedContent}</div>
-                    <br>
-                    <a href="https://www.alltimebusiness.com.ng/newsletter" style="display: inline-block; background-color: #38bdf8; color: #0d1322; padding: 10px 18px; text-decoration: none; font-weight: bold; border-radius: 4px;">Read Online</a>
-                    <br><br>
-                    <p style="font-size: 11px; color: #64748b;">© 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway</p>
-                </div>
-            `;
-
-            for (const subEmail of newsletterSubscribers) {
-                dispatchEmail(subEmail, `📰 ALL TIME BUSINESS: ${resolvedTitle}`, emailHtml).catch(() => {});
-            }
-        }
-
-        return res.status(201).json({ status: 'success', message: 'Broadcast published successfully!', post: newPost });
+        return res.status(201).json({ status: 'success', message: 'Article published successfully!', post: newPost });
     } catch (err) {
-        console.error('Publish Article Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
+        return res.status(500).json({ status: 'error', message: 'Failed to publish article.' });
     }
 });
 
 // =========================================================================
-// 🚀 SERVER INITIALIZATION
+// ⚡ SERVER ENGINE INITIALIZATION
 // =========================================================================
 
 app.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`🚀 @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE ACTIVE`);
-    console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Mode: Live Production Engine`);
-    console.log(`Master Squad NUBAN: ${MASTER_SQUAD_NUBAN} (GTBank)`);
-    console.log(`Master Squad USSD: *BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+AMOUNT#`);
+    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER IS LIVE ON PORT [${PORT}]`);
+    console.log(`🏢 ALL TIME BUSINESS LTD (RC: 950444)`);
+    console.log(`💳 Master NUBAN: ${MASTER_SQUAD_NUBAN} | GTBank Squad Engine`);
     console.log(`=======================================================`);
 });
