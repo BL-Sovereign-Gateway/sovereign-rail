@@ -7,7 +7,7 @@
  * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
- * Newsletter & Article Publishing Engine
+ * Newsletter & Article Publishing Engine | Daily Site Analytics Counter Engine
  * ============================================================================
  */
 
@@ -50,6 +50,7 @@ const BROADCASTS_FILE = path.join(__dirname, 'broadcasts.json');
 const PROCESSED_TXNS_FILE = path.join(__dirname, 'processed_txns.json');
 const PENDING_ORDERS_FILE = path.join(__dirname, 'pending_orders.json');
 const NEWSLETTER_SUBSCRIBERS_FILE = path.join(__dirname, 'newsletter_subscribers.json');
+const ANALYTICS_FILE = path.join(__dirname, 'site_analytics.json');
 
 function loadAccounts() {
     try {
@@ -146,11 +147,77 @@ function saveNewsletterSubscribers(subscribers) {
     }
 }
 
+function loadAnalytics() {
+    try {
+        if (fs.existsSync(ANALYTICS_FILE)) {
+            return JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error('⚠️ Analytics Read Error:', e.message);
+    }
+    return { dates: {} };
+}
+
+function saveAnalytics(analytics) {
+    try {
+        fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2), 'utf8');
+    } catch (e) {
+        console.error('❌ Analytics Save Error:', e.message);
+    }
+}
+
 let merchantAccounts = loadAccounts();
 let broadcastPosts = loadBroadcasts();
 let processedTxns = loadProcessedTxns();
 let pendingOrders = loadPendingOrders();
 let newsletterSubscribers = loadNewsletterSubscribers();
+let siteAnalytics = loadAnalytics();
+
+// Analytics Middleware - Tracks Daily Site Traffic
+app.use((req, res, next) => {
+    try {
+        if (req.path === '/' || req.path.endsWith('.html') || req.path === '/newsletter' || req.path === '/login') {
+            const today = new Date().toISOString().split('T')[0];
+            siteAnalytics = loadAnalytics();
+            if (!siteAnalytics.dates[today]) {
+                siteAnalytics.dates[today] = { pageViews: 0, uniqueIPs: [] };
+            }
+            siteAnalytics.dates[today].pageViews += 1;
+            
+            const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            if (clientIP && !siteAnalytics.dates[today].uniqueIPs.includes(clientIP)) {
+                siteAnalytics.dates[today].uniqueIPs.push(clientIP);
+            }
+            saveAnalytics(siteAnalytics);
+        }
+    } catch (err) {
+        console.error('Analytics tracking error:', err.message);
+    }
+    next();
+});
+
+// API Endpoint to fetch Admin Visitor Counter Stats
+app.get('/api/v1/admin/analytics', (req, res) => {
+    try {
+        siteAnalytics = loadAnalytics();
+        const today = new Date().toISOString().split('T')[0];
+        const todayData = siteAnalytics.dates[today] || { pageViews: 0, uniqueIPs: [] };
+        
+        let totalAllTimeViews = 0;
+        Object.values(siteAnalytics.dates).forEach(d => {
+            totalAllTimeViews += (d.pageViews || 0);
+        });
+
+        return res.status(200).json({
+            status: 'success',
+            todayVisitors: todayData.uniqueIPs.length,
+            todayPageViews: todayData.pageViews,
+            totalAllTimeViews
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to retrieve analytics.' });
+    }
+});
 
 // Resend Email Dispatcher Engine
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -187,7 +254,7 @@ function normalizePhoneNumber(phone) {
     return cleaned;
 }
 
-// Helper to serve specific static HTML file if it exists, otherwise fall back to target
+// Helper to serve specific static HTML file if it exists
 function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
     return (req, res) => {
         const targetPath = path.join(__dirname, 'public', fileName);
@@ -847,22 +914,25 @@ app.get('/api/v1/newsletter/posts', (req, res) => {
     }
 });
 
-// Publish Article / Broadcast Post
+// Publish Article / Broadcast Post (Handles admin command center payloads seamlessly)
 app.post('/api/v1/newsletter/publish', async (req, res) => {
     try {
-        const { title, category, summary, content, author, notifySubscribers } = req.body;
+        const { title, headline, subject, content, message, emailContent, category, summary, author, notifySubscribers } = req.body;
 
-        if (!title || !content) {
-            return res.status(400).json({ status: 'error', message: 'Title and Content are required fields.' });
+        const resolvedTitle = title || headline || subject;
+        const resolvedContent = content || emailContent || message;
+
+        if (!resolvedTitle || !resolvedContent) {
+            return res.status(400).json({ status: 'error', message: 'Broadcast Title/Subject and Content are required.' });
         }
 
         broadcastPosts = loadBroadcasts();
         const newPost = {
             id: `POST-${Date.now()}`,
-            title,
+            title: resolvedTitle,
             category: category || 'Business Intelligence',
-            summary: summary || title,
-            content,
+            summary: summary || resolvedTitle,
+            content: resolvedContent,
             author: author || 'ALL TIME BUSINESS Editorial Desk',
             timestamp: new Date().toISOString()
         };
@@ -874,11 +944,10 @@ app.post('/api/v1/newsletter/publish', async (req, res) => {
             newsletterSubscribers = loadNewsletterSubscribers();
             const emailHtml = `
                 <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0d1322; color: #ffffff; max-width: 600px; margin: 0 auto; border-radius: 8px;">
-                    <h2 style="color: #38bdf8; margin-bottom: 5px;">${title}</h2>
+                    <h2 style="color: #38bdf8; margin-bottom: 5px;">${resolvedTitle}</h2>
                     <p style="color: #10b981; font-size: 12px; font-weight: bold; text-transform: uppercase;">Category: ${newPost.category}</p>
-                    <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">${summary}</p>
                     <hr style="border: 0; border-top: 1px solid #233148; margin: 20px 0;" />
-                    <div style="color: #f1f5f9; font-size: 14px; line-height: 1.6;">${content}</div>
+                    <div style="color: #f1f5f9; font-size: 14px; line-height: 1.6;">${resolvedContent}</div>
                     <br>
                     <a href="https://www.alltimebusiness.com.ng/newsletter" style="display: inline-block; background-color: #38bdf8; color: #0d1322; padding: 10px 18px; text-decoration: none; font-weight: bold; border-radius: 4px;">Read Online</a>
                     <br><br>
@@ -887,14 +956,14 @@ app.post('/api/v1/newsletter/publish', async (req, res) => {
             `;
 
             for (const subEmail of newsletterSubscribers) {
-                dispatchEmail(subEmail, `📰 ALL TIME BUSINESS: ${title}`, emailHtml).catch(() => {});
+                dispatchEmail(subEmail, `📰 ALL TIME BUSINESS: ${resolvedTitle}`, emailHtml).catch(() => {});
             }
         }
 
-        return res.status(201).json({ status: 'success', message: 'Article published successfully!', post: newPost });
+        return res.status(201).json({ status: 'success', message: 'Broadcast published successfully!', post: newPost });
     } catch (err) {
         console.error('Publish Article Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Failed to publish article.' });
+        return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
     }
 });
 
