@@ -70,50 +70,76 @@
 
         async function fetchPublications() {
             const feed = document.getElementById('publicationFeed');
-            try {
-                const res = await fetch('/api/v1/broadcasts');
-                const data = await res.json();
+            const endpoints = ['/api/v1/broadcasts', '/api/v1/admin/broadcasts'];
+            let rawList = null;
 
-                if (data.status === 'success' && data.broadcasts && data.broadcasts.length > 0) {
+            // Step 1: Attempt to fetch from available server endpoints
+            for (const url of endpoints) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Support various server payload formats
+                        const items = Array.isArray(data) ? data : (data.broadcasts || data.data || data.publications);
+                        if (Array.isArray(items)) {
+                            rawList = items;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Failed to fetch from ${url}:`, e);
+                }
+            }
+
+            // Step 2: Render results or fallback layout
+            try {
+                if (rawList && rawList.length > 0) {
                     feed.innerHTML = '';
 
-                    data.broadcasts.forEach((post, index) => {
+                    rawList.forEach((post, index) => {
                         const card = document.createElement('div');
                         card.className = 'post-card';
 
-                        const dateStr = post.publishedAt ? new Date(post.publishedAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently Published';
+                        // Extract flexible property names across different server setups
+                        const title = post.title || post.subject || 'Official Announcement';
+                        const body = post.body || post.content || post.message || '';
+                        const rawDate = post.publishedAt || post.createdAt || post.date;
+                        const dateStr = rawDate ? new Date(rawDate).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently Published';
+                        const image = post.image || post.imageUrl;
+                        const video = post.video || post.videoUrl;
 
                         let mediaHtml = '';
-                        if (post.image) {
-                            mediaHtml += `<div class="media-frame"><img src="${post.image}" alt="Attachment"></div>`;
+                        if (image) {
+                            mediaHtml += `<div class="media-frame"><img src="${image}" alt="Attachment"></div>`;
                         }
-                        if (post.video) {
-                            mediaHtml += `<div class="media-frame" style="margin-top:10px;"><video src="${post.video}" controls></video></div>`;
+                        if (video) {
+                            mediaHtml += `<div class="media-frame" style="margin-top:10px;"><video src="${video}" controls></video></div>`;
                         }
 
                         card.innerHTML = `
                             <div style="display: flex; justify-content: space-between; align-items: start;">
-                                <div class="post-title">${post.title}</div>
+                                <div class="post-title">${title}</div>
                                 ${index === 0 ? '<span class="badge-latest">LATEST</span>' : ''}
                             </div>
                             <div class="post-date">Published: ${dateStr}</div>
-                            <div class="post-body">${post.body}</div>
+                            <div class="post-body">${body}</div>
                             ${mediaHtml}
                         `;
 
                         feed.appendChild(card);
                     });
                 } else {
+                    // Default view if no broadcast posts exist in JSON database yet
                     feed.innerHTML = `
                         <div class="post-card">
                             <div class="post-title">🎁 Welcome to @BL SOVEREIGN GATEWAY</div>
-                            <div class="post-date">Published: September 2026</div>
+                            <div class="post-date">Published: October 2026</div>
                             <div class="post-body">Stay updated with official business announcements, feature updates, and platform highlights directly from our management desk.</div>
                         </div>
                     `;
                 }
             } catch (err) {
-                feed.innerHTML = `<div class="empty-state" style="color: var(--red-main);">❌ Error loading publications.</div>`;
+                feed.innerHTML = `<div class="empty-state" style="color: var(--red-main);">❌ Error loading publications. Please try refreshing.</div>`;
             }
         }
     </script>
