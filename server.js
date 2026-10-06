@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static assets from 'public' directory
+// Serve static assets (JS, CSS, Media) from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables & Credentials
@@ -254,7 +254,7 @@ function normalizePhoneNumber(phone) {
     return cleaned;
 }
 
-// Helper to serve specific static HTML file if it exists
+// Helper to serve specific static HTML file cleanly with primary fallback
 function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
     return (req, res) => {
         const targetPath = path.join(__dirname, 'public', fileName);
@@ -304,7 +304,7 @@ async function executeClubKonnectFulfillment(orderData) {
 }
 
 // =========================================================================
-// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES
+// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES (Matched to public/*.html structure)
 // =========================================================================
 
 app.get('/', serveModuleFile('index.html', 'login.html'));
@@ -313,29 +313,35 @@ app.get('/register', serveModuleFile('register.html', 'login.html'));
 app.get('/signup', serveModuleFile('register.html', 'login.html'));
 app.get('/dashboard', serveModuleFile('dashboard.html'));
 
-app.get('/airtime-data', serveModuleFile('vtu-support.html', 'vtu.html'));
-app.get('/vtu', serveModuleFile('vtu-support.html', 'vtu.html'));
-app.get('/vtu-support', serveModuleFile('vtu-support.html', 'vtu.html'));
+app.get('/betting-support', serveModuleFile('betting-support.html', 'dashboard.html'));
+app.get('/betting', serveModuleFile('betting-support.html', 'dashboard.html'));
 
-app.get('/bill-payments', serveModuleFile('bill-payments.html', 'bills.html'));
-app.get('/bills', serveModuleFile('bill-payments.html', 'bills.html'));
+app.get('/bill-payments', serveModuleFile('bill-payments.html', 'dashboard.html'));
+app.get('/bills', serveModuleFile('bill-payments.html', 'dashboard.html'));
 
-app.get('/education-support', serveModuleFile('education-support.html', 'education.html'));
-app.get('/education', serveModuleFile('education-support.html', 'education.html'));
+app.get('/credit-support', serveModuleFile('credit-support.html', 'dashboard.html'));
+app.get('/sail-credit', serveModuleFile('credit-support.html', 'dashboard.html'));
 
-app.get('/betting-topup', serveModuleFile('betting-support.html', 'betting.html'));
-app.get('/betting', serveModuleFile('betting-support.html', 'betting.html'));
-app.get('/betting-support', serveModuleFile('betting-support.html', 'betting.html'));
+app.get('/education-support', serveModuleFile('education-support.html', 'dashboard.html'));
+app.get('/education', serveModuleFile('education-support.html', 'dashboard.html'));
 
-app.get('/credit-support', serveModuleFile('credit-support.html', 'sail-credit.html'));
-app.get('/sail-credit', serveModuleFile('credit-support.html', 'sail-credit.html'));
+app.get('/vtu-support', serveModuleFile('vtu-support.html', 'dashboard.html'));
+app.get('/vtu', serveModuleFile('vtu-support.html', 'dashboard.html'));
 
 app.get('/newsletter', serveModuleFile('newsletter.html'));
-app.get('/articles', serveModuleFile('newsletter.html'));
-app.get('/news', serveModuleFile('newsletter.html'));
-
 app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
+
+// Dynamic extensionless fallback middleware for all public HTML files
+app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.includes('.')) {
+        const potentialFile = path.join(__dirname, 'public', `${req.path}.html`);
+        if (fs.existsSync(potentialFile)) {
+            return res.sendFile(potentialFile);
+        }
+    }
+    next();
+});
 
 // =========================================================================
 // 🧮 DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
@@ -746,256 +752,91 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                             <span class="info-label">Bank Name:</span>
                             <span class="info-val">${squadRes.virtualBank}</span>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">USSD Merchant Code:</span>
-                            <span class="info-val" style="color: #f59e0b;">*737*000*411727+AMOUNT#</span>
-                        </div>
                     </div>
 
-                    <a href="https://www.alltimebusiness.com.ng/login" class="action-btn">ACCESS MERCHANT PORTAL</a>
+                    <a href="https://www.alltimebusiness.com.ng/login" class="action-btn">LOGIN TO DASHBOARD</a>
 
                     <div class="footer">
-                        ALL TIME BUSINESS LTD (RC: 950444)<br>
-                        Powered by Squad Co GTBank Infrastructure Engine.<br>
-                        Need support? Contact support@alltimebusiness.com.ng
+                        ALL TIME BUSINESS LTD • Enterprise Gateway Engine<br>
+                        Support: support@alltimebusiness.com.ng | www.alltimebusiness.com.ng
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Account Provisioned', welcomeMailHtml);
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Dedicated Account Provisioned', welcomeMailHtml);
 
         return res.status(201).json({
             status: 'success',
-            message: 'Registration successful! Your dedicated collection NUBAN is active.',
-            data: {
-                merchantName,
-                phone: cleanPhone,
-                virtualNuban: squadRes.virtualNuban,
-                virtualBank: squadRes.virtualBank
+            message: 'Account created successfully.',
+            merchant: {
+                id: newMerchant.id,
+                merchantName: newMerchant.merchantName,
+                phone: newMerchant.phone,
+                email: newMerchant.email,
+                virtualNuban: newMerchant.virtualNuban,
+                virtualBank: newMerchant.virtualBank,
+                balance: newMerchant.balance
             }
         });
     } catch (err) {
-        console.error('❌ Signup Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error during onboarding.' });
+        console.error('Signup Error:', err);
+        return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
     }
 });
 
 app.post('/api/v1/auth/login', async (req, res) => {
     try {
-        merchantAccounts = loadAccounts();
         const { phone, password } = req.body;
-
         if (!phone || !password) {
             return res.status(400).json({ status: 'error', message: 'Phone number and password are required.' });
         }
 
+        merchantAccounts = loadAccounts();
         const cleanPhone = normalizePhoneNumber(phone);
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Account not found. Please check details or sign up.' });
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please register first.' });
         }
 
         if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Contact support.' });
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact administrator.' });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials provided.' });
+            return res.status(401).json({ status: 'error', message: 'Invalid credentials. Please check your password.' });
         }
 
         return res.status(200).json({
             status: 'success',
             message: 'Authentication successful.',
-            user: {
+            merchant: {
                 id: account.id,
                 merchantName: account.merchantName,
                 phone: account.phone,
                 email: account.email,
-                balance: account.balance,
                 virtualNuban: account.virtualNuban,
                 virtualBank: account.virtualBank,
-                settlementAccount: account.settlementAccount,
-                bankName: account.bankName
+                balance: account.balance
             }
         });
     } catch (err) {
-        console.error('❌ Login Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error during login.' });
+        return res.status(500).json({ status: 'error', message: 'Server authentication error.' });
     }
 });
 
-// Fetch Current Merchant Account Details
-app.get('/api/v1/account/me', (req, res) => {
-    try {
-        const phone = req.query.phone;
-        if (!phone) {
-            return res.status(400).json({ status: 'error', message: 'Phone identifier parameter required.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(phone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            account: {
-                merchantName: account.merchantName,
-                phone: account.phone,
-                email: account.email,
-                balance: account.balance,
-                virtualNuban: account.virtualNuban,
-                virtualBank: account.virtualBank,
-                settlementAccount: account.settlementAccount,
-                bankName: account.bankName,
-                isLocked: account.isLocked
-            }
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Error retrieving account info.' });
-    }
+// 404 Catch-All Handler
+app.use((req, res) => {
+    res.status(404).send('<h1>404 - Resource Not Found</h1>');
 });
 
-// =========================================================================
-// 🚀 UTILITY & FULFILLMENT ROUTES (VTU, BILLS, LEAVE / BROADCASTS)
-// =========================================================================
-
-app.post('/api/v1/vtu/purchase', async (req, res) => {
-    try {
-        const { merchantPhone, serviceType, targetInput, amount, networkCode, planCode, securityPin } = req.body;
-        
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        if (securityPin && account.withdrawalPin && securityPin !== account.withdrawalPin) {
-            return res.status(401).json({ status: 'error', message: 'Invalid security PIN.' });
-        }
-
-        const cost = parseFloat(amount);
-        if (isNaN(cost) || cost <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
-        }
-
-        if ((account.balance || 0) < cost) {
-            return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
-        }
-
-        const orderRef = `ORD-${Date.now()}`;
-        const fulfillmentRes = await executeClubKonnectFulfillment({
-            serviceType,
-            targetInput,
-            amount: cost,
-            orderRef,
-            networkCode,
-            planCode
-        });
-
-        if (fulfillmentRes.success) {
-            account.balance -= cost;
-            saveAccounts(merchantAccounts);
-
-            dispatchImmediateTransactionSMS(
-                cleanPhone,
-                serviceType || 'VTU Order',
-                targetInput,
-                cost,
-                account.balance,
-                orderRef
-            );
-
-            return res.status(200).json({
-                status: 'success',
-                message: 'Order processed and auto-dispatched successfully.',
-                orderRef,
-                newBalance: account.balance
-            });
-        } else {
-            return res.status(500).json({ status: 'error', message: 'Failed to process order with provider.' });
-        }
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Server error fulfilling VTU purchase.' });
-    }
-});
-
-// Newsletter Subscriber Registration
-app.post('/api/v1/newsletter/subscribe', (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email || !email.includes('@')) {
-            return res.status(400).json({ status: 'error', message: 'Please enter a valid email address.' });
-        }
-
-        newsletterSubscribers = loadNewsletterSubscribers();
-        const cleanEmail = email.trim().toLowerCase();
-
-        if (!newsletterSubscribers.includes(cleanEmail)) {
-            newsletterSubscribers.push(cleanEmail);
-            saveNewsletterSubscribers(newsletterSubscribers);
-        }
-
-        return res.status(200).json({ status: 'success', message: 'Subscribed to newsletter successfully!' });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Subscription failed.' });
-    }
-});
-
-// Get Broadcast Articles
-app.get('/api/v1/broadcasts', (req, res) => {
-    try {
-        broadcastPosts = loadBroadcasts();
-        return res.status(200).json({ status: 'success', posts: broadcastPosts });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to load broadcasts.' });
-    }
-});
-
-// Publish Broadcast Article
-app.post('/api/v1/broadcasts/publish', (req, res) => {
-    try {
-        const { title, content, author, category } = req.body;
-        if (!title || !content) {
-            return res.status(400).json({ status: 'error', message: 'Title and content are required.' });
-        }
-
-        broadcastPosts = loadBroadcasts();
-        const newPost = {
-            id: `POST-${Date.now()}`,
-            title,
-            content,
-            author: author || 'ALL TIME BUSINESS LTD',
-            category: category || 'General',
-            createdAt: new Date().toISOString()
-        };
-
-        broadcastPosts.unshift(newPost);
-        saveBroadcasts(broadcastPosts);
-
-        return res.status(201).json({ status: 'success', message: 'Article published successfully!', post: newPost });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to publish article.' });
-    }
-});
-
-// =========================================================================
-// ⚡ SERVER ENGINE INITIALIZATION
-// =========================================================================
-
+// Start Server Engine
 app.listen(PORT, () => {
-    console.log(`=======================================================`);
-    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER IS LIVE ON PORT [${PORT}]`);
+    console.log(`===========================================================`);
+    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER IS LIVE ON PORT ${PORT}`);
     console.log(`🏢 ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`💳 Master NUBAN: ${MASTER_SQUAD_NUBAN} | GTBank Squad Engine`);
-    console.log(`=======================================================`);
+    console.log(`===========================================================`);
 });
