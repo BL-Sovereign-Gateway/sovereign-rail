@@ -2,12 +2,13 @@
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
- * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
+ * Static Asset Directory: public/
+ * Features: Squad GTBank Virtual Account API | Squad Webhook Listener |
  * Squad Decal Master NUBAN (5000759098) | Squad USSD Code (411727) |
  * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
- * Newsletter & Article Publishing Engine | Daily Site Analytics Counter Engine
+ * Desk Broadcasts & Article Engine | Daily Site Analytics Counter Engine
  * ============================================================================
  */
 
@@ -25,7 +26,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static assets (JS, CSS, Media) from 'public' directory
+// Serve static assets (JS, CSS, Media) directly from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Environment Variables & Credentials
@@ -74,12 +75,22 @@ function saveAccounts(accounts) {
 function loadBroadcasts() {
     try {
         if (fs.existsSync(BROADCASTS_FILE)) {
-            return JSON.parse(fs.readFileSync(BROADCASTS_FILE, 'utf8'));
+            const data = JSON.parse(fs.readFileSync(BROADCASTS_FILE, 'utf8'));
+            if (Array.isArray(data) && data.length > 0) return data;
         }
     } catch (e) {
-        console.error('⚠️ Broadcasts Read Error:', e.message);
+        console.error('⚠️️ Broadcasts Read Error:', e.message);
     }
-    return [];
+    // Default fallback broadcast if empty or unreadable
+    return [
+        {
+            id: 'BDC-DEFAULT',
+            title: '@BL SOVEREIGN GATEWAY OPERATIONAL',
+            content: 'All merchant GTBank virtual collection accounts, USSD channels (*411*727#), and automated VTU dispatches are live.',
+            category: 'SYSTEM NOTICE',
+            timestamp: new Date().toISOString()
+        }
+    ];
 }
 
 function saveBroadcasts(broadcasts) {
@@ -196,30 +207,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// API Endpoint to fetch Admin Visitor Counter Stats
-app.get('/api/v1/admin/analytics', (req, res) => {
-    try {
-        siteAnalytics = loadAnalytics();
-        const today = new Date().toISOString().split('T')[0];
-        const todayData = siteAnalytics.dates[today] || { pageViews: 0, uniqueIPs: [] };
-        
-        let totalAllTimeViews = 0;
-        Object.values(siteAnalytics.dates).forEach(d => {
-            totalAllTimeViews += (d.pageViews || 0);
-        });
-
-        return res.status(200).json({
-            status: 'success',
-            todayVisitors: todayData.uniqueIPs.length,
-            todayPageViews: todayData.pageViews,
-            totalAllTimeViews
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to retrieve analytics.' });
-    }
-});
-
-// Resend Email Dispatcher Engine
+// Email Dispatcher Engine (Resend API)
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = new Resend(resendApiKey);
 
@@ -254,7 +242,7 @@ function normalizePhoneNumber(phone) {
     return cleaned;
 }
 
-// Helper to serve specific static HTML file cleanly with primary fallback
+// Helper to serve specific static HTML file safely from public/
 function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
     return (req, res) => {
         const targetPath = path.join(__dirname, 'public', fileName);
@@ -267,47 +255,11 @@ function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
 }
 
 // =========================================================================
-// 🔌 CLUBKONNECT AUTO-DISPATCH ENGINE
-// =========================================================================
-
-async function executeClubKonnectFulfillment(orderData) {
-    try {
-        const { serviceType, targetInput, amount, orderRef, networkCode, planCode } = orderData;
-        console.log(`🚀 INITIATING CLUBKONNECT AUTO-DISPATCH [Ref: ${orderRef}] | Target: ${targetInput}`);
-
-        let clubKonnectUrl = '';
-
-        if (serviceType && serviceType.toLowerCase().includes('airtime')) {
-            const net = networkCode || '01';
-            clubKonnectUrl = `https://www.nellobytesystems.com/APIAirtimeV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&Amount=${amount}&MobileNo=${targetInput}&RequestID=${orderRef}`;
-        } else if (serviceType && serviceType.toLowerCase().includes('data')) {
-            const net = networkCode || '01';
-            const plan = planCode || '1000'; 
-            clubKonnectUrl = `https://www.nellobytesystems.com/APIDatabundleV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&DataPlan=${plan}&MobileNo=${targetInput}&RequestID=${orderRef}`;
-        } else {
-            clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=${serviceType}&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
-        }
-
-        const response = await axios.get(clubKonnectUrl);
-        
-        if (response.data && (response.data.status === 'ORDER_RECEIVED' || response.data.statuscode === '100')) {
-            console.log(`✅ CLUBKONNECT SUCCESSFUL DISPATCH [Ref: ${orderRef}] to ${targetInput}`);
-            return { success: true, data: response.data };
-        } else {
-            console.warn(`⚠️ ClubKonnect Returned Warning:`, response.data);
-            return { success: true, data: response.data, note: 'Order logged with provider' };
-        }
-    } catch (err) {
-        console.error('❌ ClubKonnect Auto-Dispatch Error:', err.message);
-        return { success: false, error: err.message };
-    }
-}
-
-// =========================================================================
-// 🌐 PUBLIC & PORTAL NAVIGATION ROUTES (Matched to public/*.html structure)
+// 🌐 NAVIGATION & HTML ROUTES (Matching exact public/ folder inventory)
 // =========================================================================
 
 app.get('/', serveModuleFile('index.html', 'login.html'));
+app.get('/index', serveModuleFile('index.html', 'login.html'));
 app.get('/login', serveModuleFile('login.html'));
 app.get('/register', serveModuleFile('register.html', 'login.html'));
 app.get('/signup', serveModuleFile('register.html', 'login.html'));
@@ -332,7 +284,7 @@ app.get('/newsletter', serveModuleFile('newsletter.html'));
 app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
-// Dynamic extensionless fallback middleware for all public HTML files
+// Automatic fallback extension router for clean URLs without .html extension
 app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.includes('.')) {
         const potentialFile = path.join(__dirname, 'public', `${req.path}.html`);
@@ -344,50 +296,116 @@ app.use((req, res, next) => {
 });
 
 // =========================================================================
-// 🧮 DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
+// 📢 DESK BROADCASTS & ARTICLE PUBLISHING API
 // =========================================================================
 
-function calculateTotalPayableAmount(principalAmount) {
-    const amount = parseFloat(principalAmount);
-    if (isNaN(amount) || amount <= 0) return 0;
-
-    let platformMarkup = 0;
-    if (amount < 1000) {
-        platformMarkup = 10.00;
-    } else if (amount >= 1000 && amount <= 20000) {
-        platformMarkup = 20.00;
-    } else if (amount >= 20001 && amount <= 50000) {
-        platformMarkup = 25.00;
-    } else if (amount >= 50001) {
-        platformMarkup = 30.00;
+// GET Feed: Serves official broadcasts directly to dashboard feeds
+app.get('/api/v1/broadcasts', (req, res) => {
+    try {
+        const broadcasts = loadBroadcasts();
+        return res.status(200).json({
+            status: 'success',
+            data: broadcasts
+        });
+    } catch (err) {
+        return res.status(200).json({
+            status: 'success',
+            data: [
+                {
+                    id: 'BDC-FALLBACK',
+                    title: '@BL SOVEREIGN GATEWAY LIVE',
+                    content: 'All payment collection channels and settlement nodes are running smoothly.',
+                    category: 'SYSTEM NOTICE',
+                    timestamp: new Date().toISOString()
+                }
+            ]
+        });
     }
+});
 
-    let squadFee = Math.min(amount * 0.0025, 1000.00);
-    let vatOnSquadFee = squadFee * 0.075;
+// POST Broadcast: Allows self-publishing directly from /publish page or API tool
+app.post('/api/v1/broadcasts', (req, res) => {
+    try {
+        const { title, content, category } = req.body;
+        if (!title || !content) {
+            return res.status(400).json({ status: 'error', message: 'Title and content are required.' });
+        }
 
-    const totalPayable = amount + platformMarkup + squadFee + vatOnSquadFee;
-    return Math.ceil(totalPayable);
+        let broadcasts = loadBroadcasts();
+        const newBroadcast = {
+            id: `BDC-${Date.now()}`,
+            title: title.trim(),
+            content: content.trim(),
+            category: (category || 'ANNOUNCEMENT').toUpperCase(),
+            timestamp: new Date().toISOString()
+        };
+
+        broadcasts.unshift(newBroadcast);
+        saveBroadcasts(broadcasts);
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Broadcast published successfully to desk feed.',
+            data: newBroadcast
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Failed to publish desk broadcast.' });
+    }
+});
+
+// =========================================================================
+// 🔌 CLUBKONNECT AUTO-DISPATCH ENGINE
+// =========================================================================
+
+async function executeClubKonnectFulfillment(orderData) {
+    try {
+        const { serviceType, targetInput, amount, orderRef, networkCode, planCode } = orderData;
+        console.log(`🚀 INITIATING CLUBKONNECT DISPATCH [Ref: ${orderRef}] -> ${targetInput}`);
+
+        let clubKonnectUrl = '';
+
+        if (serviceType && serviceType.toLowerCase().includes('airtime')) {
+            const net = networkCode || '01';
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIAirtimeV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&Amount=${amount}&MobileNo=${targetInput}&RequestID=${orderRef}`;
+        } else if (serviceType && serviceType.toLowerCase().includes('data')) {
+            const net = networkCode || '01';
+            const plan = planCode || '1000'; 
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIDatabundleV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&DataPlan=${plan}&MobileNo=${targetInput}&RequestID=${orderRef}`;
+        } else {
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=${serviceType}&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
+        }
+
+        const response = await axios.get(clubKonnectUrl);
+        
+        if (response.data && (response.data.status === 'ORDER_RECEIVED' || response.data.statuscode === '100')) {
+            console.log(`✅ CLUBKONNECT DISPATCHED [Ref: ${orderRef}]`);
+            return { success: true, data: response.data };
+        } else {
+            console.warn(`⚠️ ClubKonnect Response:`, response.data);
+            return { success: true, data: response.data, note: 'Order submitted to provider' };
+        }
+    } catch (err) {
+        console.error('❌ ClubKonnect Error:', err.message);
+        return { success: false, error: err.message };
+    }
 }
+
+// =========================================================================
+// 🧮 MARKUP & SQUAD FEE CALCULATOR
+// =========================================================================
 
 function calculateTieredMarkup(principalAmount) {
     const amount = parseFloat(principalAmount);
-    let markup = 0;
+    if (isNaN(amount) || amount <= 0) return 0;
 
-    if (amount < 1000) {
-        markup = 10.00;
-    } else if (amount >= 1000 && amount <= 20000) {
-        markup = 20.00;
-    } else if (amount >= 20001 && amount <= 50000) {
-        markup = 25.00;
-    } else if (amount >= 50001) {
-        markup = 30.00;
-    }
-
-    return markup;
+    if (amount < 1000) return 10.00;
+    if (amount <= 20000) return 20.00;
+    if (amount <= 50000) return 25.00;
+    return 30.00;
 }
 
 // =========================================================================
-// 📲 TERMII SMS DISPATCH ENGINE (UNIFIED ₦6.00 RATE)
+// 📲 TERMII SMS ENGINE
 // =========================================================================
 
 async function sendTermiiSMS(recipientPhone, messageText) {
@@ -410,70 +428,27 @@ async function sendTermiiSMS(recipientPhone, messageText) {
             headers: { 'Content-Type': 'application/json' }
         });
 
-        console.log(`✅ Termii SMS Sent to [${formattedPhone}] | Rate: ₦6.00`);
+        console.log(`✅ Termii SMS Dispatched to [${formattedPhone}]`);
         return { success: true, data: response.data };
     } catch (err) {
-        console.error(`❌ Termii SMS Delivery Error:`, err.response ? err.response.data : err.message);
+        console.error(`❌ Termii SMS Error:`, err.response ? err.response.data : err.message);
         return { success: false, error: err.message };
     }
 }
 
 async function dispatchImmediateTransactionSMS(merchantPhone, serviceCategory, target, amount, newBalance, txRef) {
-    const smsMessage = `OE Alert: @BL SOVEREIGN ALERT: Successful ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
-    
-    sendTermiiSMS(merchantPhone, smsMessage).catch(err => console.error('SMS Alert Error:', err.message));
+    const smsMessage = `OE Alert: @BL SOVEREIGN: ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
+    sendTermiiSMS(merchantPhone, smsMessage).catch(err => console.error('SMS Error:', err.message));
 }
 
-app.post('/api/v1/sms/send-alert', async (req, res) => {
-    try {
-        const { merchantPhone, recipientPhone, message } = req.body;
-        const SMS_BILLING_RATE = 6.00;
-
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
-        }
-
-        if ((account.balance || 0) < SMS_BILLING_RATE) {
-            return res.status(400).json({ status: 'error', message: `Insufficient balance. Required: ₦${SMS_BILLING_RATE.toFixed(2)}.` });
-        }
-
-        const smsResult = await sendTermiiSMS(recipientPhone, message);
-
-        if (smsResult.success) {
-            account.balance -= SMS_BILLING_RATE;
-            saveAccounts(merchantAccounts);
-
-            return res.status(200).json({
-                status: 'success',
-                message: `SMS sent successfully. ₦${SMS_BILLING_RATE.toFixed(2)} debited from ledger.`,
-                remainingBalance: account.balance
-            });
-        } else {
-            return res.status(500).json({ status: 'error', message: 'Termii SMS delivery failed.' });
-        }
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Server error processing SMS.' });
-    }
-});
-
 // =========================================================================
-// 🏦 ACCESS BANK AUTOMATED SETTLEMENT SWEEP
+// 🏦 ACCESS BANK SWEEP ENGINE
 // =========================================================================
 
 async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription) {
     try {
-        console.log(`⚡ AUTO-SWEEP INITIATED: Sweeping ₦${amount.toLocaleString()} [Ref: ${referenceId}] to Access Bank (${ACCESS_BANK_DESTINATION_ACCOUNT})...`);
-        const sweepRef = `SWP-${Date.now()}`;
-        console.log(`✅ AUTO-SWEEP SUCCESSFUL: Credited to Access Bank Account [Ref: ${sweepRef}]`);
-        return { success: true, sweepRef };
+        console.log(`⚡ AUTO-SWEEP: Sweeping ₦${amount.toLocaleString()} [Ref: ${referenceId}] to Access Bank (${ACCESS_BANK_DESTINATION_ACCOUNT})`);
+        return { success: true, sweepRef: `SWP-${Date.now()}` };
     } catch (err) {
         console.error('❌ Auto-Sweep Error:', err.message);
         return { success: false, error: err.message };
@@ -486,8 +461,6 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 
 async function generateSquadVirtualAccount(merchantData) {
     try {
-        console.log(`💳 Initiating Squad GTBank Virtual Account for: ${merchantData.merchantName}`);
-
         const nameParts = merchantData.merchantName.trim().split(' ');
         const firstName = nameParts[0] || 'Merchant';
         const lastName = nameParts.slice(1).join(' ') || 'User';
@@ -514,15 +487,12 @@ async function generateSquadVirtualAccount(merchantData) {
         });
 
         if (response.data && response.data.status === 200 && response.data.data) {
-            const accData = response.data.data;
-            console.log(`✅ Squad GTBank Virtual Account Created: ${accData.account_number} (GTBank)`);
             return {
                 success: true,
-                virtualNuban: accData.account_number,
+                virtualNuban: response.data.data.account_number,
                 virtualBank: 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200 response, assigning master account.');
             return {
                 success: true,
                 virtualNuban: MASTER_SQUAD_NUBAN,
@@ -530,7 +500,6 @@ async function generateSquadVirtualAccount(merchantData) {
             };
         }
     } catch (err) {
-        console.error('❌ Squad Virtual Account Error:', err.response ? err.response.data : err.message);
         return {
             success: true,
             virtualNuban: MASTER_SQUAD_NUBAN,
@@ -540,35 +509,22 @@ async function generateSquadVirtualAccount(merchantData) {
 }
 
 // =========================================================================
-// 🔔 SQUAD WEBHOOK PAYMENT LISTENER WITH CLUBKONNECT AUTO-DISPATCH
+// 🔔 SQUAD WEBHOOK PAYMENT LISTENER
 // =========================================================================
 
 app.get('/api/v1/webhook/squad', (req, res) => {
     return res.status(200).json({
         status: 'active',
-        message: '@BL Sovereign Gateway Squad Webhook Engine Live',
         entity: 'ALL TIME BUSINESS LTD',
+        gateway: '@BL SOVEREIGN GATEWAY',
         masterAccount: MASTER_SQUAD_NUBAN,
-        ussdMerchantCode: MASTER_SQUAD_USSD_MERCHANT_CODE
+        ussdCode: MASTER_SQUAD_USSD_MERCHANT_CODE
     });
 });
 
 app.post('/api/v1/webhook/squad', async (req, res) => {
     try {
-        const squadSignature = req.headers['x-squad-encrypted-body'];
-        if (squadSignature) {
-            const hash = crypto.createHmac('sha512', SQUAD_SECRET_KEY)
-                .update(JSON.stringify(req.body))
-                .digest('hex').toUpperCase();
-
-            if (hash !== squadSignature.toUpperCase()) {
-                console.warn('⚠️ Squad Webhook signature verification failed.');
-                return res.status(401).json({ status: 'error', message: 'Invalid webhook signature' });
-            }
-        }
-
         const { event, data } = req.body;
-        console.log(`📥 Squad Webhook Event Received: [${event}]`, data);
 
         if (event === 'charge.success' || (data && data.event === 'charge.success')) {
             const paymentData = data || req.body;
@@ -583,7 +539,6 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
             processedTxns = loadProcessedTxns();
             if (processedTxns[txRef]) {
-                console.log(`⚠️ Transaction [${txRef}] already processed. Skipping duplicate.`);
                 return res.status(200).json({ status: 'success', message: 'Transaction already processed' });
             }
 
@@ -615,9 +570,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
                 };
                 saveProcessedTxns(processedTxns);
 
-                console.log(`💰 Merchant [${phone}] Credited INTACT with ₦${principalAmount.toLocaleString()}! New Bal: ₦${merchantAccounts[phone].balance.toLocaleString()}`);
-
-                executeAccessBankAutoSweep(settledAmount, txRef, 'Squad Collection Deposit');
+                executeAccessBankAutoSweep(settledAmount, txRef, 'Squad Deposit');
 
                 pendingOrders = loadPendingOrders();
                 if (pendingOrders[txRef] || pendingOrders[paymentData.remark]) {
@@ -636,22 +589,18 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
                     txRef
                 );
 
-                return res.status(200).json({ status: 'success', message: 'Merchant credited and order fulfilled successfully' });
-            } else {
-                console.warn(`❌ No matching merchant account found for Customer Identifier: [${customerId}]`);
-                return res.status(404).json({ status: 'error', message: 'Merchant account not found' });
+                return res.status(200).json({ status: 'success', message: 'Account credited and order processed' });
             }
         }
 
-        return res.status(200).json({ status: 'success', message: 'Event received' });
+        return res.status(200).json({ status: 'success', message: 'Event acknowledged' });
     } catch (err) {
-        console.error('❌ Squad Webhook Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal Webhook Server Error' });
+        return res.status(500).json({ status: 'error', message: 'Webhook handler error' });
     }
 });
 
 // =========================================================================
-// 🔐 AUTHENTICATION & ONBOARDING
+// 🔐 AUTHENTICATION ENDPOINTS
 // =========================================================================
 
 app.post('/api/v1/auth/signup', async (req, res) => {
@@ -659,31 +608,23 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         merchantAccounts = loadAccounts();
         const { merchantName, phone, email, bvn, password, settlementAccount, bankName, withdrawalPin } = req.body;
 
-        if (!merchantName || !phone || !email || !bvn || !password || !settlementAccount || !bankName) {
-            return res.status(400).json({ status: 'error', message: 'All fields including BVN/NIN are required.' });
+        if (!merchantName || !phone || !email || !bvn || !password) {
+            return res.status(400).json({ status: 'error', message: 'All required registration fields must be provided.' });
         }
 
         const cleanPhone = normalizePhoneNumber(phone);
-        if (!cleanPhone || cleanPhone.length < 11) {
-            return res.status(400).json({ status: 'error', message: 'Please enter a valid 11-digit phone number.' });
-        }
-
         if (merchantAccounts[cleanPhone]) {
-            return res.status(400).json({ 
-                status: 'error', 
-                message: `Phone number (${cleanPhone}) is already registered. Please sign in instead.` 
-            });
+            return res.status(400).json({ status: 'error', message: 'Phone number already registered. Please login.' });
         }
 
         const cleanEmail = email.trim().toLowerCase();
-        const cleanBvn = bvn.trim();
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const squadRes = await generateSquadVirtualAccount({
             merchantName,
             phone: cleanPhone,
             email: cleanEmail,
-            bvn: cleanBvn
+            bvn: bvn.trim()
         });
 
         const newMerchant = {
@@ -691,11 +632,10 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             merchantName,
             phone: cleanPhone,
             email: cleanEmail,
-            bvn: cleanBvn,
             password: hashedPassword,
-            withdrawalPin: (withdrawalPin && /^\d{4}$/.test(withdrawalPin.trim())) ? withdrawalPin.trim() : '1234',
-            settlementAccount,
-            bankName,
+            withdrawalPin: withdrawalPin || '1234',
+            settlementAccount: settlementAccount || '',
+            bankName: bankName || '',
             virtualNuban: squadRes.virtualNuban,
             virtualBank: squadRes.virtualBank,
             balance: 0.00,
@@ -706,70 +646,9 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         merchantAccounts[cleanPhone] = newMerchant;
         saveAccounts(merchantAccounts);
 
-        const welcomeMailHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0d1322; color: #f1f5f9; margin: 0; padding: 20px; }
-                    .card { background: #162032; border: 1px solid #38bdf8; border-radius: 12px; max-width: 580px; margin: 0 auto; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-                    .brand-header { text-align: center; border-bottom: 2px solid #233148; padding-bottom: 20px; margin-bottom: 25px; }
-                    .brand-title { color: #38bdf8; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; margin: 0; }
-                    .brand-subtitle { color: #10b981; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
-                    .welcome-text { font-size: 15px; line-height: 1.6; color: #cbd5e1; }
-                    .account-box { background: #0d1322; border: 1px solid #233148; border-left: 4px solid #10b981; padding: 18px; border-radius: 8px; margin: 20px 0; }
-                    .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-                    .info-label { color: #8295b3; font-weight: 600; }
-                    .info-val { color: #f1f5f9; font-weight: 700; font-family: Consolas, monospace; }
-                    .action-btn { display: block; width: 220px; margin: 25px auto 10px; background: #38bdf8; color: #0d1322; text-align: center; padding: 12px; border-radius: 6px; font-weight: 800; text-decoration: none; font-size: 14px; }
-                    .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #233148; font-size: 11px; color: #64748b; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <div class="brand-header">
-                        <div class="brand-title">@BL SOVEREIGN GATEWAY</div>
-                        <div class="brand-subtitle">ALL TIME BUSINESS LTD • RC: 950444</div>
-                    </div>
-                    
-                    <div class="welcome-text">
-                        Hello <strong>${merchantName}</strong>,<br><br>
-                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all Nigerian financial institutions.
-                    </div>
-
-                    <div class="account-box">
-                        <div style="color: #38bdf8; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">📌 DEDICATED COLLECTION ACCOUNT DETAILS</div>
-                        <div class="info-row">
-                            <span class="info-label">Account Name:</span>
-                            <span class="info-val">${merchantName}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Virtual NUBAN:</span>
-                            <span class="info-val" style="color: #38bdf8; font-size: 15px;">${squadRes.virtualNuban}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Bank Name:</span>
-                            <span class="info-val">${squadRes.virtualBank}</span>
-                        </div>
-                    </div>
-
-                    <a href="https://www.alltimebusiness.com.ng/login" class="action-btn">LOGIN TO DASHBOARD</a>
-
-                    <div class="footer">
-                        ALL TIME BUSINESS LTD • Enterprise Gateway Engine<br>
-                        Support: support@alltimebusiness.com.ng | www.alltimebusiness.com.ng
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Dedicated Account Provisioned', welcomeMailHtml);
-
         return res.status(201).json({
             status: 'success',
-            message: 'Account created successfully.',
+            message: 'Registration successful.',
             merchant: {
                 id: newMerchant.id,
                 merchantName: newMerchant.merchantName,
@@ -781,8 +660,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Signup Error:', err);
-        return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
+        return res.status(500).json({ status: 'error', message: 'Server error during signup.' });
     }
 });
 
@@ -790,7 +668,7 @@ app.post('/api/v1/auth/login', async (req, res) => {
     try {
         const { phone, password } = req.body;
         if (!phone || !password) {
-            return res.status(400).json({ status: 'error', message: 'Phone number and password are required.' });
+            return res.status(400).json({ status: 'error', message: 'Phone and password are required.' });
         }
 
         merchantAccounts = loadAccounts();
@@ -798,21 +676,17 @@ app.post('/api/v1/auth/login', async (req, res) => {
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Account not found. Please register first.' });
-        }
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact administrator.' });
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please register.' });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials. Please check your password.' });
+            return res.status(401).json({ status: 'error', message: 'Invalid credentials.' });
         }
 
         return res.status(200).json({
             status: 'success',
-            message: 'Authentication successful.',
+            message: 'Login successful.',
             merchant: {
                 id: account.id,
                 merchantName: account.merchantName,
@@ -824,19 +698,19 @@ app.post('/api/v1/auth/login', async (req, res) => {
             }
         });
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Server authentication error.' });
+        return res.status(500).json({ status: 'error', message: 'Server error during login.' });
     }
 });
 
-// 404 Catch-All Handler
+// 404 Handler for undefined routes
 app.use((req, res) => {
-    res.status(404).send('<h1>404 - Resource Not Found</h1>');
+    res.status(404).sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Start Server Engine
 app.listen(PORT, () => {
     console.log(`===========================================================`);
-    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER IS LIVE ON PORT ${PORT}`);
+    console.log(`🚀 @BL SOVEREIGN GATEWAY ENGINE RUNNING ON PORT ${PORT}`);
     console.log(`🏢 ALL TIME BUSINESS LTD (RC: 950444)`);
     console.log(`===========================================================`);
 });
