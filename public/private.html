@@ -1,344 +1,114 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ ALL TIME BUSINESS LTD — ADMIN COMMAND CENTER</title>
-    <style>
-        :root {
-            --bg-main: #0a0f1d;
-            --card-bg: #131c2e;
-            --border-color: #233148;
-            --accent-cyan: #38bdf8;
-            --accent-green: #10b981;
-            --accent-amber: #f59e0b;
-            --text-main: #f1f5f9;
-            --text-muted: #8295b3;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header-bar {
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--accent-cyan);
-            letter-spacing: 0.5px;
-        }
-
-        .system-badge {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent-green);
-            border: 1px solid var(--accent-green);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 18px;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .stat-val {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            font-family: Consolas, monospace;
-        }
-
-        .card-panel {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 22px;
-            margin-bottom: 25px;
-        }
-
-        .panel-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--accent-cyan);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        input[type="text"], textarea {
-            width: 100%;
-            background: #0d1322;
-            border: 1px solid var(--border-color);
-            color: #ffffff;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            margin-bottom: 12px;
-            box-sizing: border-box;
-        }
-
-        textarea {
-            height: 90px;
-            resize: vertical;
-        }
-
-        .file-upload-box {
-            border: 1px dashed var(--border-color);
-            background: #0d1322;
-            padding: 12px;
-            border-radius: 6px;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 12px;
-            cursor: pointer;
-            margin-bottom: 12px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 10px 18px;
-            border-radius: 6px;
-            border: none;
-            font-weight: 700;
-            font-size: 13px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-primary { background: var(--accent-cyan); color: #000; }
-        .btn-success { background: var(--accent-green); color: #000; }
-        .btn-warning { background: var(--accent-amber); color: #000; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header-bar">
-        <div class="header-title">⚡ ALL TIME BUSINESS LTD — ADMIN COMMAND CENTER<br><span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">@BL SOVEREIGN GATEWAY LIVE CONTROL PANEL</span></div>
-        <div class="system-badge">SYSTEM ONLINE</div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">🛡️ FRAUD & THREAT MONITOR</div>
-            <div class="stat-val" style="color: var(--accent-green);">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Onboarded Merchants</div>
-            <div class="stat-val" id="statMerchants">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total System Float (₦)</div>
-            <div class="stat-val" id="statFloat">₦0.00</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Today's Visitors</div>
-            <div class="stat-val" id="statVisitors" style="color: var(--accent-cyan);">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Today's Transactions</div>
-            <div class="stat-val">12</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Today's Volume (₦)</div>
-            <div class="stat-val">₦148,500.00</div>
-        </div>
-    </div>
-
-    <!-- Broadcast Center -->
-    <div class="card-panel">
-        <div class="panel-title">📢 Broadcast, SMS & Email Broadcast Center <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(Termii ₦6.00 SMS • Resend Email • Web Media)</span></div>
-        
-        <input type="text" id="broadcastHeadline" placeholder="Broadcast Headline / Email Subject">
-        <textarea id="smsContent" placeholder="Announcement Message Content (Text & SMS)"></textarea>
-        <textarea id="emailContent" style="height: 120px;" placeholder="Promotional Email Broadcast Content (HTML / Full Text)"></textarea>
-
-        <div class="file-upload-box">🖼️ Attach Promotional Image (Optional JPG / PNG)</div>
-        <div class="file-upload-box">🎥 Attach Promotional Video (Optional MP4 / WebM)</div>
-
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="publishToWebsite()">🚀 Publish to Website Feed</button>
-            <button class="btn btn-success" onclick="dispatchMassEmail()">✉️ Dispatch Mass Email Newsletter</button>
-            <button class="btn btn-warning" onclick="dispatchMassSMS()">📲 Dispatch Promotional SMS (₦6.00/SMS)</button>
-        </div>
-    </div>
-
-    <!-- Security Logs -->
-    <div class="card-panel">
-        <div class="panel-title">🛡️ Security, Fraud & Threat Logs</div>
-        <div style="background: #0d1322; border: 1px solid var(--border-color); padding: 15px; border-radius: 6px; font-size: 13px;">
-            <span style="color: var(--accent-green); font-weight: bold;">SECURE:</span> ⚠️ 0 Security Incidents / Threats Flagged Today. Platform withdrawal PIN locks, SQL injections, and unauthorized NUBAN requests are clear.
-        </div>
-    </div>
-
-    <!-- Daily Merchant Records -->
-    <div class="card-panel">
-        <div class="panel-title">📋 Daily Merchant Records & Database <button style="margin-left: auto; background: none; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 4px; padding: 4px 8px; cursor: pointer;" onclick="loadAnalyticsStats()">🔄 Refresh Records</button></div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Merchant Name</th>
-                    <th>Phone (Username)</th>
-                    <th>Email</th>
-                    <th>Collection NUBAN</th>
-                    <th>Settlement Account</th>
-                    <th>Balance (₦)</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="merchantTableBody">
-                <tr>
-                    <td colspan="8" style="text-align: center; color: var(--text-muted);">No merchants registered yet.</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
 <script>
-    async function loadAnalyticsStats() {
-        try {
-            const res = await fetch('/api/v1/admin/analytics');
-            const data = await res.json();
-            if(data.status === 'success') {
-                document.getElementById('statVisitors').innerText = data.todayVisitors.toLocaleString();
-            }
-        } catch(e) {
-            console.error('Failed to load site traffic stats:', e);
-        }
+    // Utility to convert attached files to Base64 Data URLs
+    function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) return resolve(null);
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
     }
 
-    async function publishToWebsite() {
+    // Master Dispatch Function — Handles Web Feed, Mass Email, and SMS
+    async function handleBroadcastDispatch(mode) {
         const headline = document.getElementById('broadcastHeadline').value.trim();
-        const content = document.getElementById('emailContent').value.trim() || document.getElementById('smsContent').value.trim();
+        const smsContent = document.getElementById('smsContent').value.trim();
+        const emailContent = document.getElementById('emailContent').value.trim();
+        
+        const imageFile = document.getElementById('imageInput').files[0];
+        const videoFile = document.getElementById('videoInput').files[0];
 
-        if(!headline || !content) {
-            alert('Please fill in the Headline and Content before publishing.');
+        // 1. Validation according to mode
+        if (mode === 'sms' && !smsContent) {
+            alert('⚠️ Please enter message content in the SMS textarea.');
             return;
         }
 
+        if ((mode === 'web' || mode === 'email') && (!headline || !(emailContent || smsContent))) {
+            alert('⚠️️ Please provide both a Headline/Subject and Message Content.');
+            return;
+        }
+
+        // 2. Prepare Payload
         try {
-            const response = await fetch('/api/v1/newsletter/publish', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const imageUrl = await readFileAsDataURL(imageFile);
+            const videoUrl = await readFileAsDataURL(videoFile);
+            const bodyContent = emailContent || smsContent;
+
+            let endpoint = '';
+            let payload = {};
+
+            if (mode === 'web') {
+                endpoint = '/api/v1/newsletter/publish';
+                payload = {
                     headline: headline,
-                    content: content,
+                    content: bodyContent,
+                    imageUrl: imageUrl,
+                    videoUrl: videoUrl,
                     notifySubscribers: false
-                })
-            });
-
-            const result = await response.json();
-            if(response.ok && result.status === 'success') {
-                alert('✅ Article published successfully to Website Feed!');
-            } else {
-                alert('❌ Error: ' + (result.message || 'Failed to publish broadcast.'));
+                };
+            } else if (mode === 'email') {
+                endpoint = '/api/v1/newsletter/publish';
+                payload = {
+                    headline: headline,
+                    content: bodyContent,
+                    imageUrl: imageUrl,
+                    videoUrl: videoUrl,
+                    notifySubscribers: true
+                };
+            } else if (mode === 'sms') {
+                endpoint = '/api/v1/admin/broadcast-sms';
+                payload = {
+                    message: smsContent
+                };
             }
-        } catch(err) {
-            alert('❌ Network error publishing broadcast.');
-        }
-    }
 
-    async function dispatchMassEmail() {
-        const headline = document.getElementById('broadcastHeadline').value.trim();
-        const content = document.getElementById('emailContent').value.trim();
-
-        if(!headline || !content) {
-            alert('Please enter Email Subject and Promotional Email Content.');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/v1/newsletter/publish', {
+            // 3. Execute Request
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    headline: headline,
-                    content: content,
-                    notifySubscribers: true
-                })
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
-            if(response.ok && result.status === 'success') {
-                alert('✅ Mass Email Newsletter queued & dispatched to all subscribers!');
+
+            if (response.ok && (result.status === 'success' || result.success)) {
+                const actionNames = {
+                    web: 'published to Website Feed',
+                    email: 'dispatched as Mass Email Newsletter',
+                    sms: 'dispatched via SMS'
+                };
+                alert(`✅ Success! Broadcast successfully ${actionNames[mode]}.`);
+                
+                // Clear inputs on success
+                document.getElementById('broadcastHeadline').value = '';
+                document.getElementById('smsContent').value = '';
+                document.getElementById('emailContent').value = '';
+                document.getElementById('imageInput').value = '';
+                document.getElementById('videoInput').value = '';
             } else {
-                alert('❌ Error: ' + (result.message || 'Failed to dispatch email newsletter.'));
+                alert('❌ Dispatch Failed: ' + (result.message || 'Server error encountered.'));
             }
-        } catch(err) {
-            alert('❌ Network error dispatching emails.');
+
+        } catch (err) {
+            console.error('Broadcast Error:', err);
+            alert('❌ Network error processing request.');
         }
     }
 
-    async function dispatchMassSMS() {
-        alert('📲 Mass SMS Broadcast sequence initiated via Termii Engine (₦6.00/SMS).');
+    // Individual trigger bindings matching your button onclick attributes
+    function publishToWebsite() {
+        handleBroadcastDispatch('web');
     }
 
-    // Auto load visitor stats on view
-    window.onload = loadAnalyticsStats;
-</script>
+    function dispatchMassEmail() {
+        handleBroadcastDispatch('email');
+    }
 
-</body>
-</html>
+    function dispatchMassSMS() {
+        if (confirm('Are you sure you want to dispatch mass SMS at ₦6.00/SMS?')) {
+            handleBroadcastDispatch('sms');
+        }
+    }
+</script>
