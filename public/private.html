@@ -1,3 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Broadcast Desk | @BL SOVEREIGN GATEWAY</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* HEADER NAVIGATION */
+        .top-nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-logo {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .nav-item a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item a:hover, .nav-item a.active {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        /* MAIN CONTAINER */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+
+        .header-title {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 12px;
+        }
+
+        .header-title h2 {
+            font-size: 1.5rem;
+            color: #38bdf8;
+            font-weight: 800;
+        }
+
+        .header-title p {
+            font-size: 0.82rem;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        /* FORM CARDS & INPUTS */
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea,
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #fff;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus {
+            border-color: #38bdf8;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .file-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ACTION BUTTONS */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-dispatch {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            color: #fff;
+        }
+
+        .btn-dispatch:active { transform: scale(0.98); }
+        .btn-web { background: #0ea5e9; }
+        .btn-web:hover { background: #0284c7; }
+        .btn-email { background: #10b981; }
+        .btn-email:hover { background: #059669; }
+        .btn-sms { background: #f59e0b; color: #0f172a; }
+        .btn-sms:hover { background: #d97706; }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.75rem;
+            color: #64748b;
+            border-top: 1px solid #1e293b;
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            .file-grid, .actions-grid { grid-template-columns: 1fr; }
+            .top-nav { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- TOP NAVIGATION -->
+<nav class="top-nav">
+    <a href="/private" class="brand-logo">📢 @BL SOVEREIGN GATEWAY • ADMIN DESK</a>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="/dashboard">📊 Dashboard Desk</a></li>
+        <li class="nav-item"><a href="/newsletter" target="_blank">📰 Public Feed</a></li>
+        <li class="nav-item"><a href="/private" class="active">🔐 Broadcast Center</a></li>
+    </ul>
+</nav>
+
+<!-- MAIN BROADCAST FORM -->
+<div class="container">
+    <div class="header-title">
+        <h2>Broadcast & Media Dispatch Center</h2>
+        <p>ALL TIME BUSINESS LTD (RC: 950444) — Official Desk Communications</p>
+    </div>
+
+    <!-- WEB & EMAIL NEWSLETTER COMPOSITION -->
+    <div class="card">
+        <div class="card-title">📰 Web Feed & Email Newsletter Composer</div>
+        
+        <div class="form-group">
+            <label for="broadcastHeadline">Broadcast Headline / Email Subject *</label>
+            <input type="text" id="broadcastHeadline" placeholder="Enter post headline or email subject line...">
+        </div>
+
+        <div class="form-group">
+            <label for="emailContent">Newsletter Body Content *</label>
+            <textarea id="emailContent" placeholder="Write full broadcast announcement or newsletter body here..."></textarea>
+        </div>
+
+        <div class="file-grid">
+            <div class="form-group">
+                <label for="imageInput">Attach Banner Image (Optional)</label>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label for="videoInput">Attach Promo Video (Max 10MB)</label>
+                <input type="file" id="videoInput" accept="video/*">
+            </div>
+        </div>
+    </div>
+
+    <!-- SMS COMPOSITION -->
+    <div class="card">
+        <div class="card-title">📱 SMS Dispatch Composer</div>
+        <div class="form-group">
+            <label for="smsContent">SMS Message (₦6.00 / SMS) *</label>
+            <textarea id="smsContent" placeholder="Enter short SMS content for direct phone broadcasts..."></textarea>
+        </div>
+    </div>
+
+    <!-- DISPATCH TRIGGER ACTIONS -->
+    <div class="actions-grid">
+        <button class="btn-dispatch btn-web" onclick="publishToWebsite()">🌐 Publish to Website</button>
+        <button class="btn-dispatch btn-email" onclick="dispatchMassEmail()">📧 Dispatch Mass Email</button>
+        <button class="btn-dispatch btn-sms" onclick="dispatchMassSMS()">💬 Dispatch Mass SMS</button>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+    © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway Admin Systems
+</footer>
+
+<!-- MASTER DISPATCH SCRIPT -->
 <script>
     // Utility to convert attached files to Base64 Data URLs safely
     function readFileAsDataURL(file) {
@@ -128,3 +387,6 @@
         }
     }
 </script>
+
+</body>
+</html>
