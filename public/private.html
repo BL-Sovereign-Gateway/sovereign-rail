@@ -1,5 +1,5 @@
 <script>
-    // Utility to convert attached files to Base64 Data URLs
+    // Utility to convert attached files to Base64 Data URLs safely
     function readFileAsDataURL(file) {
         return new Promise((resolve, reject) => {
             if (!file) return resolve(null);
@@ -10,14 +10,25 @@
         });
     }
 
+    // Helper to safely fetch input element values without crashing
+    function getInputValue(id) {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+    }
+
+    function getSelectedFile(id) {
+        const el = document.getElementById(id);
+        return (el && el.files && el.files[0]) ? el.files[0] : null;
+    }
+
     // Master Dispatch Function — Handles Web Feed, Mass Email, and SMS
     async function handleBroadcastDispatch(mode) {
-        const headline = document.getElementById('broadcastHeadline').value.trim();
-        const smsContent = document.getElementById('smsContent').value.trim();
-        const emailContent = document.getElementById('emailContent').value.trim();
+        const headline = getInputValue('broadcastHeadline');
+        const smsContent = getInputValue('smsContent');
+        const emailContent = getInputValue('emailContent');
         
-        const imageFile = document.getElementById('imageInput').files[0];
-        const videoFile = document.getElementById('videoInput').files[0];
+        const imageFile = getSelectedFile('imageInput');
+        const videoFile = getSelectedFile('videoInput');
 
         // 1. Validation according to mode
         if (mode === 'sms' && !smsContent) {
@@ -26,7 +37,13 @@
         }
 
         if ((mode === 'web' || mode === 'email') && (!headline || !(emailContent || smsContent))) {
-            alert('⚠️️ Please provide both a Headline/Subject and Message Content.');
+            alert('⚠️ Please provide both a Headline/Subject and Message Content.');
+            return;
+        }
+
+        // Warning for large file attachments
+        if (videoFile && videoFile.size > 10 * 1024 * 1024) {
+            alert('⚠️ Video file is too large (over 10MB). Base64 upload may fail on the server.');
             return;
         }
 
@@ -81,19 +98,18 @@
                 };
                 alert(`✅ Success! Broadcast successfully ${actionNames[mode]}.`);
                 
-                // Clear inputs on success
-                document.getElementById('broadcastHeadline').value = '';
-                document.getElementById('smsContent').value = '';
-                document.getElementById('emailContent').value = '';
-                document.getElementById('imageInput').value = '';
-                document.getElementById('videoInput').value = '';
+                // Clear inputs on success safely
+                ['broadcastHeadline', 'smsContent', 'emailContent', 'imageInput', 'videoInput'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
             } else {
                 alert('❌ Dispatch Failed: ' + (result.message || 'Server error encountered.'));
             }
 
         } catch (err) {
             console.error('Broadcast Error:', err);
-            alert('❌ Network error processing request.');
+            alert('❌ Network/Processing error: ' + err.message);
         }
     }
 
