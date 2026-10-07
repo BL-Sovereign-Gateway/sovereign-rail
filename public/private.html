@@ -468,7 +468,17 @@
                 body: JSON.stringify(payload)
             });
 
-            const result = await response.json();
+            // Safe parsing: check content-type header before calling .json()
+            const contentType = response.headers.get('content-type') || '';
+            let result = {};
+
+            if (contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const textResponse = await response.text();
+                console.error('Non-JSON Server Response:', textResponse);
+                throw new Error(`Server returned HTTP ${response.status} (${response.statusText || 'HTML Error Page'}) instead of JSON.`);
+            }
 
             if (response.ok && (result.status === 'success' || result.success)) {
                 const actionNames = {
@@ -493,7 +503,7 @@
                 updateSMSCounter();
 
             } else {
-                showBanner('❌ Dispatch Failed: ' + (result.message || 'Server error encountered.'), false);
+                showBanner('❌ Dispatch Failed: ' + (result.message || `Server error (HTTP ${response.status})`), false);
             }
 
         } catch (err) {
