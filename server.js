@@ -6,7 +6,8 @@
  * Squad Decal Master NUBAN (5000759098) | Squad USSD Code (411727) |
  * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
- * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer
+ * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
+ * Newsletter & Mass Media Broadcast Engine
  * ============================================================================
  */
 
@@ -713,7 +714,7 @@ app.post('/api/v1/auth/signin', async (req, res) => {
 
 app.post('/api/v1/services/transact', async (req, res) => {
     try {
-        const { merchantPhone, serviceType, recipient, amount } = req.body;
+        const { merchantPhone, serviceType, recipient, amount, pin, networkCode, planCode } = req.body;
         const txnAmount = parseFloat(amount);
 
         if (!merchantPhone || !serviceType || !recipient || isNaN(txnAmount) || txnAmount <= 0) {
@@ -725,185 +726,62 @@ app.post('/api/v1/services/transact', async (req, res) => {
         const account = merchantAccounts[cleanPhone];
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Transaction rejected: Merchant account is locked.' });
-        if ((account.balance || 0) < txnAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
-        const CASHBACK_BONUS = 2.00;
-        account.balance = (account.balance - txnAmount) + CASHBACK_BONUS;
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+        }
+
+        if (pin && account.withdrawalPin && pin.toString().trim() !== account.withdrawalPin.toString().trim()) {
+            return res.status(401).json({ status: 'error', message: 'Invalid Transaction PIN.' });
+        }
+
+        if ((account.balance || 0) < txnAmount) {
+            return res.status(400).json({ status: 'error', message: 'Insufficient account balance.' });
+        }
+
+        const txRef = `TXN-${Date.now()}`;
+        account.balance -= txnAmount;
         saveAccounts(merchantAccounts);
 
-        const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
-
-        executeClubKonnectFulfillment({
+        const fulfillmentRes = await executeClubKonnectFulfillment({
             serviceType,
             targetInput: recipient,
             amount: txnAmount,
-            orderRef: txRef
+            orderRef: txRef,
+            networkCode,
+            planCode
         });
 
-        dispatchImmediateTransactionSMS(cleanPhone, serviceType, recipient, txnAmount, account.balance, txRef);
+        dispatchImmediateTransactionSMS(
+            cleanPhone,
+            serviceType.toUpperCase(),
+            recipient,
+            txnAmount,
+            account.balance,
+            txRef
+        );
 
         return res.status(200).json({
             status: 'success',
-            message: `${serviceType} of ₦${txnAmount.toLocaleString()} to ${recipient} completed successfully! ₦2.00 cashback applied.`,
-            txRef,
-            newBalance: account.balance
+            message: `${serviceType.toUpperCase()} completed successfully.`,
+            transactionRef: txRef,
+            remainingBalance: account.balance,
+            fulfillment: fulfillmentRes
         });
 
     } catch (err) {
+        console.error('Transaction Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Transaction processing failed.' });
     }
 });
 
-app.post('/api/v1/checkout/wallet', async (req, res) => {
+app.post('/api/v1/services/withdraw', async (req, res) => {
     try {
-        const { merchantPhone, serviceType, targetInput, amount } = req.body;
-        const txnAmount = parseFloat(amount);
-
-        if (!merchantPhone || !serviceType || !targetInput || isNaN(txnAmount) || txnAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid checkout parameters.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account session not found. Please sign in.' });
-        }
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Transaction rejected: Account is locked.' });
-        }
-
-        if ((account.balance || 0) < txnAmount) {
-            return res.status(400).json({ status: 'error', message: `Insufficient wallet balance. Total required: ₦${txnAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}.` });
-        }
-
-        const CASHBACK_BONUS = 2.00;
-        account.balance = (account.balance - txnAmount) + CASHBACK_BONUS;
-        saveAccounts(merchantAccounts);
-
-        const orderRef = `ORD-${Date.now()}`;
-        const txRef = `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`;
-
-        executeClubKonnectFulfillment({
-            serviceType,
-            targetInput,
-            amount: txnAmount,
-            orderRef: txRef
-        });
-
-        dispatchImmediateTransactionSMS(cleanPhone, serviceType, targetInput, txnAmount, account.balance, txRef);
-
-        return res.status(200).json({
-            status: 'success',
-            message: `${serviceType} for ${targetInput} completed successfully! ₦2.00 cashback applied.`,
-            orderRef,
-            txRef,
-            token: `TKN-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-            pinToken: `${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-            pinSerial: `SER-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            newBalance: account.balance
-        });
-
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to process wallet transaction.' });
-    }
-});
-
-app.post('/api/v1/checkout/initialize', async (req, res) => {
-    try {
-        const { serviceType, targetInput, amount, paymentMethod } = req.body;
-        const principalAmount = parseFloat(amount);
-
-        if (!serviceType || !targetInput || isNaN(principalAmount) || principalAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid payment parameters.' });
-        }
-
-        const finalPayableAmount = calculateTotalPayableAmount(principalAmount);
-        const orderRef = `SVR-${Date.now()}`;
-
-        pendingOrders = loadPendingOrders();
-        pendingOrders[orderRef] = {
-            orderRef,
-            serviceType,
-            targetInput,
-            amount: principalAmount,
-            finalPayableAmount,
-            status: 'PENDING_PAYMENT',
-            createdAt: new Date().toISOString()
-        };
-        savePendingOrders(pendingOrders);
-
-        if (paymentMethod === 'TRANSFER') {
-            return res.status(200).json({
-                status: 'success',
-                paymentMethod: 'TRANSFER',
-                orderRef: orderRef,
-                bankDetails: {
-                    bankName: MASTER_SQUAD_BANK,
-                    accountNumber: MASTER_SQUAD_NUBAN,
-                    accountName: 'ALL TIME BUSINESS LTD / SQUAD',
-                    ussdCode: `*BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+${Math.round(finalPayableAmount)}#`,
-                    amountToPay: `₦${finalPayableAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`
-                },
-                message: 'Collection account details generated with statutory fees applied.'
-            });
-        } else {
-            return res.status(200).json({
-                status: 'success',
-                paymentMethod: 'CARD',
-                orderRef: orderRef,
-                checkoutUrl: `https://checkout.squadco.com/pay/${orderRef}`,
-                message: 'Card gateway initialized.'
-            });
-        }
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to initialize payment gateway.' });
-    }
-});
-
-app.get('/api/v1/betting/providers', (req, res) => {
-    return res.status(200).json({
-        status: 'success',
-        data: [
-            { id: 'SportyBet', name: 'SportyBet' },
-            { id: 'Bet9ja', name: 'Bet9ja' },
-            { id: '1xBet', name: '1xBet' },
-            { id: 'BetKing', name: 'BetKing' },
-            { id: 'MSport', name: 'MSport' },
-            { id: 'Betway', name: 'Betway' },
-            { id: 'Betano', name: 'Betano' },
-            { id: '1Win', name: '1Win' },
-            { id: '22Bet', name: '22Bet' },
-            { id: 'Melbet', name: 'Melbet' },
-            { id: 'BetWinner', name: 'BetWinner' },
-            { id: 'MozzartBet', name: 'MozzartBet' },
-            { id: 'BetPawa', name: 'BetPawa' },
-            { id: 'BangBet', name: 'BangBet' },
-            { id: 'Merrybet', name: 'Merrybet' },
-            { id: 'NairaBet', name: 'NairaBet' },
-            { id: 'AccessBet', name: 'AccessBet' },
-            { id: 'LiveScoreBet', name: 'LiveScoreBet' },
-            { id: 'iLotBet', name: 'iLotBet' },
-            { id: 'PariPesa', name: 'PariPesa' },
-            { id: 'ZEbet', name: 'ZEbet' },
-            { id: 'SureBet247', name: 'SureBet247' },
-            { id: 'Green Lotto', name: 'Green Lotto' },
-            { id: 'Winners Golden Bet', name: 'Winners Golden Bet' }
-        ]
-    });
-});
-
-// WITHDRAWAL ENDPOINT (SMART LOGIC FOR REGISTERED VS THIRD-PARTY ACCOUNTS)
-app.post('/api/v1/merchant/withdraw', async (req, res) => {
-    try {
-        const { merchantPhone, amount, destinationBank, accountNumber, withdrawalPin } = req.body;
+        const { merchantPhone, amount, pin, bankName, accountNumber } = req.body;
         const withdrawAmount = parseFloat(amount);
 
-        if (!merchantPhone || isNaN(withdrawAmount) || withdrawAmount < 100 || !destinationBank || !accountNumber) {
-            return res.status(400).json({ status: 'error', message: 'All destination bank details are required.' });
+        if (!merchantPhone || isNaN(withdrawAmount) || withdrawAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid withdrawal parameters.' });
         }
 
         merchantAccounts = loadAccounts();
@@ -911,295 +789,182 @@ app.post('/api/v1/merchant/withdraw', async (req, res) => {
         const account = merchantAccounts[cleanPhone];
 
         if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        if (account.isLocked) return res.status(403).json({ status: 'error', message: 'Withdrawal rejected: Merchant account is locked.' });
-        if ((account.balance || 0) < withdrawAmount) return res.status(400).json({ status: 'error', message: 'Insufficient wallet balance.' });
 
-        const isRegisteredAccount = (account.settlementAccount === accountNumber.trim());
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+        }
 
-        // Validate 4-digit PIN for Third-Party Transfers
-        if (!isRegisteredAccount) {
-            const setPin = account.withdrawalPin || '1234';
-            if (!withdrawalPin || withdrawalPin.trim() !== setPin) {
-                return res.status(401).json({ status: 'error', message: 'Invalid 4-digit Security PIN for third-party withdrawal.' });
-            }
+        if (account.withdrawalPin && pin.toString().trim() !== account.withdrawalPin.toString().trim()) {
+            return res.status(401).json({ status: 'error', message: 'Invalid Transaction PIN.' });
+        }
+
+        if ((account.balance || 0) < withdrawAmount) {
+            return res.status(400).json({ status: 'error', message: 'Insufficient ledger balance.' });
         }
 
         account.balance -= withdrawAmount;
         saveAccounts(merchantAccounts);
 
         const txRef = `WTH-${Date.now()}`;
-        await executeAccessBankAutoSweep(withdrawAmount, txRef, 'Merchant Withdrawal');
+        const targetBank = bankName || account.bankName;
+        const targetAcc = accountNumber || account.settlementAccount;
 
-        dispatchImmediateTransactionSMS(cleanPhone, 'Bank Withdrawal', `${accountNumber} (${destinationBank})`, withdrawAmount, account.balance, txRef);
+        dispatchImmediateTransactionSMS(
+            cleanPhone,
+            'WITHDRAWAL / BANK TRANSFER',
+            `${targetBank} (${targetAcc})`,
+            withdrawAmount,
+            account.balance,
+            txRef
+        );
 
         return res.status(200).json({
             status: 'success',
-            message: `Withdrawal of ₦${withdrawAmount.toLocaleString()} to ${destinationBank} (${accountNumber}) authorized successfully!`,
-            txRef,
-            newBalance: account.balance
+            message: `Withdrawal request of ₦${withdrawAmount.toLocaleString()} processed successfully.`,
+            transactionRef: txRef,
+            remainingBalance: account.balance
         });
+
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Withdrawal processing failed.' });
+        console.error('Withdrawal Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Withdrawal execution failed.' });
     }
 });
 
 // =========================================================================
-// 💳 SAIL CREDIT LINE APPLICATION ENDPOINT
+// 📢 NEWSLETTER & BROADCAST DISPATCH ENGINE (FOR PRIVATE.HTML DESK)
 // =========================================================================
 
-app.post('/api/v1/credit/apply', async (req, res) => {
+// Endpoint for Web Feed Publishing & Mass Email Newsletter Dispatch
+app.post('/api/v1/newsletter/publish', async (req, res) => {
     try {
-        const { merchantName, creditAmount, interest, insurance, upfrontTotal, dailyTarget, tenor, merchantPhone, merchantEmail } = req.body;
+        const { headline, content, imageUrl, videoUrl, notifySubscribers } = req.body;
 
-        const reqAmount = parseFloat(creditAmount);
-        if (isNaN(reqAmount) || reqAmount < 5000 || reqAmount > 100000) {
-            return res.status(400).json({ status: 'error', message: 'Requested facility must be between ₦5,000 and ₦100,000.' });
+        if (!headline || !content) {
+            return res.status(400).json({ status: 'error', message: 'Headline and Content are required.' });
         }
-
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
-        let account = merchantAccounts[cleanPhone];
-
-        if (!account && merchantEmail) {
-            account = Object.values(merchantAccounts).find(acc => acc.email === merchantEmail.trim().toLowerCase());
-        }
-
-        const applicantPhone = account ? account.phone : cleanPhone;
-        const applicantEmail = account ? account.email : (merchantEmail || 'ogegbodegreat@gmail.com');
-        const applicantName = account ? account.merchantName : merchantName;
-
-        const creditApplication = {
-            id: `SAIL-${Date.now()}`,
-            merchantName: applicantName,
-            merchantPhone: applicantPhone,
-            merchantEmail: applicantEmail,
-            creditAmount: reqAmount,
-            interest: parseFloat(interest),
-            insurance: parseFloat(insurance),
-            upfrontTotal: parseFloat(upfrontTotal),
-            dailyTarget: parseFloat(dailyTarget),
-            tenor: tenor || '20 Working Days (Starts Day 2 Post-Disbursement)',
-            status: 'UNDER_REVIEW',
-            appliedAt: new Date().toISOString()
-        };
-
-        if (account) {
-            account.creditApplications = account.creditApplications || [];
-            account.creditApplications.unshift(creditApplication);
-            saveAccounts(merchantAccounts);
-        }
-
-        console.log(`💳 SAIL Credit Application Received for [${applicantName}] | Amount: ₦${reqAmount.toLocaleString()}`);
-
-        const emailHtml = `
-            <div style="background:#0d1322; color:#f1f5f9; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8; max-width:600px; margin:0 auto;">
-                <div style="text-align:center; border-bottom:2px solid #233148; padding-bottom:15px; margin-bottom:20px;">
-                    <h2 style="color:#38bdf8; margin:0;">@BL SOVEREIGN GATEWAY</h2>
-                    <div style="color:#10b981; font-size:11px; font-weight:700; text-transform:uppercase;">SAIL Credit Support Line</div>
-                </div>
-                <p>Hello <strong>${applicantName}</strong>,</p>
-                <p>Your application for a <strong>SAIL Working Capital Credit Line</strong> has been successfully registered and is currently under underwriting evaluation.</p>
-                
-                <div style="background:#162032; border-left:4px solid #f59e0b; padding:15px; border-radius:8px; margin:20px 0; font-size:13px;">
-                    <p style="margin-bottom:6px;"><strong>Facility Amount:</strong> ₦${reqAmount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin-bottom:6px;"><strong>Upfront Fee (16%):</strong> ₦${parseFloat(upfrontTotal).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                    <p style="margin-bottom:6px;"><strong>Daily Target (5%):</strong> ₦${parseFloat(dailyTarget).toLocaleString('en-NG', {minimumFractionDigits:2})} / working day</p>
-                    <p style="margin-bottom:0;"><strong>Tenor Schedule:</strong> ${tenor}</p>
-                </div>
-
-                <p style="font-size:12px; color:#cbd5e1;">Our risk assessment engine is evaluating your live transaction volume across GTBank Virtual NUBAN settlements. You will be notified once approved.</p>
-
-                <div style="text-align:center; font-size:11px; color:#64748b; margin-top:25px; border-top:1px solid #233148; padding-top:10px;">
-                    © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
-                </div>
-            </div>
-        `;
-
-        await dispatchEmail(applicantEmail, '💳 SAIL Credit Line Application Received', emailHtml);
-
-        if (applicantPhone) {
-            sendTermiiSMS(
-                applicantPhone,
-                `OE Alert: SAIL Credit Application of NGN ${reqAmount.toLocaleString()} received for ${applicantName}. Underwriting review in progress. www.alltimebusiness.com.ng`
-            ).catch(() => {});
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Credit application submitted successfully.',
-            application: creditApplication
-        });
-
-    } catch (err) {
-        console.error('❌ SAIL Credit Application Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Failed to process credit application.' });
-    }
-});
-
-// =========================================================================
-// 🔒 ADMIN COMMAND DESK API ENDPOINTS
-// =========================================================================
-
-app.get('/api/v1/admin/merchants', (req, res) => {
-    try {
-        merchantAccounts = loadAccounts();
-        processedTxns = loadProcessedTxns();
-
-        const merchants = Object.values(merchantAccounts).map(m => {
-            const { password, ...safeMerchant } = m;
-            return safeMerchant;
-        });
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        let todayTxnsCount = 0;
-        let todayVolumeTotal = 0;
-
-        Object.values(processedTxns).forEach(txn => {
-            if (txn.timestamp && txn.timestamp.startsWith(todayStr)) {
-                todayTxnsCount++;
-                todayVolumeTotal += parseFloat(txn.principalAmount || txn.amount || 0);
-            }
-        });
-
-        return res.status(200).json({
-            status: 'success',
-            count: merchants.length,
-            merchants,
-            activeCreditRequests: 0,
-            todayTxns: todayTxnsCount || 12,
-            todayVolume: todayVolumeTotal || 148500
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to retrieve merchant records.' });
-    }
-});
-
-app.post('/api/v1/admin/toggle-account-lock', (req, res) => {
-    try {
-        const { phone, isLocked } = req.body;
-        const cleanPhone = normalizePhoneNumber(phone);
-        merchantAccounts = loadAccounts();
-
-        if (!merchantAccounts[cleanPhone]) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        merchantAccounts[cleanPhone].isLocked = Boolean(isLocked);
-        saveAccounts(merchantAccounts);
-
-        const stateText = isLocked ? 'LOCKED 🔒' : 'UNLOCKED 🔓';
-
-        return res.status(200).json({
-            status: 'success',
-            message: `Merchant account updated to ${stateText}.`
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to toggle account lock state.' });
-    }
-});
-
-app.post('/api/v1/admin/credit-merchant', (req, res) => {
-    try {
-        const { phone, amount } = req.body;
-        const cleanPhone = normalizePhoneNumber(phone);
-        const creditAmount = parseFloat(amount);
-
-        if (!cleanPhone || isNaN(creditAmount) || creditAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid credit amount or phone.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant not found.' });
-        }
-
-        account.balance = (account.balance || 0) + creditAmount;
-        saveAccounts(merchantAccounts);
-
-        const txRef = `CRD-${Date.now()}`;
-        dispatchImmediateTransactionSMS(cleanPhone, 'Admin Ledger Credit', 'Wallet Balance', creditAmount, account.balance, txRef);
-
-        return res.status(200).json({
-            status: 'success',
-            message: `Successfully credited ₦${creditAmount.toLocaleString()} to ${account.merchantName}!`,
-            newBalance: account.balance
-        });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Manual wallet credit failed.' });
-    }
-});
-
-app.post('/api/v1/admin/publish-broadcast', (req, res) => {
-    try {
-        const { title, body, image, video } = req.body;
-
-        if (!title || !body) {
-            return res.status(400).json({ status: 'error', message: 'Title and body text are required.' });
-        }
-
-        broadcastPosts = loadBroadcasts();
 
         const newPost = {
-            id: `BC-${Date.now()}`,
-            title,
-            body,
-            image: image || null,
-            video: video || null,
-            publishedAt: new Date().toISOString()
+            id: `POST-${Date.now()}`,
+            headline,
+            content,
+            imageUrl: imageUrl || null,
+            videoUrl: videoUrl || null,
+            createdAt: new Date().toISOString(),
+            notified: !!notifySubscribers
         };
 
-        broadcastPosts.unshift(newPost);
+        broadcastPosts = loadBroadcasts();
+        broadcastPosts.unshift(newPost); // Store latest post first
         saveBroadcasts(broadcastPosts);
 
-        return res.status(200).json({ status: 'success', message: 'Broadcast published live!', post: newPost });
+        let emailCount = 0;
+        if (notifySubscribers) {
+            merchantAccounts = loadAccounts();
+            const recipients = Object.values(merchantAccounts)
+                .map(acc => acc.email)
+                .filter(email => email && email.includes('@'));
+
+            const emailHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+                        .container { background: #1e293b; border: 1px solid #334155; border-radius: 12px; max-width: 600px; margin: 0 auto; padding: 25px; }
+                        .header { text-align: center; border-bottom: 2px solid #38bdf8; padding-bottom: 15px; margin-bottom: 20px; }
+                        .title { color: #38bdf8; font-size: 20px; font-weight: 800; }
+                        .headline { font-size: 18px; color: #f1f5f9; font-weight: 700; margin-bottom: 12px; }
+                        .content { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; white-space: pre-line; }
+                        .footer { text-align: center; border-top: 1px solid #334155; padding-top: 15px; font-size: 11px; color: #64748b; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <div class="title">ALL TIME BUSINESS LTD • OFFICIAL BROADCAST</div>
+                        </div>
+                        <div class="headline">${headline}</div>
+                        <div class="content">${content}</div>
+                        <div class="footer">
+                            © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway<br>
+                            <a href="https://www.alltimebusiness.com.ng" style="color: #38bdf8;">www.alltimebusiness.com.ng</a>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // Asynchronously dispatch emails to all registered merchants
+            for (const recipient of recipients) {
+                dispatchEmail(recipient, headline, emailHtml).catch(() => {});
+                emailCount++;
+            }
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: notifySubscribers 
+                ? `Broadcast published and mass email dispatched to ${emailCount} subscribers.`
+                : 'Broadcast published to Website Feed successfully.',
+            postId: newPost.id
+        });
+
     } catch (err) {
+        console.error('Broadcast Publish Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
     }
 });
 
-app.post('/api/v1/admin/dispatch-newsletter', async (req, res) => {
+// Endpoint for Direct Mass SMS Dispatch
+app.post('/api/v1/admin/broadcast-sms', async (req, res) => {
     try {
-        const { title, body } = req.body;
+        const { message } = req.body;
 
-        if (!title || !body) {
-            return res.status(400).json({ status: 'error', message: 'Subject and email body are required.' });
+        if (!message || !message.trim()) {
+            return res.status(400).json({ status: 'error', message: 'SMS message content cannot be empty.' });
         }
 
         merchantAccounts = loadAccounts();
-        const merchants = Object.values(merchantAccounts);
+        const phoneNumbers = Object.keys(merchantAccounts);
 
-        const emailHtml = `
-            <div style="background:#0d1322; color:#f1f5f9; padding:30px; font-family:'Segoe UI',sans-serif; border-radius:12px; border:1px solid #38bdf8; max-width:600px; margin:0 auto;">
-                <h2 style="color:#38bdf8; text-align:center;">@BL SOVEREIGN GATEWAY BULLETIN</h2>
-                <div style="margin:20px 0; line-height:1.6;">${body}</div>
-                <div style="text-align:center; font-size:11px; color:#64748b; margin-top:20px; border-top:1px solid #233148; padding-top:10px;">
-                    © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway
-                </div>
-            </div>
-        `;
-
-        for (const merchant of merchants) {
-            if (merchant.email) {
-                await dispatchEmail(merchant.email, title, emailHtml);
-            }
+        if (phoneNumbers.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'No registered merchant contacts found.' });
         }
 
-        return res.status(200).json({ status: 'success', message: `Newsletter dispatched to ${merchants.length} merchants.` });
+        let sentCount = 0;
+        for (const phone of phoneNumbers) {
+            sendTermiiSMS(phone, message).catch(() => {});
+            sentCount++;
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: `Mass SMS broadcast successfully initiated for ${sentCount} recipient(s).`
+        });
+
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Failed to dispatch newsletter.' });
+        console.error('Mass SMS Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Failed to dispatch mass SMS broadcast.' });
     }
 });
 
-// =========================================================================
-// 🔄 CATCH-ALL UNMAPPED ROUTE FALLBACK (REDIRECT TO LOGIN)
-// =========================================================================
-
-app.get('*', (req, res) => {
-    res.redirect('/login');
+// Endpoint to fetch public feed posts for newsletter.html
+app.get('/api/v1/newsletter/posts', (req, res) => {
+    broadcastPosts = loadBroadcasts();
+    return res.status(200).json({ status: 'success', posts: broadcastPosts });
 });
 
+// =========================================================================
+// 🚀 SERVER BOOTSTRAP
+// =========================================================================
+
 app.listen(PORT, () => {
-    console.log(`🚀 Master Server Engine live on port ${PORT}`);
+    console.log(`================================================================`);
+    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER LIVE ON PORT: ${PORT}`);
+    console.log(`🏛️  Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
+    console.log(`💳 Master Decal NUBAN: ${MASTER_SQUAD_NUBAN} (${MASTER_SQUAD_BANK})`);
+    console.log(`📱 USSD Code: *BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+AMOUNT#`);
+    console.log(`================================================================`);
 });
