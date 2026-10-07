@@ -279,7 +279,7 @@
 
         /* MODAL POPUP SYSTEM */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 460px; text-align: center; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 460px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .form-group { margin-bottom: 14px; text-align: left; }
@@ -640,7 +640,6 @@ async function handleWithdraw(e) {
         if (res.ok && data.status === 'success') {
             merchant.balance = data.newBalance;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-            // Receipts strictly trigger ONLY after a successful complete transaction
             renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.txRef || 'WTH-SUCCESS');
             if (isLedgerVisible) toggleBalance('ledger');
         } else {
@@ -651,7 +650,7 @@ async function handleWithdraw(e) {
     }
 }
 
-// 5. SHAREABLE & PRINTABLE TRANSACTION RECEIPT (Issued only post-successful transaction)
+// 5. SHAREABLE & PRINTABLE TRANSACTION RECEIPT
 function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -675,7 +674,7 @@ function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 6. DOWNLOAD BANK STATEMENT (Generates standard bank account statement)
+// 6. DOWNLOAD BANK STATEMENT
 function downloadBankStatement() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -698,7 +697,7 @@ function downloadBankStatement() {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 7. AJO EXPRESS MODAL
+// 7. AJO EXPRESS MODAL WITH T&C, DAILY SETUP & INSPIRATIONAL ONBOARDING
 function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -713,10 +712,103 @@ function openAjoExpressModal() {
                 <li style="margin-bottom:6px;">Group Savings & Collective Thrift Management</li>
                 <li style="margin-bottom:6px;">Automated Rotational & Instant Payouts</li>
             </ul>
-            <button onclick="alert('Ajo Express portal entering live cycle...')" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
+
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #f59e0b; margin-bottom:15px; font-size:0.78rem;">
+                <p style="color:#f59e0b; font-weight:800; margin-bottom:4px;">📜 Terms & Conditions (T&C):</p>
+                <ol style="padding-left:16px; color:#cbd5e1;">
+                    <li><strong>Gateway Management Fee:</strong> Your very 1st daily contribution amount is strictly reserved for gateway maintenance and onboarding processing.</li>
+                    <li><strong>Locked Cycle Duration:</strong> Funds cannot be withdrawn until the exact end of the month cycle.</li>
+                    <li><strong>Early Liquidation Penalty:</strong> Any premature withdrawal request before month-end attracts a strict <strong>10% early-liquidation penalty</strong> on accumulated balance.</li>
+                    <li><strong>Fixed Daily Commitment:</strong> You must select a static daily contribution amount that remains active through month-end.</li>
+                </ol>
+            </div>
+
+            <button onclick="setupAjoPlanModal()" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
         </div>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
+}
+
+function setupAjoPlanModal() {
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = "⚙️ SETUP AJO EXPRESS PLAN";
+    modalBody.innerHTML = `
+        <div style="text-align:left; font-size:0.85rem;">
+            <div class="form-group">
+                <label>Daily Static Contribution Amount (₦) *</label>
+                <input type="number" id="ajoDailyAmount" placeholder="e.g. 500, 1000, 5000" min="100" required>
+                <small style="color:#94a3b8; font-size:0.72rem; display:block; margin-top:4px;">
+                    Note: Your 1st deposit (Day 1) will serve as the Gateway fee. Submitting day 2 onward builds your locked savings.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Email for Monthly Statement & Notifications *</label>
+                <input type="email" id="ajoClientEmail" value="${merchant.email || ''}" placeholder="client@example.com" required>
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label style="font-size:0.75rem; color:#cbd5e1; cursor:pointer;">
+                    <input type="checkbox" id="acceptAjoTerms" required> I accept the T&C (1st contribution gateway fee & 10% penalty on early withdrawal).
+                </label>
+            </div>
+
+            <button onclick="processAjoOnboarding()" class="modal-btn" style="width:100%; background:#10b981;">Confirm & Activate Savings</button>
+        </div>
+    `;
+}
+
+async function processAjoOnboarding() {
+    const amount = document.getElementById('ajoDailyAmount').value;
+    const email = document.getElementById('ajoClientEmail').value;
+    const accepted = document.getElementById('acceptAjoTerms').checked;
+
+    if (!amount || amount < 100) return alert('Please enter a valid daily contribution amount.');
+    if (!email) return alert('Please enter a valid email address.');
+    if (!accepted) return alert('You must accept the Terms & Conditions to proceed.');
+
+    const clientName = merchant.merchantName || 'Valued Partner';
+
+    // Trigger confirmation email
+    try {
+        fetch('/api/v1/notifications/email', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                to: email,
+                subject: "🌟 Welcome to AJO EXPRESS - Your Wealth Journey Begins Today!",
+                message: `Dear ${clientName},\n\nCongratulations on launching your Ajo Express Digital Savings plan with @BL SOVEREIGN GATEWAY!\n\nDaily Commitment: ₦${parseFloat(amount).toLocaleString('en-NG')}\nLock Period: Active until Month-End\nFirst Contribution Status: Gateway Processing Fee\n\nRemember: 'Do not save what is left after spending, but spend what is left after saving.' - Warren Buffett.\n\nEvery small daily step compounds into giant financial breakthroughs. Stay disciplined, and let's achieve greatness together!\n\nWarm regards,\n@BL Sovereign Gateway Team\nALL TIME BUSINESS LTD`
+            })
+        });
+    } catch(err) {
+        console.warn('Email dispatch notice log:', err);
+    }
+
+    // Display Inspirational Onboarding Message Modal
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = "🌟 AJO EXPRESS ACTIVATED!";
+    modalBody.innerHTML = `
+        <div style="text-align:center; padding:10px; color:#cbd5e1;">
+            <div style="font-size:2.8rem; margin-bottom:10px;">🏆</div>
+            <h4 style="color:#38bdf8; margin-bottom:10px;">"Little drops of water make a mighty ocean."</h4>
+            <p style="font-size:0.85rem; line-height:1.6; margin-bottom:15px; color:#f1f5f9;">
+                Welcome aboard, <strong>${clientName}</strong>! You have taken a monumental step toward financial discipline and wealth creation.
+            </p>
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px dashed #10b981; text-align:left; font-size:0.8rem; margin-bottom:15px;">
+                <p><strong>Daily Commitment:</strong> ₦${parseFloat(amount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+                <p><strong>Cycle:</strong> Month-End Lock</p>
+                <p><strong>Status:</strong> Active & Sent to ${email}</p>
+            </div>
+            <blockquote style="font-style:italic; font-size:0.8rem; color:#f59e0b; margin-bottom:15px;">
+                "Discipline is the bridge between goals and accomplishment."
+            </blockquote>
+            <button class="modal-btn" onclick="closeModal()" style="width:100%; background:#10b981;">Return to Dashboard Desk</button>
+        </div>
+    `;
 }
 
 // 8. RESET PIN MODAL
