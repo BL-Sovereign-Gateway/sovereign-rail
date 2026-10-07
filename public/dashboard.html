@@ -209,7 +209,7 @@
             font-weight: 600;
         }
 
-        /* PRODUCTS & SERVICES SECTION (4 BOXES) */
+        /* PRODUCTS & SERVICES SECTION */
         .section-title {
             font-size: 0.9rem;
             text-transform: uppercase;
@@ -236,6 +236,7 @@
             align-items: center;
             gap: 16px;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .product-card:hover {
@@ -252,6 +253,13 @@
             font-size: 0.95rem;
             font-weight: 700;
             color: #f1f5f9;
+        }
+
+        .product-desc {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 4px;
+            font-weight: 400;
         }
 
         /* TABBED FUNDING OPTIONS */
@@ -293,12 +301,12 @@
 
 <!-- SINGLE UNIFIED HEADER NAVIGATION -->
 <nav class="top-nav">
-    <a href="/dashboard" class="brand-logo">@BL SOVEREIGN GATEWAY</a>
+    <a href="/dashboard" class="brand-logo">📊 @BL SOVEREIGN GATEWAY</a>
     
     <ul class="nav-links">
         <li class="nav-item"><a href="/dashboard" class="active">📊 Dashboard Desk</a></li>
         <li class="nav-item"><a href="/vtu-support">📞 Buy Airtime & Data</a></li>
-        <li class="nav-item"><a href="/bill-payments">💡 Utility & Discos</a></li>
+        <li class="nav-item"><a href="/bill-payments">💡 Cable TV & Electricity</a></li>
         <li class="nav-item"><a href="/education-support">🎓 Education Support</a></li>
         <li class="nav-item"><a href="/betting-topup">🎮 Betting Topup</a></li>
         <li class="nav-item"><a href="/newsletter">📰 Newsletter</a></li>
@@ -306,7 +314,7 @@
 
     <div class="nav-actions">
         <button class="btn-header-action btn-pin" onclick="openResetPinModal()">🔑 Reset PIN</button>
-        <button class="btn-header-action btn-signout" onclick="signOut()">Sign Out</button>
+        <button class="btn-header-action btn-signout" onclick="signOut()">🚪 Sign Out</button>
     </div>
 </nav>
 
@@ -319,7 +327,7 @@
         <div class="quick-actions">
             <button class="btn-action btn-fund" onclick="openFundModal()">➕ FUND WALLET</button>
             <button class="btn-action btn-withdraw" onclick="openWithdrawModal()">💸 WITHDRAW FUNDS</button>
-            <button class="btn-action btn-statement" onclick="downloadStatementPDF()">📄 STATEMENT (PDF)</button>
+            <button class="btn-action btn-statement" onclick="downloadBankStatement()">📄 BANK STATEMENT</button>
         </div>
     </div>
 
@@ -356,21 +364,30 @@
     <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
+        <div class="product-card" onclick="openAjoExpressModal()">
+            <div class="product-icon">📺</div>
+            <div>
+                <div class="product-name">AJO EXPRESS</div>
+                <div class="product-desc">Ajo / Esusu Digital Thrift & Micro-Contributions</div>
+            </div>
+        </div>
         <a href="/education-support" class="product-card">
             <div class="product-icon">🎓</div>
-            <div class="product-name">WAEC / JAMB Result PINs</div>
-        </a>
-        <a href="/bill-payments" class="product-card">
-            <div class="product-icon">📺</div>
-            <div class="product-name">Cable TV & Electricity Discos⚡</div>
+            <div>
+                <div class="product-name">WAEC / JAMB Result PINs</div>
+            </div>
         </a>
         <a href="/credit-support" class="product-card">
             <div class="product-icon">💳</div>
-            <div class="product-name">SAIL Credit supports</div>
+            <div>
+                <div class="product-name">SAIL Credit supports</div>
+            </div>
         </a>
         <a href="#" class="product-card" onclick="alert('Stocks & Equity Module coming soon!')">
             <div class="product-icon">📈</div>
-            <div class="product-name">Buy Stocks & Equity</div>
+            <div>
+                <div class="product-name">Buy Stocks & Equity</div>
+            </div>
         </a>
     </div>
 
@@ -425,7 +442,7 @@ function toggleBalance(type) {
     }
 }
 
-// 3. MULTI-OPTION FUND WALLET MODAL (EXACT SQUAD DECAL USSD ALIGNMENT)
+// 3. MULTI-OPTION FUND WALLET MODAL
 function openFundModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -509,7 +526,7 @@ async function initCardPayment() {
     } catch(err) { alert('Checkout initialization failed.'); }
 }
 
-// 4. SMART WITHDRAWAL MODAL WITH NIGERIAN BANK LIST & PIN PROTECTION
+// 4. SMART WITHDRAWAL MODAL
 function openWithdrawModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -623,6 +640,7 @@ async function handleWithdraw(e) {
         if (res.ok && data.status === 'success') {
             merchant.balance = data.newBalance;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+            // Receipts strictly trigger ONLY after a successful complete transaction
             renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.txRef || 'WTH-SUCCESS');
             if (isLedgerVisible) toggleBalance('ledger');
         } else {
@@ -633,7 +651,7 @@ async function handleWithdraw(e) {
     }
 }
 
-// 5. SHAREABLE & PRINTABLE RECEIPT ENGINE
+// 5. SHAREABLE & PRINTABLE TRANSACTION RECEIPT (Issued only post-successful transaction)
 function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -657,12 +675,51 @@ function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 6. DOWNLOAD PDF STATEMENT
-function downloadStatementPDF() {
-    renderPrintableReceipt('Account Statement Summary', merchant.virtualNuban || '5000759098', merchant.balance || '0.00', 'STM-' + Date.now());
+// 6. DOWNLOAD BANK STATEMENT (Generates standard bank account statement)
+function downloadBankStatement() {
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = "📄 BANK STATEMENT";
+    modalBody.innerHTML = `
+        <div style="background:#0f172a; padding:18px; border-radius:10px; border:1px solid #0ea5e9; text-align:left; font-size:0.85rem; color:#cbd5e1;">
+            <div style="text-align:center; margin-bottom:12px; border-bottom:1px solid #334155; padding-bottom:8px;">
+                <h4 style="color:#38bdf8; margin:0;">@BL SOVEREIGN GATEWAY STATEMENT</h4>
+                <small style="color:#94a3b8;">ALL TIME BUSINESS LTD (RC: 950444)</small>
+            </div>
+            <p style="margin-bottom:4px;"><strong>Account Name:</strong> ${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
+            <p style="margin-bottom:4px;"><strong>Virtual Account No:</strong> ${merchant.virtualNuban || '5000759098'}</p>
+            <p style="margin-bottom:4px;"><strong>Bank Name:</strong> GTBank / GTCO</p>
+            <p style="margin-bottom:4px;"><strong>Ledger Balance:</strong> ₦${merchant.balance !== undefined ? parseFloat(merchant.balance).toLocaleString('en-NG', {minimumFractionDigits: 2}) : '0.00'}</p>
+            <p style="margin-bottom:0;"><strong>Statement Date:</strong> ${new Date().toLocaleDateString()}</p>
+        </div>
+        <button onclick="window.print()" class="modal-btn" style="background:#0ea5e9; width:100%; margin-top:15px;">🖨️ Print / Download Bank Statement</button>
+    `;
+    document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 7. RESET PIN MODAL
+// 7. AJO EXPRESS MODAL
+function openAjoExpressModal() {
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = "📺 AJO EXPRESS";
+    modalBody.innerHTML = `
+        <div style="text-align:left; font-size:0.85rem; color:#cbd5e1; line-height:1.6;">
+            <p style="margin-bottom:10px; color:#38bdf8; font-weight:700;">Digital Thrift Savings & Micro-Contributions</p>
+            <ul style="list-style-type: disc; padding-left: 20px; margin-bottom: 15px;">
+                <li style="margin-bottom:6px;">Ajo / Esusu Digital Savings Engine</li>
+                <li style="margin-bottom:6px;">Automated Daily & Weekly Contributions</li>
+                <li style="margin-bottom:6px;">Group Savings & Collective Thrift Management</li>
+                <li style="margin-bottom:6px;">Automated Rotational & Instant Payouts</li>
+            </ul>
+            <button onclick="alert('Ajo Express portal entering live cycle...')" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
+        </div>
+    `;
+    document.getElementById('dashboardModal').style.display = 'flex';
+}
+
+// 8. RESET PIN MODAL
 function openResetPinModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
