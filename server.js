@@ -7,7 +7,8 @@
  * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
- * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine
+ * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
+ * Automated Month-End Ajo Payout Cron Engine
  * ============================================================================
  */
 
@@ -17,6 +18,7 @@ const fs = require('fs');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const cron = require('node-cron');
 const { Resend } = require('resend');
 
 const app = express();
@@ -509,6 +511,13 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
                 const platformMarkup = calculateTieredMarkup(principalAmount);
 
                 merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + principalAmount;
+
+                // Auto-increment Ajo Express accumulated total if enrolled
+                if (merchantAccounts[phone].ajoExpress && merchantAccounts[phone].ajoExpress.status === 'ACTIVE') {
+                    merchantAccounts[phone].ajoExpress.accumulatedAmount = 
+                        (merchantAccounts[phone].ajoExpress.accumulatedAmount || 0) + principalAmount;
+                }
+
                 saveAccounts(merchantAccounts);
 
                 processedTxns[txRef] = {
@@ -857,10 +866,9 @@ app.post('/api/v1/services/withdraw', async (req, res) => {
 });
 
 // =========================================================================
-// 🏦 AJO EXPRESS ENGINE (PROGRESS & DUAL-PENALTY EMERGENCY LIQUIDATION)
+// 🏺 AJO EXPRESS ENGINE (PROGRESS & DUAL-PENALTY EMERGENCY LIQUIDATION)
 // =========================================================================
 
-// Endpoint to fetch real-time Ajo Express progress
 app.get('/api/v1/ajo/progress/:phone', (req, res) => {
     try {
         const cleanPhone = normalizePhoneNumber(req.params.phone);
@@ -875,8 +883,8 @@ app.get('/api/v1/ajo/progress/:phone', (req, res) => {
         const totalAccumulated = parseFloat(ajo.accumulatedAmount || 0);
         const dailyCommitment = parseFloat(ajo.dailyCommitment || 0);
 
-        const gatewayManagementFee = dailyCommitment; // 1st Contribution Rule
-        const flatPenaltyFee = totalAccumulated * 0.05; // 5% Flat Penalty
+        const gatewayManagementFee = dailyCommitment;
+        const flatPenaltyFee = totalAccumulated * 0.05;
         const totalDeductions = gatewayManagementFee + flatPenaltyFee;
         const netPayoutAmount = Math.max(0, totalAccumulated - totalDeductions);
 
@@ -901,7 +909,6 @@ app.get('/api/v1/ajo/progress/:phone', (req, res) => {
     }
 });
 
-// Endpoint to execute emergency early liquidation (5% + 1st Contribution Rule)
 app.post('/api/v1/ajo/liquidate-emergency', async (req, res) => {
     try {
         const { merchantPhone, pin } = req.body;
@@ -973,6 +980,58 @@ app.post('/api/v1/ajo/liquidate-emergency', async (req, res) => {
     } catch (err) {
         console.error('❌ Ajo Emergency Break Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Server error processing emergency liquidation.' });
+    }
+});
+
+// =========================================================================
+// ⏱️ AUTOMATED MONTH-END AJO PAYOUT CRON ENGINE (HANDS-FREE SWEEP)
+// =========================================================================
+
+// Runs automatically at 23:59 on the last day of every month
+cron.schedule('59 23 28-31 * *', async () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // Verify it is indeed the last day of the month
+    if (tomorrow.getDate() === 1) {
+        console.log('🔄 INITIATING AUTOMATED MONTH-END AJO PAYOUT SWEEP...');
+
+        merchantAccounts = loadAccounts();
+        let processedCount = 0;
+
+        for (const phone in merchantAccounts) {
+            const account = merchantAccounts[phone];
+            if (account.ajoExpress && account.ajoExpress.status === 'ACTIVE') {
+                const totalAccumulated = parseFloat(account.ajoExpress.accumulatedAmount || 0);
+                const dailyCommitment = parseFloat(account.ajoExpress.dailyCommitment || 0);
+
+                if (totalAccumulated > dailyCommitment) {
+                    const gatewayFee = dailyCommitment; // Retain 1st contribution fee
+                    const netPayout = totalAccumulated - gatewayFee;
+
+                    // Credit main wallet balance automatically
+                    account.balance = (account.balance || 0) + netPayout;
+
+                    // Reset Ajo Express cycle for the new month
+                    account.ajoExpress = {
+                        status: 'COMPLETED_MATURED',
+                        lastPayoutAmount: netPayout,
+                        lastGatewayFee: gatewayFee,
+                        maturedDate: new Date().toISOString()
+                    };
+
+                    const txRef = `AJO-MATURE-${Date.now()}`;
+                    const smsMsg = `OE Alert: Your Ajo Express cycle matured! Net payout of NGN ${netPayout.toLocaleString()} credited to wallet. Bal: NGN ${account.balance.toLocaleString()}. Ref: ${txRef}`;
+
+                    sendTermiiSMS(phone, smsMsg).catch(() => {});
+                    processedCount++;
+                }
+            }
+        }
+
+        saveAccounts(merchantAccounts);
+        console.log(`✅ MONTH-END AJO PAYOUT COMPLETED: ${processedCount} merchant accounts credited!`);
     }
 });
 
