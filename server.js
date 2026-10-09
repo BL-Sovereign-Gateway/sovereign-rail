@@ -8,7 +8,7 @@
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
  * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
- * Automated Month-End Ajo Payout Cron Engine
+ * Native Automated Month-End Ajo Payout Engine
  * ============================================================================
  */
 
@@ -18,7 +18,6 @@ const fs = require('fs');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const cron = require('node-cron');
 const { Resend } = require('resend');
 
 const app = express();
@@ -261,7 +260,7 @@ function calculateTotalPayableAmount(principalAmount) {
 
     let platformMarkup = 0;
     if (amount < 1000) {
-        platformMarkup = 10.00; // ₦10 markup for transactions below ₦1,000
+        platformMarkup = 10.00;
     } else if (amount >= 1000 && amount <= 20000) {
         platformMarkup = 20.00;
     } else if (amount >= 20001 && amount <= 50000) {
@@ -984,17 +983,17 @@ app.post('/api/v1/ajo/liquidate-emergency', async (req, res) => {
 });
 
 // =========================================================================
-// ⏱️ AUTOMATED MONTH-END AJO PAYOUT CRON ENGINE (HANDS-FREE SWEEP)
+// ⏱️ NATIVE AUTOMATED MONTH-END AJO PAYOUT SCHEDULER (ZERO-PACKAGE DEPENDENCY)
 // =========================================================================
 
-// Runs automatically at 23:59 on the last day of every month
-cron.schedule('59 23 28-31 * *', async () => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+// Runs automatically every hour to check for month-end midnight payouts
+setInterval(async () => {
+    const now = new Date();
+    // Check if it's 23:00 (11 PM) or later on the last day of the month
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
 
-    // Verify it is indeed the last day of the month
-    if (tomorrow.getDate() === 1) {
+    if (tomorrow.getDate() === 1 && now.getHours() === 23) {
         console.log('🔄 INITIATING AUTOMATED MONTH-END AJO PAYOUT SWEEP...');
 
         merchantAccounts = loadAccounts();
@@ -1007,13 +1006,11 @@ cron.schedule('59 23 28-31 * *', async () => {
                 const dailyCommitment = parseFloat(account.ajoExpress.dailyCommitment || 0);
 
                 if (totalAccumulated > dailyCommitment) {
-                    const gatewayFee = dailyCommitment; // Retain 1st contribution fee
+                    const gatewayFee = dailyCommitment;
                     const netPayout = totalAccumulated - gatewayFee;
 
-                    // Credit main wallet balance automatically
                     account.balance = (account.balance || 0) + netPayout;
 
-                    // Reset Ajo Express cycle for the new month
                     account.ajoExpress = {
                         status: 'COMPLETED_MATURED',
                         lastPayoutAmount: netPayout,
@@ -1033,7 +1030,7 @@ cron.schedule('59 23 28-31 * *', async () => {
         saveAccounts(merchantAccounts);
         console.log(`✅ MONTH-END AJO PAYOUT COMPLETED: ${processedCount} merchant accounts credited!`);
     }
-});
+}, 60 * 60 * 1000); // Check hourly
 
 // =========================================================================
 // 📰 NEWSLETTER & BROADCAST MEDIA ENGINE
