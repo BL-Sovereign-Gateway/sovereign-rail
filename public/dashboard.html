@@ -365,7 +365,7 @@
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
         <div class="product-card" onclick="openAjoExpressModal()">
-            <div class="product-icon">📺</div>
+            <div class="product-icon">🏺</div>
             <div>
                 <div class="product-name">AJO EXPRESS</div>
                 <div class="product-desc">Ajo / Esusu Digital Thrift & Micro-Contributions</div>
@@ -707,13 +707,74 @@ function downloadBankStatement() {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 7. AJO EXPRESS ENGINE (PROGRESS TRACKER & DUAL-PENALTY EMERGENCY BREAK)
+// 7. AUTO-MARK CONTRIBUTION PASSBOOK CARD GENERATOR
+function renderAutoMarkCard(accumulatedAmount, dailyCommitment) {
+    const today = new Date();
+    const currentDayOfMonth = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    
+    const totalPaidDays = Math.floor(accumulatedAmount / (dailyCommitment || 1));
+
+    let cardHTML = `
+        <div style="background: #0f172a; border: 1px solid #38bdf8; border-radius: 12px; padding: 14px; margin-top: 12px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">
+                <span style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">
+                    📋 Monthly Contribution Passbook
+                </span>
+                <span style="font-size: 0.75rem; color: #10b981; font-weight: 700;">
+                    ${totalPaidDays} / ${daysInMonth} Days Marked
+                </span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-bottom: 10px;">
+    `;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        let boxStyle = "";
+        let statusIcon = "";
+        let dayColor = "#64748b";
+
+        if (day <= totalPaidDays) {
+            boxStyle = "background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981;";
+            statusIcon = "✔";
+            dayColor = "#34d399";
+        } else if (day === currentDayOfMonth) {
+            boxStyle = "background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b;";
+            statusIcon = "⚡";
+            dayColor = "#fbbf24";
+        } else {
+            boxStyle = "background: #1e293b; border: 1px solid #334155;";
+            statusIcon = "🔒";
+            dayColor = "#475569";
+        }
+
+        cardHTML += `
+            <div style="${boxStyle} padding: 5px 2px; border-radius: 6px; font-size: 0.68rem;">
+                <div style="color: ${dayColor}; font-weight: 800;">D${day}</div>
+                <div style="font-size: 0.75rem; margin-top: 2px;">${statusIcon}</div>
+            </div>
+        `;
+    }
+
+    cardHTML += `
+            </div>
+
+            <div style="background: #1e293b; border-radius: 6px; height: 6px; width: 100%; overflow: hidden; margin-top: 6px;">
+                <div style="background: linear-gradient(90deg, #10b981, #38bdf8); height: 100%; width: ${Math.min(100, (totalPaidDays / daysInMonth) * 100)}%;"></div>
+            </div>
+        </div>
+    `;
+
+    return cardHTML;
+}
+
+// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & DUAL-PENALTY EMERGENCY BREAK)
 async function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "📺 AJO EXPRESS";
-    modalBody.innerHTML = `<p style="text-align:center; color:#38bdf8;">⏳ Checking active Ajo Express plan...</p>`;
+    modalTitle.textContent = "🏺 AJO EXPRESS VAULT";
+    modalBody.innerHTML = `<p style="text-align:center; color:#38bdf8;">⏳ Synchronizing Ajo Express Passbook...</p>`;
     document.getElementById('dashboardModal').style.display = 'flex';
 
     try {
@@ -724,35 +785,52 @@ async function openAjoExpressModal() {
             const prog = data.ajoProgress;
             const b = prog.liquidationBreakdown;
 
+            const passbookHTML = renderAutoMarkCard(
+                prog.accumulatedAmount,
+                prog.dailyCommitment
+            );
+
             modalBody.innerHTML = `
                 <div style="text-align:left; font-size:0.85rem; color:#cbd5e1;">
-                    <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; margin-bottom:16px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 10px;">
+                        <span style="font-size: 1.1rem;">🚀</span>
+                        <strong style="color: #38bdf8; display: block; font-size: 0.9rem; margin-top: 2px;">
+                            Your Ajo Express Vault Active!
+                        </strong>
+                        <small style="color: #cbd5e1; font-size: 0.78rem; display:block; margin-top:3px;">
+                            Little drops make a mighty ocean. Track your daily contributions and watch your savings grow every single day.
+                        </small>
+                    </div>
+
+                    ${passbookHTML}
+
+                    <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                             <span style="color:#94a3b8;">Daily Commitment:</span>
                             <strong style="color:#fff;">₦${prog.dailyCommitment.toLocaleString()}</strong>
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#94a3b8;">Accumulated Total:</span>
-                            <strong style="color:#34d399; font-size:1.1rem;">₦${prog.accumulatedAmount.toLocaleString()}</strong>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                            <span style="color:#94a3b8;">Total Accumulated:</span>
+                            <strong style="color:#34d399; font-size:1.05rem;">₦${prog.accumulatedAmount.toLocaleString()}</strong>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
                             <span style="color:#94a3b8;">Target Release Date:</span>
-                            <strong style="color:#f59e0b;">Month-End Lock</strong>
+                            <strong style="color:#f59e0b;">Month-End Auto Release</strong>
                         </div>
                     </div>
 
-                    <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:16px;">
-                        <p style="color:#ef4444; font-weight:800; margin-bottom:6px;">⚠️ Emergency Break Fee Estimate:</p>
-                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#f87171; margin-bottom:4px;">
+                    <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:14px;">
+                        <p style="color:#ef4444; font-weight:800; margin-bottom:6px; font-size:0.8rem;">⚠️ Emergency Cashout Breakdown:</p>
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:4px;">
                             <span>1st Contribution (Gateway Fee):</span>
                             <span>-₦${b.gatewayManagementFee.toLocaleString()}</span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#f87171; margin-bottom:6px;">
-                            <span>5% Flat Liquidation Penalty:</span>
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:6px;">
+                            <span>5% Flat Penalty Fee:</span>
                             <span>-₦${b.flatPenaltyFee.toLocaleString()}</span>
                         </div>
                         <hr style="border-color:#334155; margin:6px 0;">
-                        <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#34d399; font-weight:700;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#34d399; font-weight:700;">
                             <span>Estimated Net Wallet Payout:</span>
                             <span>₦${b.netPayoutAmount.toLocaleString()}</span>
                         </div>
@@ -838,7 +916,7 @@ async function executeAjoBreak() {
     }
 }
 
-// 8. RESET PIN MODAL
+// 9. RESET PIN MODAL
 function openResetPinModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
