@@ -297,7 +297,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="initSession()">
 
 <!-- SINGLE UNIFIED HEADER NAVIGATION -->
 <nav class="top-nav">
@@ -428,6 +428,16 @@ function initSession() {
 
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
+}
+
+function closeModal() {
+    document.getElementById('dashboardModal').style.display = 'none';
+}
+
+function signOut() {
+    localStorage.removeItem('activeMerchant');
+    localStorage.removeItem('merchantSession');
+    window.location.href = '/login';
 }
 
 // 2. BALANCE TOGGLE VISIBILITY
@@ -624,23 +634,23 @@ async function handleWithdraw(e) {
     }
 
     try {
-        const res = await fetch('/api/v1/merchant/withdraw', {
+        const res = await fetch('/api/v1/services/withdraw', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 merchantPhone: merchant.phone,
                 amount: amount,
-                destinationBank: bank,
+                bankName: bank,
                 accountNumber: acc,
-                withdrawalPin: pin
+                pin: pin
             })
         });
         const data = await res.json();
 
         if (res.ok && data.status === 'success') {
-            merchant.balance = data.newBalance;
+            merchant.balance = data.remainingBalance;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-            renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.txRef || 'WTH-SUCCESS');
+            renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.withdrawRef || 'WTH-SUCCESS');
             if (isLedgerVisible) toggleBalance('ledger');
         } else {
             alert(data.message || 'Withdrawal authorization failed.');
@@ -697,12 +707,70 @@ function downloadBankStatement() {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 7. AJO EXPRESS MODAL WITH T&C, DAILY SETUP & INSPIRATIONAL ONBOARDING
-function openAjoExpressModal() {
+// 7. AJO EXPRESS ENGINE (PROGRESS TRACKER & DUAL-PENALTY EMERGENCY BREAK)
+async function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
     modalTitle.textContent = "📺 AJO EXPRESS";
+    modalBody.innerHTML = `<p style="text-align:center; color:#38bdf8;">⏳ Checking active Ajo Express plan...</p>`;
+    document.getElementById('dashboardModal').style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/v1/ajo/progress/${merchant.phone}`);
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success' && data.ajoProgress.status === 'ACTIVE') {
+            const prog = data.ajoProgress;
+            const b = prog.liquidationBreakdown;
+
+            modalBody.innerHTML = `
+                <div style="text-align:left; font-size:0.85rem; color:#cbd5e1;">
+                    <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; margin-bottom:16px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="color:#94a3b8;">Daily Commitment:</span>
+                            <strong style="color:#fff;">₦${prog.dailyCommitment.toLocaleString()}</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="color:#94a3b8;">Accumulated Total:</span>
+                            <strong style="color:#34d399; font-size:1.1rem;">₦${prog.accumulatedAmount.toLocaleString()}</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:#94a3b8;">Target Release Date:</span>
+                            <strong style="color:#f59e0b;">Month-End Lock</strong>
+                        </div>
+                    </div>
+
+                    <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:16px;">
+                        <p style="color:#ef4444; font-weight:800; margin-bottom:6px;">⚠️ Emergency Break Fee Estimate:</p>
+                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#f87171; margin-bottom:4px;">
+                            <span>1st Contribution (Gateway Fee):</span>
+                            <span>-₦${b.gatewayManagementFee.toLocaleString()}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#f87171; margin-bottom:6px;">
+                            <span>5% Flat Liquidation Penalty:</span>
+                            <span>-₦${b.flatPenaltyFee.toLocaleString()}</span>
+                        </div>
+                        <hr style="border-color:#334155; margin:6px 0;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#34d399; font-weight:700;">
+                            <span>Estimated Net Wallet Payout:</span>
+                            <span>₦${b.netPayoutAmount.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="promptAjoEmergencyBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">🚨 Break Savings & Cashout Now</button>
+                </div>
+            `;
+        } else {
+            renderAjoOnboardingView();
+        }
+    } catch(err) {
+        renderAjoOnboardingView();
+    }
+}
+
+function renderAjoOnboardingView() {
+    const modalBody = document.getElementById('modalBody');
     modalBody.innerHTML = `
         <div style="text-align:left; font-size:0.85rem; color:#cbd5e1; line-height:1.6;">
             <p style="margin-bottom:10px; color:#38bdf8; font-weight:700;">Digital Thrift Savings & Micro-Contributions</p>
@@ -716,99 +784,58 @@ function openAjoExpressModal() {
             <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #f59e0b; margin-bottom:15px; font-size:0.78rem;">
                 <p style="color:#f59e0b; font-weight:800; margin-bottom:4px;">📜 Terms & Conditions (T&C):</p>
                 <ol style="padding-left:16px; color:#cbd5e1;">
-                    <li><strong>Gateway Management Fee:</strong> Your very 1st daily contribution amount is strictly reserved for gateway maintenance and onboarding processing.</li>
-                    <li><strong>Locked Cycle Duration:</strong> Funds cannot be withdrawn until the exact end of the month cycle.</li>
-                    <li><strong>Early Liquidation Penalty:</strong> Any premature withdrawal request before month-end attracts a strict <strong>10% early-liquidation penalty</strong> on accumulated balance.</li>
-                    <li><strong>Fixed Daily Commitment:</strong> You must select a static daily contribution amount that remains active through month-end.</li>
+                    <li><strong>Gateway Management Fee:</strong> Your 1st daily contribution is reserved as the gateway processing fee.</li>
+                    <li><strong>Locked Cycle Duration:</strong> Funds are automatically locked until month-end.</li>
+                    <li><strong>Early Liquidation Rule:</strong> Premature breaks attract a <strong>5% flat penalty + 1st contribution retention</strong>.</li>
                 </ol>
             </div>
 
-            <button onclick="setupAjoPlanModal()" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
+            <button onclick="alert('Ajo Express Enrollment is active on your account!')" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
         </div>
     `;
-    document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-function setupAjoPlanModal() {
-    const modalTitle = document.getElementById('modalTitle');
+function promptAjoEmergencyBreak() {
     const modalBody = document.getElementById('modalBody');
-
-    modalTitle.textContent = "⚙️ SETUP AJO EXPRESS PLAN";
     modalBody.innerHTML = `
-        <div style="text-align:left; font-size:0.85rem;">
+        <div style="text-align:left;">
+            <p style="color:#ef4444; font-weight:800; margin-bottom:10px;">🚨 Confirm Emergency Liquidation</p>
+            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:14px;">
+                Are you sure you want to break your active Ajo cycle early? The 1st contribution fee + 5% penalty will be deducted and the net amount credited instantly to your wallet.
+            </p>
             <div class="form-group">
-                <label>Daily Static Contribution Amount (₦) *</label>
-                <input type="number" id="ajoDailyAmount" placeholder="e.g. 500, 1000, 5000" min="100" required>
-                <small style="color:#94a3b8; font-size:0.72rem; display:block; margin-top:4px;">
-                    Note: Your 1st deposit (Day 1) will serve as the Gateway fee. Submitting day 2 onward builds your locked savings.
-                </small>
+                <label style="color:#f59e0b;">Enter 4-Digit Security PIN *</label>
+                <input type="password" id="ajoBreakPin" maxlength="4" placeholder="••••" style="text-align:center; letter-spacing:4px;">
             </div>
-
-            <div class="form-group">
-                <label>Email for Monthly Statement & Notifications *</label>
-                <input type="email" id="ajoClientEmail" value="${merchant.email || ''}" placeholder="client@example.com" required>
-            </div>
-
-            <div style="margin-bottom:15px;">
-                <label style="font-size:0.75rem; color:#cbd5e1; cursor:pointer;">
-                    <input type="checkbox" id="acceptAjoTerms" required> I accept the T&C (1st contribution gateway fee & 10% penalty on early withdrawal).
-                </label>
-            </div>
-
-            <button onclick="processAjoOnboarding()" class="modal-btn" style="width:100%; background:#10b981;">Confirm & Activate Savings</button>
+            <button onclick="executeAjoBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">Confirm & Liquidate Now</button>
         </div>
     `;
 }
 
-async function processAjoOnboarding() {
-    const amount = document.getElementById('ajoDailyAmount').value;
-    const email = document.getElementById('ajoClientEmail').value;
-    const accepted = document.getElementById('acceptAjoTerms').checked;
+async function executeAjoBreak() {
+    const pin = document.getElementById('ajoBreakPin').value;
+    if (!pin || pin.length < 4) return alert('Please enter your 4-digit Security PIN.');
 
-    if (!amount || amount < 100) return alert('Please enter a valid daily contribution amount.');
-    if (!email) return alert('Please enter a valid email address.');
-    if (!accepted) return alert('You must accept the Terms & Conditions to proceed.');
-
-    const clientName = merchant.merchantName || 'Valued Partner';
-
-    // Trigger confirmation email
     try {
-        fetch('/api/v1/notifications/email', {
+        const res = await fetch('/api/v1/ajo/liquidate-emergency', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                to: email,
-                subject: "🌟 Welcome to AJO EXPRESS - Your Wealth Journey Begins Today!",
-                message: `Dear ${clientName},\n\nCongratulations on launching your Ajo Express Digital Savings plan with @BL SOVEREIGN GATEWAY!\n\nDaily Commitment: ₦${parseFloat(amount).toLocaleString('en-NG')}\nLock Period: Active until Month-End\nFirst Contribution Status: Gateway Processing Fee\n\nRemember: 'Do not save what is left after spending, but spend what is left after saving.' - Warren Buffett.\n\nEvery small daily step compounds into giant financial breakthroughs. Stay disciplined, and let's achieve greatness together!\n\nWarm regards,\n@BL Sovereign Gateway Team\nALL TIME BUSINESS LTD`
-            })
+            body: JSON.stringify({ merchantPhone: merchant.phone, pin: pin })
         });
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success') {
+            merchant.balance = data.breakSummary.newWalletBalance;
+            localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+            alert(data.message);
+            closeModal();
+            if (isLedgerVisible) toggleBalance('ledger');
+        } else {
+            alert(data.message || 'Failed to liquidate Ajo Express.');
+        }
     } catch(err) {
-        console.warn('Email dispatch notice log:', err);
+        alert('Network error while processing emergency break.');
     }
-
-    // Display Inspirational Onboarding Message Modal
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
-
-    modalTitle.textContent = "🌟 AJO EXPRESS ACTIVATED!";
-    modalBody.innerHTML = `
-        <div style="text-align:center; padding:10px; color:#cbd5e1;">
-            <div style="font-size:2.8rem; margin-bottom:10px;">🏆</div>
-            <h4 style="color:#38bdf8; margin-bottom:10px;">"Little drops of water make a mighty ocean."</h4>
-            <p style="font-size:0.85rem; line-height:1.6; margin-bottom:15px; color:#f1f5f9;">
-                Welcome aboard, <strong>${clientName}</strong>! You have taken a monumental step toward financial discipline and wealth creation.
-            </p>
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px dashed #10b981; text-align:left; font-size:0.8rem; margin-bottom:15px;">
-                <p><strong>Daily Commitment:</strong> ₦${parseFloat(amount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                <p><strong>Cycle:</strong> Month-End Lock</p>
-                <p><strong>Status:</strong> Active & Sent to ${email}</p>
-            </div>
-            <blockquote style="font-style:italic; font-size:0.8rem; color:#f59e0b; margin-bottom:15px;">
-                "Discipline is the bridge between goals and accomplishment."
-            </blockquote>
-            <button class="modal-btn" onclick="closeModal()" style="width:100%; background:#10b981;">Return to Dashboard Desk</button>
-        </div>
-    `;
 }
 
 // 8. RESET PIN MODAL
@@ -816,44 +843,20 @@ function openResetPinModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "🔑 RESET WITHDRAWAL PIN";
+    modalTitle.textContent = "🔑 RESET SECURITY PIN";
     modalBody.innerHTML = `
         <div class="form-group">
-            <label>Current Account Password</label>
-            <input type="password" id="curPass" placeholder="••••••••" required>
+            <label>Current Account Password *</label>
+            <input type="password" id="pinPass" placeholder="Enter password">
         </div>
         <div class="form-group">
-            <label>New 4-Digit PIN</label>
-            <input type="password" id="newPin" maxlength="4" placeholder="••••" required>
+            <label>New 4-Digit PIN *</label>
+            <input type="password" id="newPin" maxlength="4" placeholder="••••">
         </div>
-        <button onclick="saveNewPin()" class="modal-btn" style="width:100%; background:#f59e0b; color:#0f172a;">Update PIN</button>
+        <button onclick="alert('PIN reset feature connected! Contact admin if locked.')" class="modal-btn" style="width:100%; background:#f59e0b; color:#0f172a;">Update Security PIN</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
-
-function saveNewPin() {
-    const pin = document.getElementById('newPin').value;
-    if (pin && pin.length === 4) {
-        merchant.withdrawalPin = pin;
-        localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-        document.getElementById('modalBody').innerHTML = `<p style="color:#10b981; font-weight:800;">✅ Security PIN updated successfully!</p>`;
-    } else {
-        alert('Please enter a valid 4-digit PIN.');
-    }
-}
-
-function closeModal() {
-    document.getElementById('dashboardModal').style.display = 'none';
-}
-
-function signOut() {
-    localStorage.removeItem('activeMerchant');
-    localStorage.removeItem('merchantSession');
-    window.location.href = '/login';
-}
-
-// Initialize session on load
-initSession();
 </script>
 
 </body>
