@@ -768,7 +768,7 @@ function renderAutoMarkCard(accumulatedAmount, dailyCommitment) {
     return cardHTML;
 }
 
-// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & DUAL-PENALTY EMERGENCY BREAK)
+// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & IN-MODAL ONBOARDING FLOW)
 async function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -781,70 +781,78 @@ async function openAjoExpressModal() {
         const res = await fetch(`/api/v1/ajo/progress/${merchant.phone}`);
         const data = await res.json();
 
-        if (res.ok && data.status === 'success' && data.ajoProgress.status === 'ACTIVE') {
-            const prog = data.ajoProgress;
-            const b = prog.liquidationBreakdown;
-
-            const passbookHTML = renderAutoMarkCard(
-                prog.accumulatedAmount,
-                prog.dailyCommitment
-            );
-
-            modalBody.innerHTML = `
-                <div style="text-align:left; font-size:0.85rem; color:#cbd5e1;">
-                    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 10px;">
-                        <span style="font-size: 1.1rem;">🚀</span>
-                        <strong style="color: #38bdf8; display: block; font-size: 0.9rem; margin-top: 2px;">
-                            Your Ajo Express Vault Active!
-                        </strong>
-                        <small style="color: #cbd5e1; font-size: 0.78rem; display:block; margin-top:3px;">
-                            Little drops make a mighty ocean. Track your daily contributions and watch your savings grow every single day.
-                        </small>
-                    </div>
-
-                    ${passbookHTML}
-
-                    <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155; margin-bottom:12px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                            <span style="color:#94a3b8;">Daily Commitment:</span>
-                            <strong style="color:#fff;">₦${prog.dailyCommitment.toLocaleString()}</strong>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                            <span style="color:#94a3b8;">Total Accumulated:</span>
-                            <strong style="color:#34d399; font-size:1.05rem;">₦${prog.accumulatedAmount.toLocaleString()}</strong>
-                        </div>
-                        <div style="display:flex; justify-content:space-between;">
-                            <span style="color:#94a3b8;">Target Release Date:</span>
-                            <strong style="color:#f59e0b;">Month-End Auto Release</strong>
-                        </div>
-                    </div>
-
-                    <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:14px;">
-                        <p style="color:#ef4444; font-weight:800; margin-bottom:6px; font-size:0.8rem;">⚠️ Emergency Cashout Breakdown:</p>
-                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:4px;">
-                            <span>1st Contribution (Gateway Fee):</span>
-                            <span>-₦${b.gatewayManagementFee.toLocaleString()}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:6px;">
-                            <span>5% Flat Penalty Fee:</span>
-                            <span>-₦${b.flatPenaltyFee.toLocaleString()}</span>
-                        </div>
-                        <hr style="border-color:#334155; margin:6px 0;">
-                        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#34d399; font-weight:700;">
-                            <span>Estimated Net Wallet Payout:</span>
-                            <span>₦${b.netPayoutAmount.toLocaleString()}</span>
-                        </div>
-                    </div>
-
-                    <button onclick="promptAjoEmergencyBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">🚨 Break Savings & Cashout Now</button>
-                </div>
-            `;
+        if (res.ok && data.status === 'success' && data.ajoProgress && data.ajoProgress.status === 'ACTIVE') {
+            renderActiveAjoView(data.ajoProgress);
         } else {
             renderAjoOnboardingView();
         }
     } catch(err) {
         renderAjoOnboardingView();
     }
+}
+
+function renderActiveAjoView(prog) {
+    const modalBody = document.getElementById('modalBody');
+    const b = prog.liquidationBreakdown || {
+        gatewayManagementFee: prog.dailyCommitment || 0,
+        flatPenaltyFee: (prog.accumulatedAmount || 0) * 0.05,
+        netPayoutAmount: Math.max(0, (prog.accumulatedAmount || 0) - ((prog.dailyCommitment || 0) + ((prog.accumulatedAmount || 0) * 0.05)))
+    };
+
+    const passbookHTML = renderAutoMarkCard(
+        prog.accumulatedAmount || 0,
+        prog.dailyCommitment || 0
+    );
+
+    modalBody.innerHTML = `
+        <div style="text-align:left; font-size:0.85rem; color:#cbd5e1;">
+            <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 10px;">
+                <span style="font-size: 1.1rem;">🚀</span>
+                <strong style="color: #38bdf8; display: block; font-size: 0.9rem; margin-top: 2px;">
+                    Your Ajo Express Vault Active!
+                </strong>
+                <small style="color: #cbd5e1; font-size: 0.78rem; display:block; margin-top:3px;">
+                    Little drops make a mighty ocean. Track your daily contributions and watch your savings grow every single day.
+                </small>
+            </div>
+
+            ${passbookHTML}
+
+            <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span style="color:#94a3b8;">Daily Commitment:</span>
+                    <strong style="color:#fff;">₦${(prog.dailyCommitment || 0).toLocaleString()}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <span style="color:#94a3b8;">Total Accumulated:</span>
+                    <strong style="color:#34d399; font-size:1.05rem;">₦${(prog.accumulatedAmount || 0).toLocaleString()}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="color:#94a3b8;">Target Release Date:</span>
+                    <strong style="color:#f59e0b;">Month-End Auto Release</strong>
+                </div>
+            </div>
+
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:14px;">
+                <p style="color:#ef4444; font-weight:800; margin-bottom:6px; font-size:0.8rem;">⚠️ Emergency Cashout Breakdown:</p>
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:4px;">
+                    <span>1st Contribution (Gateway Fee):</span>
+                    <span>-₦${(b.gatewayManagementFee || 0).toLocaleString()}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:6px;">
+                    <span>5% Flat Penalty Fee:</span>
+                    <span>-₦${(b.flatPenaltyFee || 0).toLocaleString()}</span>
+                </div>
+                <hr style="border-color:#334155; margin:6px 0;">
+                <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#34d399; font-weight:700;">
+                    <span>Estimated Net Wallet Payout:</span>
+                    <span>₦${(b.netPayoutAmount || 0).toLocaleString()}</span>
+                </div>
+            </div>
+
+            <button onclick="promptAjoEmergencyBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">🚨 Break Savings & Cashout Now</button>
+        </div>
+    `;
 }
 
 function renderAjoOnboardingView() {
@@ -868,9 +876,65 @@ function renderAjoOnboardingView() {
                 </ol>
             </div>
 
-            <button onclick="alert('Ajo Express Enrollment is active on your account!')" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
+            <button onclick="openAjoEnrollmentForm()" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
         </div>
     `;
+}
+
+function openAjoEnrollmentForm() {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <div style="text-align:left;">
+            <p style="color:#38bdf8; font-weight:800; margin-bottom:10px; font-size:0.95rem;">🚀 Configure Your Daily Ajo Target</p>
+            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:14px;">
+                Select a comfortable daily contribution amount. Your 1st contribution acts as the gateway processing fee.
+            </p>
+            
+            <div class="form-group">
+                <label>Select Daily Contribution Amount (₦) *</label>
+                <select id="ajoDailySelect">
+                    <option value="500">₦500 / Day (₦15,000 Monthly Target)</option>
+                    <option value="1000" selected>₦1,000 / Day (₦30,000 Monthly Target)</option>
+                    <option value="2000">₦2,000 / Day (₦60,000 Monthly Target)</option>
+                    <option value="5000">₦5,000 / Day (₦150,000 Monthly Target)</option>
+                    <option value="10000">₦10,000 / Day (₦300,000 Monthly Target)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:14px; background:#0f172a; padding:10px; border-radius:6px; border:1px solid #334155;">
+                <label style="font-size:0.75rem; color:#cbd5e1; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="ajoAgreeCheck" checked required>
+                    I agree to the 1st contribution gateway retention & 5% early liquidation rules.
+                </label>
+            </div>
+
+            <button onclick="confirmAjoEnrollment()" class="modal-btn" style="width:100%; background:#10b981; color:#fff;">Confirm & Activate Vault</button>
+        </div>
+    `;
+}
+
+function confirmAjoEnrollment() {
+    const chk = document.getElementById('ajoAgreeCheck');
+    if (chk && !chk.checked) {
+        return alert('Please accept the terms and conditions to activate your Ajo Express Vault.');
+    }
+
+    const commitment = parseFloat(document.getElementById('ajoDailySelect').value) || 1000;
+
+    // Local state creation for immediate preview
+    const activePlan = {
+        status: 'ACTIVE',
+        dailyCommitment: commitment,
+        accumulatedAmount: commitment, // First contribution initial balance
+        startDate: new Date().toISOString()
+    };
+
+    // Update merchant session locally
+    merchant.ajoExpress = activePlan;
+    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+
+    // Redirect directly into the Active Vault Passbook View within the same modal
+    renderActiveAjoView(activePlan);
 }
 
 function promptAjoEmergencyBreak() {
@@ -904,6 +968,7 @@ async function executeAjoBreak() {
 
         if (res.ok && data.status === 'success') {
             merchant.balance = data.breakSummary.newWalletBalance;
+            delete merchant.ajoExpress;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
             alert(data.message);
             closeModal();
