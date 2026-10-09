@@ -768,7 +768,7 @@ function renderAutoMarkCard(accumulatedAmount, dailyCommitment) {
     return cardHTML;
 }
 
-// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & IN-MODAL ONBOARDING FLOW)
+// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & PERSISTENT PASSBOOK CHECK)
 async function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -777,32 +777,50 @@ async function openAjoExpressModal() {
     modalBody.innerHTML = `<p style="text-align:center; color:#38bdf8;">⏳ Synchronizing Ajo Express Passbook...</p>`;
     document.getElementById('dashboardModal').style.display = 'flex';
 
+    // Check persistent active plan state from localStorage first
+    if (merchant.ajoExpress && merchant.ajoExpress.status === 'ACTIVE') {
+        renderActiveAjoView(merchant.ajoExpress);
+        return;
+    }
+
     try {
         const res = await fetch(`/api/v1/ajo/progress/${merchant.phone}`);
         const data = await res.json();
 
         if (res.ok && data.status === 'success' && data.ajoProgress && data.ajoProgress.status === 'ACTIVE') {
+            merchant.ajoExpress = data.ajoProgress;
+            localStorage.setItem('activeMerchant', JSON.stringify(merchant));
             renderActiveAjoView(data.ajoProgress);
         } else {
             renderAjoOnboardingView();
         }
     } catch(err) {
-        renderAjoOnboardingView();
+        if (merchant.ajoExpress && merchant.ajoExpress.status === 'ACTIVE') {
+            renderActiveAjoView(merchant.ajoExpress);
+        } else {
+            renderAjoOnboardingView();
+        }
     }
 }
 
 function renderActiveAjoView(prog) {
     const modalBody = document.getElementById('modalBody');
+
+    const dailyCommitment = prog.dailyCommitment || 2000;
+    const accumulatedAmount = prog.accumulatedAmount || dailyCommitment;
+
+    const gatewayFee = dailyCommitment; // 1st Contribution Rule
+    const flatPenaltyFee = accumulatedAmount * 0.05; // 5% Flat Penalty
+    const totalDeductions = gatewayFee + flatPenaltyFee;
+    const netPayoutAmount = Math.max(0, accumulatedAmount - totalDeductions);
+
     const b = prog.liquidationBreakdown || {
-        gatewayManagementFee: prog.dailyCommitment || 0,
-        flatPenaltyFee: (prog.accumulatedAmount || 0) * 0.05,
-        netPayoutAmount: Math.max(0, (prog.accumulatedAmount || 0) - ((prog.dailyCommitment || 0) + ((prog.accumulatedAmount || 0) * 0.05)))
+        gatewayManagementFee: gatewayFee,
+        flatPenaltyFee: flatPenaltyFee,
+        netPayoutAmount: netPayoutAmount
     };
 
-    const passbookHTML = renderAutoMarkCard(
-        prog.accumulatedAmount || 0,
-        prog.dailyCommitment || 0
-    );
+    const passbookHTML = renderAutoMarkCard(accumulatedAmount, dailyCommitment);
 
     modalBody.innerHTML = `
         <div style="text-align:left; font-size:0.85rem; color:#cbd5e1;">
@@ -816,16 +834,22 @@ function renderActiveAjoView(prog) {
                 </small>
             </div>
 
+            <!-- ACTIONABLE WALLET FUNDING PROMPT -->
+            <div onclick="openFundModal()" style="background: rgba(16, 185, 129, 0.15); border: 1px dashed #10b981; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; margin-bottom: 10px;">
+                <span style="color: #10b981; font-weight: 800; font-size: 0.8rem;">💳 Fund Gateway Wallet to Auto-Deduct Daily Contribution</span>
+                <small style="color: #94a3b8; display: block; font-size: 0.7rem; margin-top: 2px;">Click here to add funds & maintain your daily streak</small>
+            </div>
+
             ${passbookHTML}
 
             <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155; margin-bottom:12px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                     <span style="color:#94a3b8;">Daily Commitment:</span>
-                    <strong style="color:#fff;">₦${(prog.dailyCommitment || 0).toLocaleString()}</strong>
+                    <strong style="color:#fff;">₦${dailyCommitment.toLocaleString()}</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                     <span style="color:#94a3b8;">Total Accumulated:</span>
-                    <strong style="color:#34d399; font-size:1.05rem;">₦${(prog.accumulatedAmount || 0).toLocaleString()}</strong>
+                    <strong style="color:#34d399; font-size:1.05rem;">₦${accumulatedAmount.toLocaleString()}</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between;">
                     <span style="color:#94a3b8;">Target Release Date:</span>
@@ -837,16 +861,16 @@ function renderActiveAjoView(prog) {
                 <p style="color:#ef4444; font-weight:800; margin-bottom:6px; font-size:0.8rem;">⚠️ Emergency Cashout Breakdown:</p>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:4px;">
                     <span>1st Contribution (Gateway Fee):</span>
-                    <span>-₦${(b.gatewayManagementFee || 0).toLocaleString()}</span>
+                    <span>-₦${(b.gatewayManagementFee || gatewayFee).toLocaleString()}</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:6px;">
                     <span>5% Flat Penalty Fee:</span>
-                    <span>-₦${(b.flatPenaltyFee || 0).toLocaleString()}</span>
+                    <span>-₦${(b.flatPenaltyFee || flatPenaltyFee).toLocaleString()}</span>
                 </div>
                 <hr style="border-color:#334155; margin:6px 0;">
                 <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#34d399; font-weight:700;">
                     <span>Estimated Net Wallet Payout:</span>
-                    <span>₦${(b.netPayoutAmount || 0).toLocaleString()}</span>
+                    <span>₦${(b.netPayoutAmount || netPayoutAmount).toLocaleString()}</span>
                 </div>
             </div>
 
@@ -894,8 +918,8 @@ function openAjoEnrollmentForm() {
                 <label>Select Daily Contribution Amount (₦) *</label>
                 <select id="ajoDailySelect">
                     <option value="500">₦500 / Day (₦15,000 Monthly Target)</option>
-                    <option value="1000" selected>₦1,000 / Day (₦30,000 Monthly Target)</option>
-                    <option value="2000">₦2,000 / Day (₦60,000 Monthly Target)</option>
+                    <option value="1000">₦1,000 / Day (₦30,000 Monthly Target)</option>
+                    <option value="2000" selected>₦2,000 / Day (₦60,000 Monthly Target)</option>
                     <option value="5000">₦5,000 / Day (₦150,000 Monthly Target)</option>
                     <option value="10000">₦10,000 / Day (₦300,000 Monthly Target)</option>
                 </select>
@@ -919,21 +943,18 @@ function confirmAjoEnrollment() {
         return alert('Please accept the terms and conditions to activate your Ajo Express Vault.');
     }
 
-    const commitment = parseFloat(document.getElementById('ajoDailySelect').value) || 1000;
+    const commitment = parseFloat(document.getElementById('ajoDailySelect').value) || 2000;
 
-    // Local state creation for immediate preview
     const activePlan = {
         status: 'ACTIVE',
         dailyCommitment: commitment,
-        accumulatedAmount: commitment, // First contribution initial balance
+        accumulatedAmount: commitment,
         startDate: new Date().toISOString()
     };
 
-    // Update merchant session locally
     merchant.ajoExpress = activePlan;
     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
 
-    // Redirect directly into the Active Vault Passbook View within the same modal
     renderActiveAjoView(activePlan);
 }
 
