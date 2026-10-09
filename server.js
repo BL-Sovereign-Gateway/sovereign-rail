@@ -7,7 +7,7 @@
  * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
- * Newsletter & Mass Media Broadcast Engine
+ * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine
  * ============================================================================
  */
 
@@ -725,53 +725,65 @@ app.post('/api/v1/services/transact', async (req, res) => {
         const cleanPhone = normalizePhoneNumber(merchantPhone);
         const account = merchantAccounts[cleanPhone];
 
-        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         }
 
-        if (pin && account.withdrawalPin && pin.toString().trim() !== account.withdrawalPin.toString().trim()) {
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Contact support.' });
+        }
+
+        // Validate Security PIN
+        const userPin = pin ? pin.toString().trim() : '';
+        const savedPin = account.withdrawalPin || '1234';
+        if (userPin !== savedPin) {
             return res.status(401).json({ status: 'error', message: 'Invalid Transaction PIN.' });
         }
 
         if ((account.balance || 0) < txnAmount) {
-            return res.status(400).json({ status: 'error', message: 'Insufficient account balance.' });
+            return res.status(400).json({ 
+                status: 'error', 
+                message: `Insufficient wallet balance. Available: ₦${(account.balance || 0).toLocaleString()}` 
+            });
         }
 
-        const txRef = `TXN-${Date.now()}`;
+        const orderRef = `TXN-${Date.now()}`;
+
+        // Deduct balance
         account.balance -= txnAmount;
         saveAccounts(merchantAccounts);
 
-        const fulfillmentRes = await executeClubKonnectFulfillment({
+        // Execute auto-fulfillment via ClubKonnect
+        const fulfillmentResult = await executeClubKonnectFulfillment({
             serviceType,
             targetInput: recipient,
             amount: txnAmount,
-            orderRef: txRef,
+            orderRef,
             networkCode,
             planCode
         });
 
+        // Dispatch Instant SMS Alert
         dispatchImmediateTransactionSMS(
             cleanPhone,
             serviceType.toUpperCase(),
             recipient,
             txnAmount,
             account.balance,
-            txRef
+            orderRef
         );
 
         return res.status(200).json({
             status: 'success',
-            message: `${serviceType.toUpperCase()} completed successfully.`,
-            transactionRef: txRef,
+            message: `Transaction successful! ${serviceType.toUpperCase()} dispatched to ${recipient}.`,
+            orderRef,
             remainingBalance: account.balance,
-            fulfillment: fulfillmentRes
+            fulfillment: fulfillmentResult
         });
 
     } catch (err) {
-        console.error('Transaction Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Transaction processing failed.' });
+        console.error('❌ Service Transaction Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error processing transaction.' });
     }
 });
 
@@ -788,183 +800,228 @@ app.post('/api/v1/services/withdraw', async (req, res) => {
         const cleanPhone = normalizePhoneNumber(merchantPhone);
         const account = merchantAccounts[cleanPhone];
 
-        if (!account) return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         }
 
-        if (account.withdrawalPin && pin.toString().trim() !== account.withdrawalPin.toString().trim()) {
-            return res.status(401).json({ status: 'error', message: 'Invalid Transaction PIN.' });
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Contact support.' });
+        }
+
+        // Security PIN Validation
+        const userPin = pin ? pin.toString().trim() : '';
+        const savedPin = account.withdrawalPin || '1234';
+        if (userPin !== savedPin) {
+            return res.status(401).json({ status: 'error', message: 'Invalid Withdrawal PIN.' });
         }
 
         if ((account.balance || 0) < withdrawAmount) {
-            return res.status(400).json({ status: 'error', message: 'Insufficient ledger balance.' });
+            return res.status(400).json({ 
+                status: 'error', 
+                message: `Insufficient wallet balance. Available: ₦${(account.balance || 0).toLocaleString()}` 
+            });
         }
 
+        const withdrawRef = `WTH-${Date.now()}`;
+        const destAccount = accountNumber || account.settlementAccount;
+        const destBank = bankName || account.bankName;
+
+        // Deduct balance
         account.balance -= withdrawAmount;
         saveAccounts(merchantAccounts);
 
-        const txRef = `WTH-${Date.now()}`;
-        const targetBank = bankName || account.bankName;
-        const targetAcc = accountNumber || account.settlementAccount;
+        // Execute Bank Sweep / Payout
+        await executeAccessBankAutoSweep(withdrawAmount, withdrawRef, `Withdrawal to ${destBank} (${destAccount})`);
 
+        // Dispatch SMS Alert
         dispatchImmediateTransactionSMS(
             cleanPhone,
-            'WITHDRAWAL / BANK TRANSFER',
-            `${targetBank} (${targetAcc})`,
+            'WITHDRAWAL',
+            `${destBank} (${destAccount})`,
             withdrawAmount,
             account.balance,
-            txRef
+            withdrawRef
         );
 
         return res.status(200).json({
             status: 'success',
-            message: `Withdrawal request of ₦${withdrawAmount.toLocaleString()} processed successfully.`,
-            transactionRef: txRef,
+            message: `Withdrawal of ₦${withdrawAmount.toLocaleString()} processed successfully to ${destBank} (${destAccount}).`,
+            withdrawRef,
             remainingBalance: account.balance
         });
 
     } catch (err) {
-        console.error('Withdrawal Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Withdrawal execution failed.' });
+        console.error('❌ Withdrawal Processing Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error processing withdrawal.' });
     }
 });
 
 // =========================================================================
-// 📢 NEWSLETTER & BROADCAST DISPATCH ENGINE (FOR PRIVATE.HTML DESK)
+// 🏦 AJO EXPRESS ENGINE (PROGRESS & DUAL-PENALTY EMERGENCY LIQUIDATION)
 // =========================================================================
 
-// Endpoint for Web Feed Publishing & Mass Email Newsletter Dispatch
-app.post('/api/v1/newsletter/publish', async (req, res) => {
+// Endpoint to fetch real-time Ajo Express progress
+app.get('/api/v1/ajo/progress/:phone', (req, res) => {
     try {
-        const { headline, content, imageUrl, videoUrl, notifySubscribers } = req.body;
+        const cleanPhone = normalizePhoneNumber(req.params.phone);
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[cleanPhone];
 
-        if (!headline || !content) {
-            return res.status(400).json({ status: 'error', message: 'Headline and Content are required.' });
+        if (!account || !account.ajoExpress) {
+            return res.status(404).json({ status: 'error', message: 'No active Ajo Express plan found for this merchant.' });
         }
 
-        const newPost = {
-            id: `POST-${Date.now()}`,
-            headline,
-            content,
-            imageUrl: imageUrl || null,
-            videoUrl: videoUrl || null,
-            createdAt: new Date().toISOString(),
-            notified: !!notifySubscribers
-        };
+        const ajo = account.ajoExpress;
+        const totalAccumulated = parseFloat(ajo.accumulatedAmount || 0);
+        const dailyCommitment = parseFloat(ajo.dailyCommitment || 0);
 
-        broadcastPosts = loadBroadcasts();
-        broadcastPosts.unshift(newPost); // Store latest post first
-        saveBroadcasts(broadcastPosts);
-
-        let emailCount = 0;
-        if (notifySubscribers) {
-            merchantAccounts = loadAccounts();
-            const recipients = Object.values(merchantAccounts)
-                .map(acc => acc.email)
-                .filter(email => email && email.includes('@'));
-
-            const emailHtml = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
-                        .container { background: #1e293b; border: 1px solid #334155; border-radius: 12px; max-width: 600px; margin: 0 auto; padding: 25px; }
-                        .header { text-align: center; border-bottom: 2px solid #38bdf8; padding-bottom: 15px; margin-bottom: 20px; }
-                        .title { color: #38bdf8; font-size: 20px; font-weight: 800; }
-                        .headline { font-size: 18px; color: #f1f5f9; font-weight: 700; margin-bottom: 12px; }
-                        .content { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; white-space: pre-line; }
-                        .footer { text-align: center; border-top: 1px solid #334155; padding-top: 15px; font-size: 11px; color: #64748b; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <div class="title">ALL TIME BUSINESS LTD • OFFICIAL BROADCAST</div>
-                        </div>
-                        <div class="headline">${headline}</div>
-                        <div class="content">${content}</div>
-                        <div class="footer">
-                            © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway<br>
-                            <a href="https://www.alltimebusiness.com.ng" style="color: #38bdf8;">www.alltimebusiness.com.ng</a>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `;
-
-            // Asynchronously dispatch emails to all registered merchants
-            for (const recipient of recipients) {
-                dispatchEmail(recipient, headline, emailHtml).catch(() => {});
-                emailCount++;
-            }
-        }
+        const gatewayManagementFee = dailyCommitment; // 1st Contribution Rule
+        const flatPenaltyFee = totalAccumulated * 0.05; // 5% Flat Penalty
+        const totalDeductions = gatewayManagementFee + flatPenaltyFee;
+        const netPayoutAmount = Math.max(0, totalAccumulated - totalDeductions);
 
         return res.status(200).json({
             status: 'success',
-            message: notifySubscribers 
-                ? `Broadcast published and mass email dispatched to ${emailCount} subscribers.`
-                : 'Broadcast published to Website Feed successfully.',
-            postId: newPost.id
+            ajoProgress: {
+                status: ajo.status || 'ACTIVE',
+                dailyCommitment: dailyCommitment,
+                accumulatedAmount: totalAccumulated,
+                startDate: ajo.startDate,
+                targetReleaseDate: ajo.targetReleaseDate,
+                liquidationBreakdown: {
+                    gatewayManagementFee,
+                    flatPenaltyFee,
+                    totalDeductions,
+                    netPayoutAmount
+                }
+            }
+        });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Error retrieving Ajo Express progress.' });
+    }
+});
+
+// Endpoint to execute emergency early liquidation (5% + 1st Contribution Rule)
+app.post('/api/v1/ajo/liquidate-emergency', async (req, res) => {
+    try {
+        const { merchantPhone, pin } = req.body;
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+
+        merchantAccounts = loadAccounts();
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account || !account.ajoExpress || account.ajoExpress.status !== 'ACTIVE') {
+            return res.status(400).json({ status: 'error', message: 'No active Ajo Express plan available for early break.' });
+        }
+
+        // 1. Validate 4-Digit Security PIN
+        const userPin = pin ? pin.toString().trim() : '';
+        const savedPin = account.withdrawalPin || '1234';
+        if (userPin !== savedPin) {
+            return res.status(401).json({ status: 'error', message: 'Invalid 4-Digit Security PIN.' });
+        }
+
+        const ajo = account.ajoExpress;
+        const totalAccumulated = parseFloat(ajo.accumulatedAmount || 0);
+        const dailyCommitment = parseFloat(ajo.dailyCommitment || 0);
+
+        if (totalAccumulated <= dailyCommitment) {
+            return res.status(400).json({
+                status: 'error',
+                message: `Cannot break Ajo yet. Total accumulated balance (₦${totalAccumulated.toLocaleString()}) must exceed the 1st contribution fee (₦${dailyCommitment.toLocaleString()}).`
+            });
+        }
+
+        // 2. Apply Dual-Penalty Calculation: 1st Contribution + 5% Flat Fee
+        const gatewayManagementFee = dailyCommitment;
+        const flatPenaltyFee = totalAccumulated * 0.05;
+        const totalDeductions = gatewayManagementFee + flatPenaltyFee;
+        const netPayoutAmount = totalAccumulated - totalDeductions;
+
+        // 3. Credit Merchant Ledger Balance & Update Cycle State
+        account.balance = (account.balance || 0) + netPayoutAmount;
+        account.ajoExpress = {
+            status: 'LIQUIDATED_EARLY',
+            accumulatedAmount: 0,
+            dailyCommitment: dailyCommitment,
+            lastBreakDate: new Date().toISOString(),
+            lastBreakDeduction: totalDeductions,
+            lastNetPayout: netPayoutAmount
+        };
+
+        saveAccounts(merchantAccounts);
+
+        // 4. Dispatch Instant SMS Notification
+        const txRef = `EMG-AJO-${Date.now()}`;
+        const alertMsg = `OE Alert: Ajo Express broken early. Net Payout: NGN ${netPayoutAmount.toLocaleString()} credited to wallet. Fees (1st Cont. + 5%): NGN ${totalDeductions.toLocaleString()}. Bal: NGN ${account.balance.toLocaleString()}. Ref: ${txRef}`;
+
+        sendTermiiSMS(cleanPhone, alertMsg).catch(() => {});
+
+        return res.status(200).json({
+            status: 'success',
+            message: `Emergency break completed successfully. ₦${netPayoutAmount.toLocaleString()} credited to ledger!`,
+            breakSummary: {
+                totalAccumulated,
+                gatewayManagementFee,
+                flatPenaltyFee,
+                totalDeductions,
+                netPayoutAmount,
+                newWalletBalance: account.balance
+            }
         });
 
     } catch (err) {
-        console.error('Broadcast Publish Error:', err.message);
+        console.error('❌ Ajo Emergency Break Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error processing emergency liquidation.' });
+    }
+});
+
+// =========================================================================
+// 📰 NEWSLETTER & BROADCAST MEDIA ENGINE
+// =========================================================================
+
+app.get('/api/v1/broadcasts', (req, res) => {
+    broadcastPosts = loadBroadcasts();
+    return res.status(200).json({ status: 'success', broadcasts: broadcastPosts });
+});
+
+app.post('/api/v1/broadcasts/publish', async (req, res) => {
+    try {
+        const { title, content, category, author } = req.body;
+        if (!title || !content) {
+            return res.status(400).json({ status: 'error', message: 'Title and content are required.' });
+        }
+
+        broadcastPosts = loadBroadcasts();
+        const newPost = {
+            id: `POST-${Date.now()}`,
+            title,
+            content,
+            category: category || 'General Announcement',
+            author: author || 'ALL TIME BUSINESS LTD',
+            timestamp: new Date().toISOString()
+        };
+
+        broadcastPosts.unshift(newPost);
+        saveBroadcasts(broadcastPosts);
+
+        return res.status(201).json({ status: 'success', message: 'Broadcast published successfully.', post: newPost });
+    } catch (err) {
         return res.status(500).json({ status: 'error', message: 'Failed to publish broadcast.' });
     }
 });
 
-// Endpoint for Direct Mass SMS Dispatch
-app.post('/api/v1/admin/broadcast-sms', async (req, res) => {
-    try {
-        const { message } = req.body;
-
-        if (!message || !message.trim()) {
-            return res.status(400).json({ status: 'error', message: 'SMS message content cannot be empty.' });
-        }
-
-        merchantAccounts = loadAccounts();
-        const phoneNumbers = Object.keys(merchantAccounts);
-
-        if (phoneNumbers.length === 0) {
-            return res.status(400).json({ status: 'error', message: 'No registered merchant contacts found.' });
-        }
-
-        let sentCount = 0;
-        for (const phone of phoneNumbers) {
-            sendTermiiSMS(phone, message).catch(() => {});
-            sentCount++;
-        }
-
-        return res.status(200).json({
-            status: 'success',
-            message: `Mass SMS broadcast successfully initiated for ${sentCount} recipient(s).`
-        });
-
-    } catch (err) {
-        console.error('Mass SMS Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Failed to dispatch mass SMS broadcast.' });
-    }
-});
-
-// Endpoint to fetch public feed posts for newsletter.html
-app.get('/api/v1/newsletter/posts', (req, res) => {
-    broadcastPosts = loadBroadcasts();
-    return res.status(200).json({ status: 'success', posts: broadcastPosts });
-});
-
 // =========================================================================
-// 🚀 SERVER BOOTSTRAP
+// 🚀 SERVER INITIALIZATION
 // =========================================================================
 
 app.listen(PORT, () => {
-    console.log(`================================================================`);
-    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER LIVE ON PORT: ${PORT}`);
-    console.log(`🏛️  Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`💳 Master Decal NUBAN: ${MASTER_SQUAD_NUBAN} (${MASTER_SQUAD_BANK})`);
-    console.log(`📱 USSD Code: *BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+AMOUNT#`);
-    console.log(`================================================================`);
+    console.log(`
+============================================================================
+⚡ ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY SERVER IS LIVE
+🌐 Port: ${PORT}
+🏦 Master Squad Decal NUBAN: ${MASTER_SQUAD_NUBAN} (${MASTER_SQUAD_BANK})
+📱 USSD Code: *BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+AMOUNT#
+============================================================================
+    `);
 });
