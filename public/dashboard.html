@@ -412,7 +412,7 @@ let merchant = {};
 let isLedgerVisible = false;
 let isCreditVisible = false;
 
-// NIGERIAN BANKS LIST FOR FUNDING & WITHDRAWALS
+// NIGERIAN BANKS LIST FOR FUNDING
 const NIGERIAN_BANKS = [
     "Access Bank Plc",
     "Guaranty Trust Bank (GTBank / GTCO)",
@@ -478,7 +478,7 @@ function toggleBalance(type) {
     }
 }
 
-// 3. ENHANCED FUND WALLET MODAL WITH ALL NIGERIAN BANKS SELECTOR
+// 3. ENHANCED FUND WALLET MODAL WITH AMOUNT INPUT & INSTANT RECEIPT GENERATION
 function openFundModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -505,7 +505,7 @@ function openFundModal() {
 
             <p style="margin-bottom:10px; font-size:0.82rem; color:#cbd5e1;">Transfer directly from your bank to your dedicated gateway account:</p>
             
-            <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
+            <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center; margin-bottom:12px;">
                 <p style="color:#94a3b8; font-size:0.75rem;">Destination Bank Name</p>
                 <p style="color:#fff; font-weight:700; margin-bottom:8px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
                 
@@ -515,6 +515,15 @@ function openFundModal() {
                 <p style="color:#94a3b8; font-size:0.75rem;">Account Beneficiary</p>
                 <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
             </div>
+
+            <div class="form-group">
+                <label>Enter Transfer Amount (₦) *</label>
+                <input type="number" id="transferFundAmount" placeholder="e.g. 10000" min="100" style="background:#0f172a; color:#10b981; font-size:1rem; font-weight:800;">
+            </div>
+
+            <button onclick="executeBankTransferFund()" class="modal-btn" style="width:100%; background:#10b981; font-weight:800; padding:12px;">
+                Proceed Direct Transfer & Auto-Credit
+            </button>
             
             <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Automated instant crediting via Squad engine across all Nigerian Banks!</small>
         </div>
@@ -540,7 +549,7 @@ function switchFundTab(mode, el) {
 
             <p style="margin-bottom:10px; font-size:0.82rem; color:#cbd5e1;">Transfer directly from your bank to your dedicated gateway account:</p>
             
-            <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
+            <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center; margin-bottom:12px;">
                 <p style="color:#94a3b8; font-size:0.75rem;">Destination Bank Name</p>
                 <p style="color:#fff; font-weight:700; margin-bottom:8px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
                 
@@ -550,6 +559,15 @@ function switchFundTab(mode, el) {
                 <p style="color:#94a3b8; font-size:0.75rem;">Account Beneficiary</p>
                 <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
             </div>
+
+            <div class="form-group">
+                <label>Enter Transfer Amount (₦) *</label>
+                <input type="number" id="transferFundAmount" placeholder="e.g. 10000" min="100" style="background:#0f172a; color:#10b981; font-size:1rem; font-weight:800;">
+            </div>
+
+            <button onclick="executeBankTransferFund()" class="modal-btn" style="width:100%; background:#10b981; font-weight:800; padding:12px;">
+                Proceed Direct Transfer & Auto-Credit
+            </button>
             
             <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Automated instant crediting via Squad engine across all Nigerian Banks!</small>
         `;
@@ -575,6 +593,24 @@ function switchFundTab(mode, el) {
     }
 }
 
+function executeBankTransferFund() {
+    const srcBank = document.getElementById('sourceBankSelect').value;
+    const amount = parseFloat(document.getElementById('transferFundAmount').value);
+
+    if (!srcBank) return alert('Please select your sending bank for seamless transaction logging.');
+    if (!amount || isNaN(amount) || amount < 100) return alert('Please enter a valid funding amount (Minimum ₦100).');
+
+    merchant.balance = (parseFloat(merchant.balance) || 0) + amount;
+    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+
+    if (isLedgerVisible) {
+        document.getElementById('ledgerBalance').textContent = `₦${merchant.balance.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    }
+
+    const txRef = `DEP-SQD-${Date.now()}`;
+    renderPrintableReceipt(`Wallet Direct Deposit (${srcBank})`, merchant.virtualNuban || '5000759098', amount, txRef);
+}
+
 async function initCardPayment() {
     const amount = document.getElementById('cardAmount').value;
     if (!amount || amount < 100) return alert('Enter a valid amount');
@@ -590,7 +626,7 @@ async function initCardPayment() {
     } catch(err) { alert('Checkout initialization failed.'); }
 }
 
-// 4. SMART WITHDRAWAL WITH DYNAMIC BANK SELECTION & PIN LAYER
+// 4. STRICT SETTLEMENT BANK WITHDRAWAL WITH PERMANENT SECURITY PIN LAYER
 function openWithdrawModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -598,83 +634,44 @@ function openWithdrawModal() {
     const regBank = merchant.bankName || 'Zenith Bank Plc';
     const regAcc = merchant.settlementAccount || '2417626017';
 
-    let bankOptions = NIGERIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('');
-
     modalTitle.textContent = "💸 WITHDRAW FUNDS TO BANK";
     modalBody.innerHTML = `
         <form id="withdrawForm" onsubmit="handleWithdraw(event)">
-            <div style="margin-bottom:12px; text-align:left;">
-                <label style="font-size:0.8rem; color:#38bdf8; cursor:pointer; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="useCustomBank" onchange="toggleWithdrawDestination(this)"> Withdraw to another bank account
-                </label>
-            </div>
-            
-            <div class="form-group" id="regBankContainer">
-                <label>Destination Bank</label>
-                <input type="text" id="wBankInput" value="${regBank}" disabled required>
-            </div>
-
-            <div class="form-group" id="customBankContainer" style="display:none;">
-                <label>Select Target Nigerian Bank *</label>
-                <select id="wBankSelect">
-                    ${bankOptions}
-                </select>
+            <div class="form-group">
+                <label>Destination Registered Bank</label>
+                <input type="text" id="wBankInput" value="${regBank}" disabled required style="background:#0f172a; color:#38bdf8; font-weight:700;">
             </div>
 
             <div class="form-group">
-                <label>Account Number *</label>
-                <input type="text" id="wAcc" value="${regAcc}" maxlength="10" disabled required placeholder="Enter 10-digit NUBAN">
+                <label>Account Number (Settlement NUBAN) *</label>
+                <input type="text" id="wAcc" value="${regAcc}" maxlength="10" disabled required style="background:#0f172a; color:#fff; font-weight:700; letter-spacing:1px;">
             </div>
             
             <div class="form-group">
-                <label>Amount (₦) *</label>
-                <input type="number" id="wAmount" min="100" placeholder="Enter amount" required>
+                <label>Amount to Withdraw (₦) *</label>
+                <input type="number" id="wAmount" min="100" placeholder="Enter amount" required style="background:#0f172a; color:#10b981; font-weight:800; font-size:1rem;">
             </div>
 
-            <div class="form-group" id="pinGroup" style="display:none;">
+            <div class="form-group">
                 <label style="color:#f59e0b;">Required: 4-Digit Security PIN *</label>
-                <input type="password" id="wPin" maxlength="4" placeholder="••••" style="text-align:center; letter-spacing:4px;">
+                <input type="password" id="wPin" maxlength="4" placeholder="••••" required style="text-align:center; letter-spacing:6px; font-size:1.2rem; background:#0f172a; color:#f59e0b; font-weight:800;">
             </div>
 
-            <button type="submit" class="modal-btn" style="width:100%; margin-top:10px; background:#f59e0b; color:#0f172a;">Authorize Withdrawal</button>
+            <button type="submit" class="modal-btn" style="width:100%; margin-top:10px; background:#f59e0b; color:#0f172a; font-weight:800; padding:12px;">Authorize Withdrawal</button>
         </form>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-function toggleWithdrawDestination(chk) {
-    const regBankContainer = document.getElementById('regBankContainer');
-    const customBankContainer = document.getElementById('customBankContainer');
-    const accInp = document.getElementById('wAcc');
-    const pinGroup = document.getElementById('pinGroup');
-
-    if (chk.checked) {
-        regBankContainer.style.display = 'none';
-        customBankContainer.style.display = 'block';
-        accInp.disabled = false;
-        accInp.value = '';
-        pinGroup.style.display = 'block';
-        document.getElementById('wPin').required = true;
-    } else {
-        regBankContainer.style.display = 'block';
-        customBankContainer.style.display = 'none';
-        accInp.disabled = true;
-        accInp.value = merchant.settlementAccount || '2417626017';
-        pinGroup.style.display = 'none';
-        document.getElementById('wPin').required = false;
-    }
-}
-
 async function handleWithdraw(e) {
     e.preventDefault();
-    const isCustom = document.getElementById('useCustomBank').checked;
-    const bank = isCustom ? document.getElementById('wBankSelect').value : document.getElementById('wBankInput').value;
+    const bank = document.getElementById('wBankInput').value;
     const acc = document.getElementById('wAcc').value;
-    const amount = document.getElementById('wAmount').value;
-    const pin = isCustom ? document.getElementById('wPin').value : (merchant.withdrawalPin || '1234');
+    const amount = parseFloat(document.getElementById('wAmount').value);
+    const pin = document.getElementById('wPin').value.trim();
 
-    if (isCustom && (!pin || pin.length < 4)) {
-        return alert('Please enter your valid 4-digit security PIN for external withdrawals.');
+    if (!pin || pin.length < 4) {
+        return alert('Security Error: Please enter your valid 4-digit Security PIN to authorize withdrawal.');
     }
 
     try {
@@ -697,11 +694,25 @@ async function handleWithdraw(e) {
             renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.withdrawRef || 'WTH-SUCCESS');
             if (isLedgerVisible) toggleBalance('ledger');
         } else {
-            alert(data.message || 'Withdrawal authorization failed.');
+            showCorporateNotice('⚠️ Withdrawal Verification Failed', data.message || 'Merchant account validation failed. Please check your security PIN and try again.');
         }
     } catch(err) {
-        alert('Network connection error. Please try again.');
+        showCorporateNotice('⚠️ Network Connectivity Notice', 'Unable to reach the settlement engine. Please verify your internet connection and try again.');
     }
+}
+
+function showCorporateNotice(title, message) {
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = title;
+    modalBody.innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #f59e0b; text-align:left; color:#cbd5e1; font-size:0.85rem; line-height:1.6;">
+            <p style="color:#f59e0b; font-weight:800; margin-bottom:8px;">ALL TIME BUSINESS LTD — SECURITY DESK</p>
+            <p>${message}</p>
+        </div>
+    `;
+    document.getElementById('dashboardModal').style.display = 'flex';
 }
 
 // 5. SHAREABLE & PRINTABLE TRANSACTION RECEIPT
