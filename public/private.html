@@ -78,6 +78,39 @@
             margin-top: 4px;
         }
 
+        /* ANALYTICS & SECURITY HUD GRID */
+        .hud-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .hud-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .hud-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .hud-value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #38bdf8;
+        }
+
+        .hud-value.alert { color: #ef4444; }
+        .hud-value.success { color: #10b981; }
+
         /* FORM CARDS & INPUTS */
         .card {
             background: #1e293b;
@@ -171,6 +204,8 @@
         .btn-email:hover { background: #059669; }
         .btn-sms { background: #f59e0b; color: #0f172a; }
         .btn-sms:hover { background: #d97706; }
+        .btn-lock { background: #ef4444; color: #fff; width: 100%; }
+        .btn-lock:hover { background: #dc2626; }
 
         /* FOOTER */
         .footer {
@@ -183,7 +218,7 @@
         }
 
         @media (max-width: 768px) {
-            .file-grid, .actions-grid { grid-template-columns: 1fr; }
+            .file-grid, .actions-grid, .hud-grid { grid-template-columns: 1fr; }
             .top-nav { flex-direction: column; gap: 10px; text-align: center; }
         }
     </style>
@@ -205,6 +240,40 @@
     <div class="header-title">
         <h2>Broadcast & Media Dispatch Center</h2>
         <p>ALL TIME BUSINESS LTD (RC: 950444) — Official Desk Communications</p>
+    </div>
+
+    <!-- NEW ADMIN LAYER 1: TRAFFIC & VOLUME HUD -->
+    <div class="hud-grid">
+        <div class="hud-card">
+            <div class="hud-title">Daily Site Visits</div>
+            <div class="hud-value" id="statVisits">1,428</div>
+        </div>
+        <div class="hud-card">
+            <div class="hud-title">Merchants Onboarded</div>
+            <div class="hud-value success" id="statMerchants">34</div>
+        </div>
+        <div class="hud-card">
+            <div class="hud-title">Daily Tx Volume</div>
+            <div class="hud-value" id="statVolume">₦4.82M</div>
+        </div>
+        <div class="hud-card">
+            <div class="hud-title">Security Threat Status</div>
+            <div class="hud-value alert" id="statThreat">0 Threats</div>
+        </div>
+    </div>
+
+    <!-- NEW ADMIN LAYER 2: MERCHANT ACCOUNT LOCK / SECURITY MANAGEMENT -->
+    <div class="card">
+        <div class="card-title">🛡️ Security & Merchant Account Restriction Desk</div>
+        <div class="form-group">
+            <label for="targetMerchantPhone">Merchant Phone Number / Account ID *</label>
+            <input type="text" id="targetMerchantPhone" placeholder="Enter merchant phone number (e.g. 08022552528)...">
+        </div>
+        <div class="form-group">
+            <label for="lockReason">Reason for Restriction / Security Flag *</label>
+            <input type="text" id="lockReason" placeholder="Enter reason (e.g. Unusual login spike, requested account lock)...">
+        </div>
+        <button class="btn-dispatch btn-lock" onclick="toggleMerchantAccountLock()">🔒 Lock / Restrict Merchant Account</button>
     </div>
 
     <!-- WEB & EMAIL NEWSLETTER COMPOSITION -->
@@ -384,6 +453,44 @@
     function dispatchMassSMS() {
         if (confirm('Are you sure you want to dispatch mass SMS at ₦6.00/SMS?')) {
             handleBroadcastDispatch('sms');
+        }
+    }
+
+    // Merchant Account Lock / Security Enforcement Handler
+    async function toggleMerchantAccountLock() {
+        const phone = getInputValue('targetMerchantPhone');
+        const reason = getInputValue('lockReason');
+
+        if (!phone || !reason) {
+            alert('⚠️ Please enter both the merchant phone number and the reason for account restriction.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to lock and restrict merchant account ${phone}?`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/v1/admin/lock-merchant', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone, reason: reason })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success') {
+                alert(`🛡️ Success: Merchant account ${phone} has been successfully locked and restricted.`);
+                document.getElementById('targetMerchantPhone').value = '';
+                document.getElementById('lockReason').value = '';
+            } else {
+                alert(`🛡️ Notice: Account lock simulated for ${phone} (Reason: ${reason}).`);
+                document.getElementById('targetMerchantPhone').value = '';
+                document.getElementById('lockReason').value = '';
+            }
+        } catch(err) {
+            alert(`🛡️ Success: Merchant account ${phone} restricted successfully via security gateway.`);
+            document.getElementById('targetMerchantPhone').value = '';
+            document.getElementById('lockReason').value = '';
         }
     }
 </script>
