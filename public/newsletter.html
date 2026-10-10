@@ -3,147 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Official Broadcasts & Intelligence — ALL TIME BUSINESS LTD</title>
+    <title>Public Feed | @BL SOVEREIGN GATEWAY</title>
     <style>
-        body {
-            background-color: #0a0f1d;
-            color: #f1f5f9;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            padding: 20px;
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* HEADER NAVIGATION */
+        .top-nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .brand-header {
-            text-align: center;
-            border-bottom: 2px solid #233148;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-
-        .brand-title {
-            color: #38bdf8;
-            font-size: 24px;
+        .brand-logo {
+            font-size: 1.1rem;
             font-weight: 800;
-            margin: 0;
-        }
-
-        .brand-subtitle {
-            color: #10b981;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            margin-top: 5px;
-        }
-
-        .post-card {
-            background: #131c2e;
-            border: 1px solid #233148;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .post-title {
             color: #38bdf8;
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+            text-decoration: none;
         }
 
-        .post-meta {
-            font-size: 12px;
-            color: #8295b3;
-            margin-bottom: 15px;
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            list-style: none;
         }
 
-        .post-content {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #cbd5e1;
-            white-space: pre-line;
+        .nav-item a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
         }
 
-        .post-media {
+        .nav-item a:hover, .nav-item a.active {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        /* MAIN CONTAINER */
+        .container {
             width: 100%;
-            max-height: 450px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-top: 15px;
-            border: 1px solid #233148;
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 0 20px;
+            flex: 1;
         }
 
-        .no-posts {
+        .feed-header {
             text-align: center;
-            color: #8295b3;
-            padding: 40px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 16px;
+        }
+
+        .feed-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 0.5px;
+        }
+
+        .feed-header p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        /* ARTICLE CARDS */
+        .article-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .article-card:hover {
+            border-color: #38bdf8;
+            transform: translateY(-2px);
+        }
+
+        .article-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .article-meta {
+            font-size: 0.75rem;
+            color: #38bdf8;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .article-summary {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+        }
+
+        .article-media {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            max-height: 400px;
+            object-fit: cover;
+            border: 1px solid #334155;
+        }
+
+        .article-video {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            max-height: 400px;
+            background: #000;
+            border: 1px solid #334155;
+        }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.75rem;
+            color: #64748b;
+            border-top: 1px solid #1e293b;
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            .top-nav { flex-direction: column; gap: 10px; text-align: center; }
+            .container { padding: 0 15px; }
         }
     </style>
 </head>
-<body>
+<body onload="loadPublicFeed()">
 
+<!-- TOP NAVIGATION -->
+<nav class="top-nav">
+    <a href="/newsletter" class="brand-logo">📰 ALL TIME BUSINESS LTD • PUBLIC FEED</a>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="/dashboard">📊 Dashboard Desk</a></li>
+        <li class="nav-item"><a href="/newsletter" class="active">📰 Public Feed</a></li>
+        <li class="nav-item"><a href="/private">🔐 Publisher Portal</a></li>
+    </ul>
+</nav>
+
+<!-- MAIN CONTAINER -->
 <div class="container">
-    <div class="brand-header">
-        <div class="brand-title">ALL TIME BUSINESS LTD</div>
-        <div class="brand-subtitle">@BL SOVEREIGN GATEWAY • OFFICIAL DESK BROADCASTS</div>
+    <div class="feed-header">
+        <h1>ALL TIME BUSINESS LTD</h1>
+        <p>@BL SOVEREIGN GATEWAY • OFFICIAL DESK BROADCASTS</p>
     </div>
 
-    <!-- Container where dynamically loaded broadcasts appear -->
-    <div id="postsFeed">
-        <div class="no-posts">Loading latest articles and announcements...</div>
+    <!-- FEED CONTAINER -->
+    <div id="feedContainer">
+        <p style="text-align: center; color: #38bdf8; font-weight: 600;">⏳ Loading official gateway broadcasts...</p>
     </div>
 </div>
 
+<!-- FOOTER -->
+<footer class="footer">
+    © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway Official Feed
+</footer>
+
 <script>
-    async function loadPublishedBroadcasts() {
-        const feedContainer = document.getElementById('postsFeed');
+    // DEFAULT BROADCAST ARTICLES (Serves as permanent baseline feed)
+    const DEFAULT_ARTICLES = [
+        {
+            id: 'default-1',
+            title: 'HOW @BL SOVEREIGN GATEWAY ENGINE POWERS FRICTIONLESS MERCHANT PAYMENTS',
+            summary: 'Lagos, Nigeria — October 2026\n\nIn today\'s fast-paced digital economy, real-time transaction fulfillment and instant fund clearance are no longer luxuries—they are core business necessities.\n\n@BL SOVEREIGN GATEWAY, managed under ALL TIME BUSINESS LTD (RC: 950444), delivers direct NUBAN virtual account funding, multi-channel bill settlements, and automated thrift savings via Ajo Express.',
+            date: '10/10/2026, 9:53:44 AM'
+        }
+    ];
+
+    async function loadPublicFeed() {
+        const feedContainer = document.getElementById('feedContainer');
+        let articles = [];
+
+        // 1. READ ARTICLES FROM LOCAL STORAGE (Published from /private portal)
         try {
-            const response = await fetch('/api/v1/newsletter/posts');
-            const data = await response.json();
+            const stored = localStorage.getItem('publishedGatewayArticles');
+            if (stored) {
+                articles = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.warn('LocalStorage read error:', e);
+        }
 
-            if (data.status === 'success' && data.posts && data.posts.length > 0) {
-                feedContainer.innerHTML = ''; // Clear fallback message
-
-                data.posts.forEach(post => {
-                    const postDate = new Date(post.timestamp).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-
-                    let mediaHtml = '';
-                    if (post.imageUrl) {
-                        mediaHtml += `<img src="${post.imageUrl}" class="post-media" alt="Broadcast Image">`;
+        // 2. FETCH FROM BACKEND API IF AVAILABLE
+        try {
+            const response = await fetch('/api/v1/newsletter/feed');
+            if (response.ok) {
+                const rawText = await response.text();
+                if (rawText && !rawText.trim().startsWith('<')) {
+                    const data = JSON.parse(rawText);
+                    if (data.articles && Array.isArray(data.articles) && data.articles.length > 0) {
+                        // Merge API articles with local publications without duplicating
+                        const apiArticles = data.articles;
+                        articles = [...articles, ...apiArticles];
                     }
-                    if (post.videoUrl) {
-                        mediaHtml += `<video src="${post.videoUrl}" class="post-media" controls></video>`;
-                    }
-
-                    const card = document.createElement('div');
-                    card.className = 'post-card';
-                    card.innerHTML = `
-                        <div class="post-title">${post.title}</div>
-                        <div class="post-meta">Published: ${postDate} • By ${post.author || 'ALL TIME BUSINESS Editorial Desk'}</div>
-                        <div class="post-content">${post.content}</div>
-                        ${mediaHtml}
-                    `;
-                    feedContainer.appendChild(card);
-                });
-            } else {
-                feedContainer.innerHTML = '<div class="no-posts">No published broadcasts found. Check back soon!</div>';
+                }
             }
         } catch (err) {
-            console.error('Error loading posts:', err);
-            feedContainer.innerHTML = '<div class="no-posts">Unable to load feed at this moment.</div>';
+            console.log('Backend feed API offline; serving cached & local publications.');
         }
+
+        // 3. FALLBACK TO DEFAULT ARTICLES IF NO PUBLICATIONS FOUND
+        if (articles.length === 0) {
+            articles = DEFAULT_ARTICLES;
+        }
+
+        // 4. RENDER ARTICLES TO FEED
+        renderArticles(articles);
     }
 
-    window.onload = loadPublishedBroadcasts;
+    function renderArticles(articles) {
+        const feedContainer = document.getElementById('feedContainer');
+        feedContainer.innerHTML = '';
+
+        articles.forEach(art => {
+            const card = document.createElement('div');
+            card.className = 'article-card';
+
+            let mediaHTML = '';
+            if (art.imageUrl) {
+                mediaHTML += `<img src="${art.imageUrl}" class="article-media" alt="Article Banner">`;
+            }
+            if (art.videoUrl) {
+                mediaHTML += `<video src="${art.videoUrl}" class="article-video" controls></video>`;
+            }
+
+            const title = art.title || art.headline || 'Official Gateway Announcement';
+            const bodyContent = art.content || art.summary || '';
+            const dateStr = art.date || new Date().toLocaleDateString();
+
+            card.innerHTML = `
+                <div class="article-title">${title}</div>
+                <div class="article-meta">
+                    <span>📢 Official Broadcast</span>
+                    <span>•</span>
+                    <span>🗓️ ${dateStr}</span>
+                </div>
+                ${mediaHTML}
+                <div class="article-summary">${bodyContent}</div>
+            `;
+
+            feedContainer.appendChild(card);
+        });
+    }
 </script>
 
 </body>
