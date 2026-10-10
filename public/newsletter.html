@@ -8,47 +8,26 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* HEADER NAVIGATION */
+        /* SINGLE CLEAN TOP HEADER */
         .top-nav {
             background: #1e293b;
             border-bottom: 1px solid #334155;
-            padding: 14px 24px;
+            padding: 16px 24px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
         .brand-logo {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 800;
             color: #38bdf8;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
             text-decoration: none;
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            list-style: none;
-        }
-
-        .nav-item a {
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: 0.82rem;
-            font-weight: 600;
-            padding: 8px 12px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-
-        .nav-item a:hover, .nav-item a.active {
-            color: #38bdf8;
-            background: rgba(56, 189, 248, 0.1);
+            text-transform: uppercase;
         }
 
         /* MAIN CONTAINER */
@@ -169,7 +148,6 @@
         }
 
         @media (max-width: 768px) {
-            .top-nav { flex-direction: column; gap: 10px; text-align: center; }
             .container { padding: 0 15px; }
             .feed-header h1 { font-size: 1.6rem; }
         }
@@ -177,14 +155,9 @@
 </head>
 <body onload="loadPublicFeed()">
 
-<!-- TOP NAVIGATION -->
+<!-- CLEAN TOP NAVIGATION BRANDING -->
 <nav class="top-nav">
-    <a href="/newsletter" class="brand-logo">📰 ALL TIME BUSINESS LTD • PUBLIC FEED</a>
-    <ul class="nav-links">
-        <li class="nav-item"><a href="/dashboard">📊 Dashboard Desk</a></li>
-        <li class="nav-item"><a href="/newsletter" class="active">📰 Public Feed</a></li>
-        <li class="nav-item"><a href="/private">🔐 Publisher Portal</a></li>
-    </ul>
+    <div class="brand-logo">ALL TIME BUSINESS LTD</div>
 </nav>
 
 <!-- MAIN CONTAINER -->
