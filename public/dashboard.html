@@ -279,7 +279,7 @@
 
         /* MODAL POPUP SYSTEM */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 460px; text-align: center; max-height: 90vh; overflow-y: auto; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 90%; max-width: 480px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .form-group { margin-bottom: 14px; text-align: left; }
@@ -412,6 +412,32 @@ let merchant = {};
 let isLedgerVisible = false;
 let isCreditVisible = false;
 
+// NIGERIAN BANKS LIST FOR FUNDING & WITHDRAWALS
+const NIGERIAN_BANKS = [
+    "Access Bank Plc",
+    "Guaranty Trust Bank (GTBank / GTCO)",
+    "Zenith Bank Plc",
+    "First Bank of Nigeria",
+    "United Bank for Africa (UBA)",
+    "Kuda Microfinance Bank",
+    "OPay Digital Services (Paycom)",
+    "Moniepoint Microfinance Bank",
+    "PalmPay Limited",
+    "Fidelity Bank Plc",
+    "Stanbic IBTC Bank",
+    "Sterling Bank Plc",
+    "Wema Bank Plc (ALAT)",
+    "Union Bank of Nigeria",
+    "Ecobank Nigeria",
+    "FCMB (First City Monument Bank)",
+    "Polaris Bank Plc",
+    "Jaiz Bank Plc",
+    "Providus Bank",
+    "Taj Bank",
+    "Lotus Bank",
+    "FairMoney Microfinance Bank"
+];
+
 // 1. SESSION INITIALIZATION & VERIFICATION
 function initSession() {
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
@@ -452,12 +478,15 @@ function toggleBalance(type) {
     }
 }
 
-// 3. MULTI-OPTION FUND WALLET MODAL
+// 3. ENHANCED FUND WALLET MODAL WITH ALL NIGERIAN BANKS SELECTOR
 function openFundModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
     modalTitle.textContent = "➕ FUND GATEWAY WALLET";
+
+    let bankOptions = NIGERIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('');
+
     modalBody.innerHTML = `
         <div class="fund-tabs">
             <div class="fund-tab active" onclick="switchFundTab('TRANSFER', this)">🏦 Bank Transfer</div>
@@ -466,16 +495,28 @@ function openFundModal() {
         </div>
 
         <div id="fundTabContent">
-            <p style="margin-bottom:10px; font-size:0.85rem;">Transfer directly to your dedicated virtual account:</p>
+            <div class="form-group">
+                <label>Choose Your Sending Bank (for seamless verification):</label>
+                <select id="sourceBankSelect" style="background:#0f172a; color:#38bdf8; font-weight:700;">
+                    <option value="">-- Select Your Bank --</option>
+                    ${bankOptions}
+                </select>
+            </div>
+
+            <p style="margin-bottom:10px; font-size:0.82rem; color:#cbd5e1;">Transfer directly from your bank to your dedicated gateway account:</p>
+            
             <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
-                <p style="color:#94a3b8; font-size:0.75rem;">Bank Name</p>
+                <p style="color:#94a3b8; font-size:0.75rem;">Destination Bank Name</p>
                 <p style="color:#fff; font-weight:700; margin-bottom:8px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
-                <p style="color:#94a3b8; font-size:0.75rem;">Account Number</p>
+                
+                <p style="color:#94a3b8; font-size:0.75rem;">Dedicated Virtual Account Number</p>
                 <p style="color:#38bdf8; font-size:1.4rem; font-weight:800; letter-spacing:1px; margin-bottom:8px;">${merchant.virtualNuban || '5000759098'}</p>
-                <p style="color:#94a3b8; font-size:0.75rem;">Account Name</p>
+                
+                <p style="color:#94a3b8; font-size:0.75rem;">Account Beneficiary</p>
                 <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
             </div>
-            <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Automated instant crediting via Squad engine!</small>
+            
+            <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Automated instant crediting via Squad engine across all Nigerian Banks!</small>
         </div>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
@@ -487,17 +528,30 @@ function switchFundTab(mode, el) {
     const container = document.getElementById('fundTabContent');
 
     if (mode === 'TRANSFER') {
+        let bankOptions = NIGERIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('');
         container.innerHTML = `
-            <p style="margin-bottom:10px; font-size:0.85rem;">Transfer directly to your dedicated virtual account:</p>
+            <div class="form-group">
+                <label>Choose Your Sending Bank (for seamless verification):</label>
+                <select id="sourceBankSelect" style="background:#0f172a; color:#38bdf8; font-weight:700;">
+                    <option value="">-- Select Your Bank --</option>
+                    ${bankOptions}
+                </select>
+            </div>
+
+            <p style="margin-bottom:10px; font-size:0.82rem; color:#cbd5e1;">Transfer directly from your bank to your dedicated gateway account:</p>
+            
             <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px dashed #38bdf8; text-align:center;">
-                <p style="color:#94a3b8; font-size:0.75rem;">Bank Name</p>
+                <p style="color:#94a3b8; font-size:0.75rem;">Destination Bank Name</p>
                 <p style="color:#fff; font-weight:700; margin-bottom:8px;">${merchant.virtualBank || 'GTCO (Guaranty Trust Bank)'}</p>
-                <p style="color:#94a3b8; font-size:0.75rem;">Account Number</p>
+                
+                <p style="color:#94a3b8; font-size:0.75rem;">Dedicated Virtual Account Number</p>
                 <p style="color:#38bdf8; font-size:1.4rem; font-weight:800; letter-spacing:1px; margin-bottom:8px;">${merchant.virtualNuban || '5000759098'}</p>
-                <p style="color:#94a3b8; font-size:0.75rem;">Account Name</p>
+                
+                <p style="color:#94a3b8; font-size:0.75rem;">Account Beneficiary</p>
                 <p style="color:#fff; font-weight:700;">${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
             </div>
-            <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Automated instant crediting via Squad engine!</small>
+            
+            <small style="color:#10b981; font-weight:700; display:block; margin-top:10px;">⚡ Automated instant crediting via Squad engine across all Nigerian Banks!</small>
         `;
     } else if (mode === 'CARD') {
         container.innerHTML = `
@@ -536,7 +590,7 @@ async function initCardPayment() {
     } catch(err) { alert('Checkout initialization failed.'); }
 }
 
-// 4. SMART WITHDRAWAL MODAL
+// 4. SMART WITHDRAWAL WITH DYNAMIC BANK SELECTION & PIN LAYER
 function openWithdrawModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -544,11 +598,13 @@ function openWithdrawModal() {
     const regBank = merchant.bankName || 'Zenith Bank Plc';
     const regAcc = merchant.settlementAccount || '2417626017';
 
+    let bankOptions = NIGERIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('');
+
     modalTitle.textContent = "💸 WITHDRAW FUNDS TO BANK";
     modalBody.innerHTML = `
         <form id="withdrawForm" onsubmit="handleWithdraw(event)">
             <div style="margin-bottom:12px; text-align:left;">
-                <label style="font-size:0.8rem; color:#38bdf8; cursor:pointer;">
+                <label style="font-size:0.8rem; color:#38bdf8; cursor:pointer; display:flex; align-items:center; gap:8px;">
                     <input type="checkbox" id="useCustomBank" onchange="toggleWithdrawDestination(this)"> Withdraw to another bank account
                 </label>
             </div>
@@ -559,27 +615,15 @@ function openWithdrawModal() {
             </div>
 
             <div class="form-group" id="customBankContainer" style="display:none;">
-                <label>Select Destination Bank *</label>
+                <label>Select Target Nigerian Bank *</label>
                 <select id="wBankSelect">
-                    <option value="Access Bank">Access Bank</option>
-                    <option value="GTBank (Guaranty Trust Bank)">GTBank (Guaranty Trust Bank)</option>
-                    <option value="Zenith Bank Plc">Zenith Bank Plc</option>
-                    <option value="First Bank of Nigeria">First Bank of Nigeria</option>
-                    <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
-                    <option value="Kuda Microfinance Bank">Kuda Microfinance Bank</option>
-                    <option value="OPay Digital Services">OPay Digital Services</option>
-                    <option value="Palmpay Limited">Palmpay Limited</option>
-                    <option value="Moniepoint Microfinance Bank">Moniepoint Microfinance Bank</option>
-                    <option value="Fidelity Bank">Fidelity Bank</option>
-                    <option value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
-                    <option value="Sterling Bank">Sterling Bank</option>
-                    <option value="Wema Bank (ALAT)">Wema Bank (ALAT)</option>
+                    ${bankOptions}
                 </select>
             </div>
 
             <div class="form-group">
                 <label>Account Number *</label>
-                <input type="text" id="wAcc" value="${regAcc}" maxlength="10" disabled required>
+                <input type="text" id="wAcc" value="${regAcc}" maxlength="10" disabled required placeholder="Enter 10-digit NUBAN">
             </div>
             
             <div class="form-group">
@@ -589,7 +633,7 @@ function openWithdrawModal() {
 
             <div class="form-group" id="pinGroup" style="display:none;">
                 <label style="color:#f59e0b;">Required: 4-Digit Security PIN *</label>
-                <input type="password" id="wPin" maxlength="4" placeholder="••••">
+                <input type="password" id="wPin" maxlength="4" placeholder="••••" style="text-align:center; letter-spacing:4px;">
             </div>
 
             <button type="submit" class="modal-btn" style="width:100%; margin-top:10px; background:#f59e0b; color:#0f172a;">Authorize Withdrawal</button>
@@ -684,42 +728,111 @@ function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 6. DOWNLOAD BANK STATEMENT
+// 6. PROFESSIONAL CORPORATE BANK STATEMENT (WITH EXACT IKORODU ADDRESSES)
 function downloadBankStatement() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "📄 BANK STATEMENT";
+    const balanceFormatted = merchant.balance !== undefined ? parseFloat(merchant.balance).toLocaleString('en-NG', {minimumFractionDigits: 2}) : '0.00';
+
+    modalTitle.textContent = "📄 CORPORATE BANK STATEMENT";
     modalBody.innerHTML = `
-        <div style="background:#0f172a; padding:18px; border-radius:10px; border:1px solid #0ea5e9; text-align:left; font-size:0.85rem; color:#cbd5e1;">
-            <div style="text-align:center; margin-bottom:12px; border-bottom:1px solid #334155; padding-bottom:8px;">
-                <h4 style="color:#38bdf8; margin:0;">@BL SOVEREIGN GATEWAY STATEMENT</h4>
-                <small style="color:#94a3b8;">ALL TIME BUSINESS LTD (RC: 950444)</small>
+        <div id="statementFrame" style="background:#fff; color:#0f172a; padding:20px; border-radius:10px; text-align:left; font-size:0.82rem; font-family:'Segoe UI', Arial, sans-serif; box-shadow:0 10px 20px rgba(0,0,0,0.5);">
+            
+            <!-- CORPORATE HEADER & OFFICIAL ADDRESSES -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
+                <div>
+                    <h3 style="color:#0284c7; margin:0; font-size:1.15rem; font-weight:800; letter-spacing:0.5px;">@BL SOVEREIGN GATEWAY</h3>
+                    <p style="color:#475569; font-size:0.72rem; font-weight:700; margin-top:2px;">ALL TIME BUSINESS LTD • RC: 950444</p>
+                    <p style="color:#334155; font-size:0.68rem; margin-top:4px; line-height:1.4;">
+                        <strong>Corporate HQ:</strong> 13/15 Ade Akinsanya Street, Laketu, Ikorodu, Lagos State, Nigeria.<br>
+                        <strong>Eyita Branch:</strong> 14 Jinadu Odesanya Street, Off Wera Palace, Eyita, Ikorodu, Lagos State, Nigeria.
+                    </p>
+                </div>
+                <div style="text-align:right;">
+                    <span style="background:#0284c7; color:#fff; padding:4px 8px; border-radius:4px; font-weight:800; font-size:0.68rem; text-transform:uppercase;">OFFICIAL STATEMENT</span>
+                    <p style="font-size:0.68rem; color:#64748b; margin-top:6px;">Generated: ${new Date().toLocaleDateString()}</p>
+                </div>
             </div>
-            <p style="margin-bottom:4px;"><strong>Account Name:</strong> ${merchant.merchantName || 'ALL TIME BUSINESS LTD'}</p>
-            <p style="margin-bottom:4px;"><strong>Virtual Account No:</strong> ${merchant.virtualNuban || '5000759098'}</p>
-            <p style="margin-bottom:4px;"><strong>Bank Name:</strong> GTBank / GTCO</p>
-            <p style="margin-bottom:4px;"><strong>Ledger Balance:</strong> ₦${merchant.balance !== undefined ? parseFloat(merchant.balance).toLocaleString('en-NG', {minimumFractionDigits: 2}) : '0.00'}</p>
-            <p style="margin-bottom:0;"><strong>Statement Date:</strong> ${new Date().toLocaleDateString()}</p>
+
+            <!-- ACCOUNT DETAILS GRID -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px; margin-bottom:14px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                        <span style="color:#64748b; font-size:0.7rem; display:block;">Account Holder Name:</span>
+                        <strong style="color:#0f172a; font-size:0.85rem;">${merchant.merchantName || 'Tope Ogegbo'}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; font-size:0.7rem; display:block;">Virtual NUBAN Account:</span>
+                        <strong style="color:#0284c7; font-size:0.85rem;">${merchant.virtualNuban || '5000759098'}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; font-size:0.7rem; display:block;">Primary Settlement Bank:</span>
+                        <strong style="color:#0f172a; font-size:0.8rem;">${merchant.virtualBank || 'GTBank / GTCO'}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b; font-size:0.7rem; display:block;">Current Ledger Balance:</span>
+                        <strong style="color:#10b981; font-size:0.9rem;">₦${balanceFormatted}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUMMARY LEDGER TABLE -->
+            <div style="margin-bottom:14px;">
+                <h5 style="color:#0284c7; font-size:0.78rem; text-transform:uppercase; margin-bottom:6px; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">Ledger Activity Summary</h5>
+                <table style="width:100%; border-collapse:collapse; font-size:0.72rem;">
+                    <thead>
+                        <tr style="background:#f1f5f9; color:#334155; text-align:left;">
+                            <th style="padding:6px; border:1px solid #cbd5e1;">Date</th>
+                            <th style="padding:6px; border:1px solid #cbd5e1;">Description</th>
+                            <th style="padding:6px; border:1px solid #cbd5e1;">Type</th>
+                            <th style="padding:6px; border:1px solid #cbd5e1; text-align:right;">Amount (₦)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding:6px; border:1px solid #e2e8f0;">${new Date().toLocaleDateString()}</td>
+                            <td style="padding:6px; border:1px solid #e2e8f0;">Opening Ledger Balance</td>
+                            <td style="padding:6px; border:1px solid #e2e8f0; color:#0284c7; font-weight:700;">CREDIT</td>
+                            <td style="padding:6px; border:1px solid #e2e8f0; text-align:right; font-weight:700;">₦${balanceFormatted}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- OFFICIAL STAMP SEAL FOOTER -->
+            <div style="border-top:1px dashed #cbd5e1; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:0.65rem; color:#64748b;">
+                    <p>Verified by Squad Payment Gateway Engine</p>
+                    <p>Official Website: www.alltimebusiness.com.ng</p>
+                </div>
+                <div style="border:2px double #0284c7; padding:4px 8px; border-radius:6px; color:#0284c7; font-weight:800; font-size:0.65rem; text-align:center;">
+                    ✔ OFFICIALLY SEALED<br>GATEWAY DESK
+                </div>
+            </div>
+
         </div>
-        <button onclick="window.print()" class="modal-btn" style="background:#0ea5e9; width:100%; margin-top:15px;">🖨️ Print / Download Bank Statement</button>
+        <button onclick="window.print()" class="modal-btn" style="background:#0ea5e9; width:100%; margin-top:15px;">🖨️ Print / Download Official PDF Statement</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 7. AUTO-MARK CONTRIBUTION PASSBOOK CARD GENERATOR
+// 7. AUTO-MARK CONTRIBUTION PASSBOOK CARD GENERATOR (WITH DYNAMIC MONTH HEADER)
 function renderAutoMarkCard(accumulatedAmount, dailyCommitment) {
     const today = new Date();
     const currentDayOfMonth = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     
+    const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+    const currentMonthHeader = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+
     const totalPaidDays = Math.floor(accumulatedAmount / (dailyCommitment || 1));
 
     let cardHTML = `
         <div style="background: #0f172a; border: 1px solid #38bdf8; border-radius: 12px; padding: 14px; margin-top: 12px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">
                 <span style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">
-                    📋 Monthly Contribution Passbook
+                    📋 ${currentMonthHeader} PASSBOOK
                 </span>
                 <span style="font-size: 0.75rem; color: #10b981; font-weight: 700;">
                     ${totalPaidDays} / ${daysInMonth} Days Marked
@@ -768,7 +881,7 @@ function renderAutoMarkCard(accumulatedAmount, dailyCommitment) {
     return cardHTML;
 }
 
-// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & PERSISTENT PASSBOOK CHECK)
+// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & NEXT CYCLE ADJUSTMENT)
 async function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -777,7 +890,6 @@ async function openAjoExpressModal() {
     modalBody.innerHTML = `<p style="text-align:center; color:#38bdf8;">⏳ Synchronizing Ajo Express Passbook...</p>`;
     document.getElementById('dashboardModal').style.display = 'flex';
 
-    // Check persistent active plan state from localStorage first
     if (merchant.ajoExpress && merchant.ajoExpress.status === 'ACTIVE') {
         renderActiveAjoView(merchant.ajoExpress);
         return;
@@ -809,8 +921,8 @@ function renderActiveAjoView(prog) {
     const dailyCommitment = prog.dailyCommitment || 2000;
     const accumulatedAmount = prog.accumulatedAmount || dailyCommitment;
 
-    const gatewayFee = dailyCommitment; // 1st Contribution Rule
-    const flatPenaltyFee = accumulatedAmount * 0.05; // 5% Flat Penalty
+    const gatewayFee = dailyCommitment;
+    const flatPenaltyFee = accumulatedAmount * 0.05;
     const totalDeductions = gatewayFee + flatPenaltyFee;
     const netPayoutAmount = Math.max(0, accumulatedAmount - totalDeductions);
 
@@ -857,6 +969,23 @@ function renderActiveAjoView(prog) {
                 </div>
             </div>
 
+            <!-- ADJUST NEXT MONTH CYCLE CONTRIBUTION OPTION -->
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #38bdf8; margin-bottom:12px;">
+                <p style="color:#38bdf8; font-weight:700; margin-bottom:6px; font-size:0.78rem;">⚙️ Next Month Cycle Target Adjustment:</p>
+                <div class="form-group" style="margin-bottom:8px;">
+                    <select id="nextMonthCommitmentSelect" style="padding:6px; font-size:0.8rem;">
+                        <option value="500" ${dailyCommitment === 500 ? 'selected' : ''}>₦500 / Day (₦15,000 Monthly)</option>
+                        <option value="1000" ${dailyCommitment === 1000 ? 'selected' : ''}>₦1,000 / Day (₦30,000 Monthly)</option>
+                        <option value="2000" ${dailyCommitment === 2000 ? 'selected' : ''}>₦2,000 / Day (₦60,000 Monthly)</option>
+                        <option value="5000" ${dailyCommitment === 5000 ? 'selected' : ''}>₦5,000 / Day (₦150,000 Monthly)</option>
+                        <option value="10000" ${dailyCommitment === 10000 ? 'selected' : ''}>₦10,000 / Day (₦300,000 Monthly)</option>
+                    </select>
+                </div>
+                <button onclick="updateNextCycleTarget()" style="background:#0ea5e9; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:700; font-size:0.75rem; cursor:pointer; width:100%;">
+                    Update Contribution Target for Next Cycle
+                </button>
+            </div>
+
             <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:14px;">
                 <p style="color:#ef4444; font-weight:800; margin-bottom:6px; font-size:0.8rem;">⚠️ Emergency Cashout Breakdown:</p>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:4px;">
@@ -877,6 +1006,18 @@ function renderActiveAjoView(prog) {
             <button onclick="promptAjoEmergencyBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">🚨 Break Savings & Cashout Now</button>
         </div>
     `;
+}
+
+function updateNextCycleTarget() {
+    const newCommitment = parseFloat(document.getElementById('nextMonthCommitmentSelect').value);
+    if (!newCommitment) return;
+
+    if (merchant.ajoExpress) {
+        merchant.ajoExpress.dailyCommitment = newCommitment;
+        localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+        alert(`✅ Contribution target updated to ₦${newCommitment.toLocaleString()}/day for the next cycle!`);
+        renderActiveAjoView(merchant.ajoExpress);
+    }
 }
 
 function renderAjoOnboardingView() {
