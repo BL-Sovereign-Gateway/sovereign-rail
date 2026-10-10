@@ -33,7 +33,7 @@
         /* MAIN CONTAINER */
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             margin: 30px auto;
             padding: 0 20px;
             flex: 1;
@@ -110,7 +110,7 @@
             margin-bottom: 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
         }
 
         .form-group {
@@ -190,7 +190,65 @@
         .btn-lock:hover { background: #dc2626; }
         .btn-search { background: #38bdf8; color: #0f172a; padding: 10px 16px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
 
-        /* MERCHANT DETAILS DISPLAY PANEL */
+        /* MERCHANT ROSTER TABLE & DETAILS PANEL */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .merchant-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: left;
+        }
+
+        .merchant-table th {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 10px 12px;
+            border-bottom: 2px solid #334155;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+        }
+
+        .merchant-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+            color: #cbd5e1;
+            vertical-align: middle;
+        }
+
+        .merchant-table tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-pill.active { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+        .status-pill.locked { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+
+        .btn-mini-act {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-mini-lock { background: #ef4444; color: #fff; }
+        .btn-mini-unlock { background: #10b981; color: #fff; }
+
         .merchant-details-panel {
             background: #0f172a;
             border: 1px solid #38bdf8;
@@ -234,7 +292,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="renderMerchantDirectory()">
 
 <!-- CLEAN BRAND HEADER -->
 <nav class="top-nav">
@@ -256,7 +314,7 @@
         </div>
         <div class="hud-card">
             <div class="hud-title">Merchants Onboarded</div>
-            <div class="hud-value success" id="statMerchants">34</div>
+            <div class="hud-value success" id="statMerchantsCount">3</div>
         </div>
         <div class="hud-card">
             <div class="hud-title">Daily Tx Volume</div>
@@ -268,9 +326,36 @@
         </div>
     </div>
 
-    <!-- NEW LAYER: LIVE MERCHANT DETAILS LOOKUP & INSPECTION DESK -->
+    <!-- LIVE ONBOARDED MERCHANTS MONITORING DIRECTORY LAYER -->
     <div class="card">
-        <div class="card-title">🔍 Onboarded Merchant Inspection Desk</div>
+        <div class="card-title">
+            <span>👥 Onboarded Merchants Directory & Real-Time Monitor</span>
+            <small style="color:#38bdf8; font-size:0.75rem; font-weight:600;">Live Gateway Roster</small>
+        </div>
+        <div class="table-responsive">
+            <table class="merchant-table">
+                <thead>
+                    <tr>
+                        <th>Merchant / Business Name</th>
+                        <th>Phone No</th>
+                        <th>Email Address</th>
+                        <th>Virtual NUBAN</th>
+                        <th>Settlement Bank</th>
+                        <th>Balance (₦)</th>
+                        <th>Status</th>
+                        <th>Quick Action</th>
+                    </tr>
+                </thead>
+                <tbody id="merchantTableBody">
+                    <!-- Dynamic Merchant Rows Rendered via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ONBOARDED MERCHANT DETAIL SEARCH & INSPECTION DESK -->
+    <div class="card">
+        <div class="card-title">🔍 Quick Merchant Account Inspection Desk</div>
         <div class="form-group" style="display:flex; gap:10px;">
             <input type="text" id="merchantSearchInput" placeholder="Enter merchant phone number to inspect details (e.g. 08022552528)...">
             <button class="btn-search" onclick="inspectMerchant()">Lookup</button>
@@ -280,6 +365,7 @@
             <div class="merchant-grid">
                 <div>Merchant Name: <strong id="mName">Tope Ogegbo</strong></div>
                 <div>Phone Number: <strong id="mPhone">08022552528</strong></div>
+                <div>Email Address: <strong id="mEmail">tope.ogegbo@alltimebusiness.com.ng</strong></div>
                 <div>Dedicated Virtual NUBAN: <strong id="mNuban" style="color:#38bdf8;">5000759098 (GTBank)</strong></div>
                 <div>Settlement Account: <strong id="mSettlement">2417626017 (Zenith Bank Plc)</strong></div>
                 <div>Ledger Balance: <strong id="mBalance" style="color:#10b981;">₦248,500.00</strong></div>
@@ -351,8 +437,112 @@
     © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway Admin Systems
 </footer>
 
-<!-- MASTER PUBLISHER & SECURITY SCRIPT -->
+<!-- MASTER PUBLISHER, DIRECTORY & SECURITY SCRIPT -->
 <script>
+    // DEFAULT ONBOARDED MERCHANTS DIRECTORY
+    let merchantDirectory = [
+        {
+            name: "Tope Ogegbo",
+            phone: "08022552528",
+            email: "tope.ogegbo@alltimebusiness.com.ng",
+            nuban: "5000759098 (GTBank)",
+            settlement: "2417626017 (Zenith Bank Plc)",
+            balance: 248500.00,
+            isLocked: false
+        },
+        {
+            name: "ALL TIME BUSINESS LTD",
+            phone: "08033001122",
+            email: "info@alltimebusiness.com.ng",
+            nuban: "5000881122 (GTBank)",
+            settlement: "1012233445 (Access Bank)",
+            balance: 1850000.00,
+            isLocked: false
+        },
+        {
+            name: "REAL SCHOOLS, EYITA",
+            phone: "08055443322",
+            email: "realschools@eyita.edu.ng",
+            nuban: "5000994433 (GTBank)",
+            settlement: "0011223344 (First Bank)",
+            balance: 62000.00,
+            isLocked: false
+        }
+    ];
+
+    function renderMerchantDirectory() {
+        const rawSession = localStorage.getItem('activeMerchant');
+        if (rawSession) {
+            try {
+                const active = JSON.parse(rawSession);
+                if (active.phone) {
+                    const idx = merchantDirectory.findIndex(m => m.phone === active.phone);
+                    if (idx !== -1) {
+                        merchantDirectory[idx].balance = parseFloat(active.balance || merchantDirectory[idx].balance);
+                        merchantDirectory[idx].isLocked = active.isLocked || false;
+                    } else {
+                        merchantDirectory.push({
+                            name: active.merchantName || 'New Onboarded Merchant',
+                            phone: active.phone,
+                            email: active.email || `${active.phone}@gateway.com.ng`,
+                            nuban: `${active.virtualNuban || '5000759098'} (GTBank)`,
+                            settlement: `${active.settlementAccount || '2417626017'} (${active.bankName || 'Zenith Bank'})`,
+                            balance: parseFloat(active.balance || 0),
+                            isLocked: active.isLocked || false
+                        });
+                    }
+                }
+            } catch(e) {}
+        }
+
+        document.getElementById('statMerchantsCount').textContent = merchantDirectory.length;
+        const tbody = document.getElementById('merchantTableBody');
+        tbody.innerHTML = '';
+
+        merchantDirectory.forEach(m => {
+            const tr = document.createElement('tr');
+            const statusClass = m.isLocked ? 'status-pill locked' : 'status-pill active';
+            const statusText = m.isLocked ? 'LOCKED' : 'ACTIVE';
+            const actionBtn = m.isLocked 
+                ? `<button class="btn-mini-act btn-mini-unlock" onclick="quickToggleLock('${m.phone}', false)">Unlock</button>`
+                : `<button class="btn-mini-act btn-mini-lock" onclick="quickToggleLock('${m.phone}', true)">Lock</button>`;
+
+            tr.innerHTML = `
+                <td><strong>${m.name}</strong></td>
+                <td>${m.phone}</td>
+                <td>${m.email}</td>
+                <td><span style="color:#38bdf8; font-weight:700;">${m.nuban}</span></td>
+                <td>${m.settlement}</td>
+                <td><strong style="color:#10b981;">₦${m.balance.toLocaleString('en-NG', {minimumFractionDigits:2})}</strong></td>
+                <td><span class="${statusClass}">${statusText}</span></td>
+                <td>${actionBtn}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function quickToggleLock(phone, shouldLock) {
+        document.getElementById('targetMerchantPhone').value = phone;
+        document.getElementById('lockReason').value = shouldLock ? 'Security restriction enforced by Admin' : 'Restriction lifted by Admin';
+        
+        const m = merchantDirectory.find(x => x.phone === phone);
+        if (m) m.isLocked = shouldLock;
+
+        const rawSession = localStorage.getItem('activeMerchant');
+        if (rawSession) {
+            try {
+                const active = JSON.parse(rawSession);
+                if (active.phone === phone) {
+                    active.isLocked = shouldLock;
+                    localStorage.setItem('activeMerchant', JSON.stringify(active));
+                }
+            } catch(e) {}
+        }
+
+        renderMerchantDirectory();
+        alert(`🛡️ Account status for ${phone} updated to ${shouldLock ? 'RESTRICTED / LOCKED' : 'ACTIVE'}.`);
+    }
+
     function readFileAsDataURL(file) {
         return new Promise((resolve, reject) => {
             if (!file) return resolve(null);
@@ -381,22 +571,27 @@
         const panel = document.getElementById('merchantPanel');
         panel.style.display = 'block';
 
-        document.getElementById('mPhone').textContent = phone;
-        document.getElementById('targetMerchantPhone').value = phone;
-
-        const rawSession = localStorage.getItem('activeMerchant');
-        if (rawSession) {
-            try {
-                const m = JSON.parse(rawSession);
-                if (m.phone === phone || phone === '08022552528') {
-                    document.getElementById('mName').textContent = m.merchantName || 'Tope Ogegbo';
-                    document.getElementById('mNuban').textContent = `${m.virtualNuban || '5000759098'} (${m.virtualBank || 'GTBank'})`;
-                    document.getElementById('mSettlement').textContent = `${m.settlementAccount || '2417626017'} (${m.bankName || 'Zenith Bank Plc'})`;
-                    document.getElementById('mBalance').textContent = `₦${parseFloat(m.balance || 248500).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
-                    document.getElementById('mStatus').textContent = m.isLocked ? 'RESTRICTED / LOCKED' : 'ACTIVE & VERIFIED';
-                    document.getElementById('mStatus').style.color = m.isLocked ? '#ef4444' : '#10b981';
-                }
-            } catch(e) {}
+        const found = merchantDirectory.find(m => m.phone === phone);
+        if (found) {
+            document.getElementById('mName').textContent = found.name;
+            document.getElementById('mPhone').textContent = found.phone;
+            document.getElementById('mEmail').textContent = found.email;
+            document.getElementById('mNuban').textContent = found.nuban;
+            document.getElementById('mSettlement').textContent = found.settlement;
+            document.getElementById('mBalance').textContent = `₦${found.balance.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+            document.getElementById('mStatus').textContent = found.isLocked ? 'RESTRICTED / LOCKED' : 'ACTIVE & VERIFIED';
+            document.getElementById('mStatus').style.color = found.isLocked ? '#ef4444' : '#10b981';
+            document.getElementById('targetMerchantPhone').value = phone;
+        } else {
+            document.getElementById('mName').textContent = 'Tope Ogegbo';
+            document.getElementById('mPhone').textContent = phone;
+            document.getElementById('mEmail').textContent = `${phone}@gateway.com.ng`;
+            document.getElementById('mNuban').textContent = '5000759098 (GTBank)';
+            document.getElementById('mSettlement').textContent = '2417626017 (Zenith Bank Plc)';
+            document.getElementById('mBalance').textContent = '₦248,500.00';
+            document.getElementById('mStatus').textContent = 'ACTIVE & VERIFIED';
+            document.getElementById('mStatus').style.color = '#10b981';
+            document.getElementById('targetMerchantPhone').value = phone;
         }
     }
 
@@ -433,12 +628,11 @@
             };
 
             try {
-                const response = await fetch('/api/v1/newsletter/publish', {
+                await fetch('/api/v1/newsletter/publish', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const rawText = await response.text();
             } catch (netErr) {
                 console.warn('API offline; utilizing local storage sync.');
             }
@@ -494,21 +688,9 @@
             return;
         }
 
-        const rawSession = localStorage.getItem('activeMerchant');
-        if (rawSession) {
-            try {
-                const m = JSON.parse(rawSession);
-                if (m.phone === phone || phone === '08022552528') {
-                    m.isLocked = true;
-                    localStorage.setItem('activeMerchant', JSON.stringify(m));
-                }
-            } catch(e) {}
-        }
-
-        alert(`🛡️ Success: Merchant account ${phone} has been successfully locked and restricted. (Reason: ${reason})`);
+        quickToggleLock(phone, true);
         document.getElementById('targetMerchantPhone').value = '';
         document.getElementById('lockReason').value = '';
-        inspectMerchant();
     }
 </script>
 
