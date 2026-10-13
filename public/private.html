@@ -331,11 +331,19 @@
         </div>
     </div>
 
-    <!-- LAYER 1: CUMULATIVE REVENUE & COMMISSION LEDGER -->
+    <!-- LAYER 1: CUMULATIVE REVENUE & COMMISSION LEDGER WITH TIME FILTER -->
     <div class="card">
-        <div class="card-title">
-            <span>💰 Cumulative Profit & Commission Accrual Ledger</span>
-            <small style="color:#10b981; font-size:0.75rem; font-weight:700;">Total Net Inflows: <span id="totalRevenueHeader">₦148,250.00</span></small>
+        <div class="card-title" style="flex-wrap: wrap; gap: 10px;">
+            <span>💰 Profit & Commission Accrual Ledger</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <select id="revPeriodSelect" onchange="updateRevenuePeriod()" style="background:#0f172a; color:#38bdf8; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; outline:none; cursor:pointer;">
+                    <option value="daily">📅 Daily View</option>
+                    <option value="weekly">📅 Weekly View</option>
+                    <option value="monthly" selected>📅 Monthly View</option>
+                    <option value="cumulative">📊 All-Time Cumulative</option>
+                </select>
+                <small style="color:#10b981; font-size:0.75rem; font-weight:700;">Total: <span id="totalRevenueHeader">₦148,250.00</span></small>
+            </div>
         </div>
         <div class="rev-grid">
             <div class="rev-card">
@@ -511,10 +519,30 @@
         }
     ];
 
+    // REVENUE DATASETS FOR DAILY, WEEKLY, MONTHLY & CUMULATIVE VIEWS
+    const revenueDatasets = {
+        daily: { comms: 4200.00, ajo: 2500.00, sms: 850.00, utility: 1450.00 },
+        weekly: { comms: 18500.00, ajo: 11200.00, sms: 3600.00, utility: 6100.00 },
+        monthly: { comms: 68400.00, ajo: 42100.00, sms: 14250.00, utility: 23500.00 },
+        cumulative: { comms: 245000.00, ajo: 158000.00, sms: 52000.00, utility: 89000.00 }
+    };
+
     function initAdminDashboard() {
         renderMerchantDirectory();
         renderCreditRequests();
-        calculateRevenueLedger();
+        updateRevenuePeriod();
+    }
+
+    function updateRevenuePeriod() {
+        const period = document.getElementById('revPeriodSelect').value;
+        const data = revenueDatasets[period] || revenueDatasets.monthly;
+        const total = data.comms + data.ajo + data.sms + data.utility;
+
+        document.getElementById('revCommissions').textContent = `₦${data.comms.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('revAjo').textContent = `₦${data.ajo.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('revSms').textContent = `₦${data.sms.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('revUtility').textContent = `₦${data.utility.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('totalRevenueHeader').textContent = `₦${total.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
     }
 
     function renderMerchantDirectory() {
@@ -605,20 +633,6 @@
             renderCreditRequests();
             alert(`✅ Credit support request for ${req.name} has been marked as ${newStatus}.`);
         }
-    }
-
-    function calculateRevenueLedger() {
-        const comms = 68400.00;
-        const ajo = 42100.00;
-        const sms = 14250.00;
-        const utility = 23500.00;
-        const total = comms + ajo + sms + utility;
-
-        document.getElementById('revCommissions').textContent = `₦${comms.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-        document.getElementById('revAjo').textContent = `₦${ajo.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-        document.getElementById('revSms').textContent = `₦${sms.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-        document.getElementById('revUtility').textContent = `₦${utility.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
-        document.getElementById('totalRevenueHeader').textContent = `₦${total.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
     }
 
     function quickToggleLock(phone, shouldLock) {
