@@ -187,7 +187,7 @@
         .btn-sms { background: #f59e0b; color: #0f172a; }
         .btn-sms:hover { background: #d97706; }
 
-        /* MERCHANT ROSTER TABLE */
+        /* TABLES & COMMON STYLING */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -233,6 +233,9 @@
 
         .status-pill.active { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
         .status-pill.locked { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+        .status-pill.pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+        .status-pill.approved { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+        .status-pill.rejected { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
 
         .btn-mini-act {
             padding: 4px 8px;
@@ -245,6 +248,38 @@
 
         .btn-mini-lock { background: #ef4444; color: #fff; }
         .btn-mini-unlock { background: #10b981; color: #fff; }
+        .btn-mini-approve { background: #10b981; color: #fff; margin-right: 4px; }
+        .btn-mini-reject { background: #ef4444; color: #fff; }
+
+        /* REVENUE BREAKDOWN GRID */
+        .rev-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .rev-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .rev-title {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .rev-amount {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #10b981;
+        }
 
         /* FOOTER */
         .footer {
@@ -257,12 +292,12 @@
         }
 
         @media (max-width: 768px) {
-            .file-grid, .actions-grid, .hud-grid { grid-template-columns: 1fr; }
+            .file-grid, .actions-grid, .hud-grid, .rev-grid { grid-template-columns: 1fr; }
             .container { padding: 0 15px; }
         }
     </style>
 </head>
-<body onload="renderMerchantDirectory()">
+<body onload="initAdminDashboard()">
 
 <!-- CLEAN BRAND HEADER -->
 <nav class="top-nav">
@@ -293,6 +328,57 @@
         <div class="hud-card">
             <div class="hud-title">Security Threat Status</div>
             <div class="hud-value alert" id="statThreat">0 Threats</div>
+        </div>
+    </div>
+
+    <!-- LAYER 1: CUMULATIVE REVENUE & COMMISSION LEDGER -->
+    <div class="card">
+        <div class="card-title">
+            <span>💰 Cumulative Profit & Commission Accrual Ledger</span>
+            <small style="color:#10b981; font-size:0.75rem; font-weight:700;">Total Net Inflows: <span id="totalRevenueHeader">₦148,250.00</span></small>
+        </div>
+        <div class="rev-grid">
+            <div class="rev-card">
+                <div class="rev-title">Gateway Commissions</div>
+                <div class="rev-amount" id="revCommissions">₦68,400.00</div>
+            </div>
+            <div class="rev-card">
+                <div class="rev-title">Ajo Thrift Earnings</div>
+                <div class="rev-amount" id="revAjo">₦42,100.00</div>
+            </div>
+            <div class="rev-card">
+                <div class="rev-title">SMS Pin / Broadcasts</div>
+                <div class="rev-amount" id="revSms">₦14,250.00</div>
+            </div>
+            <div class="rev-card">
+                <div class="rev-title">Utility & Bills Spread</div>
+                <div class="rev-amount" id="revUtility">₦23,500.00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYER 2: CREDIT SUPPORT APPLICATIONS REVIEW DESK -->
+    <div class="card">
+        <div class="card-title">
+            <span>🤝 Credit Support Requests Review & Approval Desk</span>
+            <small style="color:#38bdf8; font-size:0.75rem; font-weight:600;">Pending Loan / Liquidity Applications</small>
+        </div>
+        <div class="table-responsive">
+            <table class="merchant-table">
+                <thead>
+                    <tr>
+                        <th>Merchant Name</th>
+                        <th>Phone Number</th>
+                        <th>Requested Amount</th>
+                        <th>Purpose / Corridor</th>
+                        <th>Status</th>
+                        <th>Review Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="creditTableBody">
+                    <!-- Dynamic Credit Rows Rendered via JS -->
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -372,7 +458,7 @@
     © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway Admin Systems
 </footer>
 
-<!-- MASTER PUBLISHER & DIRECTORY SCRIPT -->
+<!-- MASTER PUBLISHER, DIRECTORY & CREDIT SCRIPT -->
 <script>
     // DEFAULT ONBOARDED MERCHANTS DIRECTORY
     let merchantDirectory = [
@@ -404,6 +490,32 @@
             isLocked: false
         }
     ];
+
+    // CREDIT SUPPORT APPLICATIONS DIRECTORY
+    let creditSupportRequests = [
+        {
+            id: 1,
+            name: "Tope Ogegbo",
+            phone: "08022552528",
+            amount: 150000.00,
+            purpose: "Ikorodu Corridor Terminal Liquidity Top-up",
+            status: "PENDING"
+        },
+        {
+            id: 2,
+            name: "Adeola Transport Services",
+            phone: "08031122334",
+            amount: 300000.00,
+            purpose: "Mile 12 / Ketu BRT Agency Expansion",
+            status: "PENDING"
+        }
+    ];
+
+    function initAdminDashboard() {
+        renderMerchantDirectory();
+        renderCreditRequests();
+        calculateRevenueLedger();
+    }
 
     function renderMerchantDirectory() {
         const rawSession = localStorage.getItem('activeMerchant');
@@ -454,6 +566,59 @@
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    function renderCreditRequests() {
+        const tbody = document.getElementById('creditTableBody');
+        tbody.innerHTML = '';
+
+        creditSupportRequests.forEach(req => {
+            const tr = document.createElement('tr');
+            let statusPillClass = 'status-pill pending';
+            if (req.status === 'APPROVED') statusPillClass = 'status-pill approved';
+            if (req.status === 'REJECTED') statusPillClass = 'status-pill rejected';
+
+            let actionButtons = `
+                <button class="btn-mini-act btn-mini-approve" onclick="updateCreditStatus(${req.id}, 'APPROVED')">Approve</button>
+                <button class="btn-mini-act btn-mini-reject" onclick="updateCreditStatus(${req.id}, 'REJECTED')">Reject</button>
+            `;
+            if (req.status !== 'PENDING') {
+                actionButtons = `<span style="font-size:0.75rem; color:#94a3b8; font-weight:600;">Processed</span>`;
+            }
+
+            tr.innerHTML = `
+                <td><strong>${req.name}</strong></td>
+                <td>${req.phone}</td>
+                <td><strong style="color:#38bdf8;">₦${req.amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</strong></td>
+                <td>${req.purpose}</td>
+                <td><span class="${statusPillClass}">${req.status}</span></td>
+                <td>${actionButtons}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateCreditStatus(id, newStatus) {
+        const req = creditSupportRequests.find(r => r.id === id);
+        if (req) {
+            req.status = newStatus;
+            renderCreditRequests();
+            alert(`✅ Credit support request for ${req.name} has been marked as ${newStatus}.`);
+        }
+    }
+
+    function calculateRevenueLedger() {
+        const comms = 68400.00;
+        const ajo = 42100.00;
+        const sms = 14250.00;
+        const utility = 23500.00;
+        const total = comms + ajo + sms + utility;
+
+        document.getElementById('revCommissions').textContent = `₦${comms.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('revAjo').textContent = `₦${ajo.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('revSms').textContent = `₦${sms.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('revUtility').textContent = `₦${utility.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
+        document.getElementById('totalRevenueHeader').textContent = `₦${total.toLocaleString('en-NG', {minimumFractionDigits:2})}`;
     }
 
     function quickToggleLock(phone, shouldLock) {
