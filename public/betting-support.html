@@ -61,6 +61,50 @@
             <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
         </div>
 
+        <!-- COMPLETE NIGERIAN BANKS DROPDOWN -->
+        <div class="form-group" id="bankSelectorGroup" style="display:none; margin-top:12px;">
+            <label>Select Source / Transfer Bank (All Nigerian Banks) *</label>
+            <select id="sourceBankSelect">
+                <optgroup label="Commercial Banks">
+                    <option value="ACCESS">Access Bank</option>
+                    <option value="FBN">First Bank of Nigeria</option>
+                    <option value="GTB">Guaranty Trust Bank (GTBank)</option>
+                    <option value="ZENITH">Zenith Bank Plc</option>
+                    <option value="UBA">United Bank for Africa (UBA)</option>
+                    <option value="FCMB">First City Monument Bank (FCMB)</option>
+                    <option value="FIDELITY">Fidelity Bank</option>
+                    <option value="STANBIC">Stanbic IBTC Bank</option>
+                    <option value="STERLING">Sterling Bank</option>
+                    <option value="UNION">Union Bank of Nigeria</option>
+                    <option value="WEMA">Wema Bank</option>
+                    <option value="POLARIS">Polaris Bank</option>
+                    <option value="KEYSTONE">Keystone Bank</option>
+                    <option value="UNITY">Unity Bank</option>
+                    <option value="JAIZ">Jaiz Bank</option>
+                    <option value="TAJ">TAJ Bank</option>
+                    <option value="GLOBUS">Globus Bank</option>
+                    <option value="PARALLEX">Parallex Bank</option>
+                    <option value="SUNTRUST">SunTrust Bank</option>
+                    <option value="PROVIDUS">Providus Bank</option>
+                    <option value="CITIBANK">Citibank Nigeria</option>
+                    <option value="SCBN">Standard Chartered Bank</option>
+                </optgroup>
+                <optgroup label="Microfinance Banks & Digital Fintechs">
+                    <option value="OPAY">OPay Digital Services (Paycom)</option>
+                    <option value="PALMPAY">PalmPay</option>
+                    <option value="MONIEPOINT">Moniepoint MFB</option>
+                    <option value="KUDA">Kuda MFB</option>
+                    <option value="POCKET">PiggyTech (Pocket App)</option>
+                    <option value="VFD">VFD Microfinance Bank</option>
+                    <option value="SAFEHAVEN">Safe Haven MFB</option>
+                    <option value="HASAL">Hasal MFB</option>
+                    <option value="INFINITY">Infinity MFB</option>
+                    <option value="LIVINGTRUST">LivingTrust MFB</option>
+                    <option value="MINT">Mint MFB</option>
+                </optgroup>
+            </select>
+        </div>
+
         <button type="submit" class="btn-submit" id="btnSubmit">Proceed to Fund Wallet</button>
     </form>
 </div>
@@ -69,7 +113,7 @@
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
-        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px;"></div>
+        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px; text-align:left;"></div>
         <button class="modal-btn" onclick="closeModal()">Close</button>
     </div>
 </div>
@@ -108,10 +152,34 @@ function setPayMethod(method, el) {
     selectedPayMethod = method;
     document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
     el.classList.add('active');
+
+    const bankGroup = document.getElementById('bankSelectorGroup');
+    if (method === 'TRANSFER') {
+        bankGroup.style.display = 'block';
+    } else {
+        bankGroup.style.display = 'none';
+    }
 }
 
 function closeModal() {
     document.getElementById('customModal').style.display = 'none';
+}
+
+function renderReceipt(data) {
+    const modalBody = document.getElementById('modalBody');
+    const isSuccess = data.status === 'success';
+    modalBody.innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid ${isSuccess ? '#10b981' : '#ef4444'};">
+            <p style="color:${isSuccess ? '#10b981' : '#ef4444'}; font-weight:800; font-size:1rem; margin-bottom:8px;">${isSuccess ? '✅ BETTING WALLET FUNDED' : '❌ TRANSACTION DECLINED'}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Transaction Ref:</strong> <span style="color:#38bdf8;">${data.orderRef}</span></p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Platform:</strong> ${data.serviceTitle}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Account ID:</strong> ${data.recipient}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount Debited:</strong> ₦${parseFloat(data.amount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Payment Method:</strong> ${data.paymentMethod}</p>
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
+        </div>
+    `;
+    document.getElementById('customModal').style.display = 'flex';
 }
 
 async function loadBookmakers() {
@@ -151,6 +219,8 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
     const providerId = document.getElementById('bookmakerSelect').value;
     const userId = document.getElementById('userId').value;
     const amount = parseFloat(document.getElementById('amount').value);
+    const txRef = `BLSG-BET-${Date.now()}`;
+    const selectedSourceBank = document.getElementById('sourceBankSelect').options[document.getElementById('sourceBankSelect').selectedIndex].text;
 
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
     let merchant = {};
@@ -159,7 +229,7 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
     // Pay via Wallet Balance
     if (selectedPayMethod === 'WALLET') {
         if (!merchant.phone) {
-            modalBody.innerHTML = "❌ Please sign in to your merchant dashboard to pay via wallet balance.";
+            modalBody.innerHTML = "<p style='color:#ef4444;'>❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>";
             document.getElementById('customModal').style.display = 'flex';
             btn.disabled = false;
             btn.textContent = 'Proceed to Fund Wallet';
@@ -174,7 +244,8 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
                     merchantPhone: merchant.phone,
                     serviceType: `Betting Topup (${providerId})`,
                     recipient: userId,
-                    amount: amount
+                    amount: amount,
+                    reference: txRef
                 })
             });
             const data = await res.json();
@@ -184,23 +255,35 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
                 }
-                modalBody.innerHTML = `
-                    <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left;">
-                        <p style="color:#10b981; font-weight:800; margin-bottom:8px;">✅ BETTING WALLET FUNDED</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Platform:</strong> ${providerId}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Account ID:</strong> ${userId}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount Debited:</strong> ₦${amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                        <p style="font-size:0.8rem; color:#38bdf8; margin-top:8px;">Ref: ${data.txRef || 'TXN-SUCCESS'}</p>
-                    </div>
-                `;
+                renderReceipt({
+                    status: 'success',
+                    orderRef: data.txRef || txRef,
+                    serviceTitle: providerId,
+                    recipient: userId,
+                    amount: amount,
+                    paymentMethod: 'Gateway Wallet Balance'
+                });
             } else {
-                modalBody.innerText = `⚠️ ${data.message || 'Failed to process wallet transaction.'}`;
+                renderReceipt({
+                    status: 'declined',
+                    orderRef: txRef,
+                    serviceTitle: providerId,
+                    recipient: userId,
+                    amount: amount,
+                    paymentMethod: 'Gateway Wallet Balance'
+                });
             }
         } catch (err) {
-            modalBody.innerText = "❌ Connection error while processing wallet debit.";
+            renderReceipt({
+                status: 'declined',
+                orderRef: txRef,
+                serviceTitle: providerId,
+                recipient: userId,
+                amount: amount,
+                paymentMethod: 'Gateway Wallet Balance'
+            });
         }
         
-        document.getElementById('customModal').style.display = 'flex';
         btn.disabled = false;
         btn.textContent = 'Proceed to Fund Wallet';
         return;
@@ -215,20 +298,27 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
                 serviceType: `Betting Topup (${providerId})`,
                 targetInput: userId,
                 amount: amount,
-                paymentMethod: selectedPayMethod
+                paymentMethod: selectedPayMethod,
+                sourceBank: selectedSourceBank,
+                reference: txRef
             })
         });
         const data = await res.json();
 
-        if (res.ok && data.status === 'success') {
-            if (data.paymentMethod === 'TRANSFER' && data.bankDetails) {
+        if (res.ok) {
+            if (selectedPayMethod === 'TRANSFER') {
                 modalBody.innerHTML = `
-                    <p>Transfer <strong>₦${amount.toLocaleString('en-NG')}</strong> to fund betting ID <strong>${userId}</strong>:</p>
-                    <div style="background:#0f172a; padding:14px; border-radius:8px; margin:15px 0; border:1px dashed #38bdf8;">
-                        <p style="margin-bottom:4px;"><strong>Bank:</strong> ${data.bankDetails.bankName || 'GTBank'}</p>
-                        <p style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin:6px 0;">${data.bankDetails.accountNumber}</p>
+                    <div style="text-align:center;">
+                        <h3 style="color:#38bdf8; margin-bottom:6px;">🏦 Squad Transfer & Release Clause</h3>
+                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer from <strong>${selectedSourceBank}</strong> to:</p>
+                        <div style="background:#0f172a; padding:12px; border-radius:8px; margin:10px 0; border:1px dashed #38bdf8;">
+                            <p style="font-size:0.75rem; color:#94a3b8;">GTBank (Squad Engine)</p>
+                            <p style="font-size:1.2rem; font-weight:800; color:#f59e0b; margin:4px 0;">3039182746</p>
+                            <p style="font-size:0.85rem; color:#10b981; font-weight:700;">₦${amount.toLocaleString('en-NG')}</p>
+                        </div>
+                        <p style="font-size:0.7rem; color:#38bdf8;">Ref: <strong>${txRef}</strong></p>
+                        <small style="color:#cbd5e1; display:block; margin-top:6px;">⚡ Instant automated wallet top-up upon payment credit!</small>
                     </div>
-                    <small style="color:#10b981; font-weight:700;">⚡ Instant automated wallet top-up upon payment credit!</small>
                 `;
             } else if (data.checkoutUrl) {
                 modalBody.innerHTML = `
@@ -239,10 +329,10 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
                 modalBody.innerText = data.message || "Payment initialized successfully.";
             }
         } else {
-            modalBody.innerText = data.message || "Unable to initialize checkout.";
+            renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: providerId, recipient: userId, amount: amount, paymentMethod: selectedPayMethod });
         }
     } catch (err) {
-        modalBody.innerText = "❌ Network connection error. Please try again.";
+        renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: providerId, recipient: userId, amount: amount, paymentMethod: selectedPayMethod });
     }
 
     document.getElementById('customModal').style.display = 'flex';
