@@ -8,7 +8,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0f172a; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* 2-COLUMN GRID CONTAINER FOR AIRTIME & DATA */
         .grid-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -92,9 +91,9 @@
                 <div class="pay-option" onclick="setPayMethod('CARD', this, 'AIRTIME')">💳 Card/USSD</div>
             </div>
 
-            <!-- COMPLETE NIGERIAN BANKS DROPDOWN FOR AIRTIME TRANSFER -->
+            <!-- COMPLETE NIGERIAN BANKS DROPDOWN -->
             <div class="form-group" id="airtimeBankGroup" style="display:none; margin-top:12px;">
-                <label>Select Source / Transfer Bank *</label>
+                <label>Select Source / Transfer Bank (All Nigerian Banks) *</label>
                 <select id="airtimeSourceBank">
                     <optgroup label="Commercial Banks">
                         <option value="ACCESS">Access Bank</option>
@@ -109,13 +108,29 @@
                         <option value="UNION">Union Bank of Nigeria</option>
                         <option value="WEMA">Wema Bank</option>
                         <option value="POLARIS">Polaris Bank</option>
+                        <option value="KEYSTONE">Keystone Bank</option>
+                        <option value="UNITY">Unity Bank</option>
+                        <option value="JAIZ">Jaiz Bank</option>
+                        <option value="TAJ">TAJ Bank</option>
+                        <option value="GLOBUS">Globus Bank</option>
+                        <option value="PARALLEX">Parallex Bank</option>
+                        <option value="SUNTRUST">SunTrust Bank</option>
+                        <option value="PROVIDUS">Providus Bank</option>
+                        <option value="CITIBANK">Citibank Nigeria</option>
+                        <option value="SCBN">Standard Chartered Bank</option>
                     </optgroup>
-                    <optgroup label="Digital Fintechs & MFBs">
-                        <option value="OPAY">OPay Digital Services</option>
+                    <optgroup label="Microfinance Banks & Digital Fintechs">
+                        <option value="OPAY">OPay Digital Services (Paycom)</option>
                         <option value="PALMPAY">PalmPay</option>
                         <option value="MONIEPOINT">Moniepoint MFB</option>
                         <option value="KUDA">Kuda MFB</option>
+                        <option value="POCKET">PiggyTech (Pocket App)</option>
                         <option value="VFD">VFD Microfinance Bank</option>
+                        <option value="SAFEHAVEN">Safe Haven MFB</option>
+                        <option value="HASAL">Hasal MFB</option>
+                        <option value="INFINITY">Infinity MFB</option>
+                        <option value="LIVINGTRUST">LivingTrust MFB</option>
+                        <option value="MINT">Mint MFB</option>
                     </optgroup>
                 </select>
             </div>
@@ -124,7 +139,7 @@
         </form>
     </div>
 
-    <!-- COLUMN 2: MOBILE DATA BUNDLES (WITH AFFORDABLE DAILY/SHORT-TERM PLANS) -->
+    <!-- COLUMN 2: MOBILE DATA BUNDLES (WITH DAILY/SHORT-TERM PLANS) -->
     <div class="card">
         <div class="brand-header">
             <h2>📶 MOBILE DATA BUNDLES</h2>
@@ -161,9 +176,9 @@
                 <div class="pay-option" onclick="setPayMethod('CARD', this, 'DATA')">💳 Card/USSD</div>
             </div>
 
-            <!-- COMPLETE NIGERIAN BANKS DROPDOWN FOR DATA TRANSFER -->
+            <!-- COMPLETE NIGERIAN BANKS DROPDOWN -->
             <div class="form-group" id="dataBankGroup" style="display:none; margin-top:12px;">
-                <label>Select Source / Transfer Bank *</label>
+                <label>Select Source / Transfer Bank (All Nigerian Banks) *</label>
                 <select id="dataSourceBank">
                     <optgroup label="Commercial Banks">
                         <option value="ACCESS">Access Bank</option>
@@ -178,13 +193,29 @@
                         <option value="UNION">Union Bank of Nigeria</option>
                         <option value="WEMA">Wema Bank</option>
                         <option value="POLARIS">Polaris Bank</option>
+                        <option value="KEYSTONE">Keystone Bank</option>
+                        <option value="UNITY">Unity Bank</option>
+                        <option value="JAIZ">Jaiz Bank</option>
+                        <option value="TAJ">TAJ Bank</option>
+                        <option value="GLOBUS">Globus Bank</option>
+                        <option value="PARALLEX">Parallex Bank</option>
+                        <option value="SUNTRUST">SunTrust Bank</option>
+                        <option value="PROVIDUS">Providus Bank</option>
+                        <option value="CITIBANK">Citibank Nigeria</option>
+                        <option value="SCBN">Standard Chartered Bank</option>
                     </optgroup>
-                    <optgroup label="Digital Fintechs & MFBs">
-                        <option value="OPAY">OPay Digital Services</option>
+                    <optgroup label="Microfinance Banks & Digital Fintechs">
+                        <option value="OPAY">OPay Digital Services (Paycom)</option>
                         <option value="PALMPAY">PalmPay</option>
                         <option value="MONIEPOINT">Moniepoint MFB</option>
                         <option value="KUDA">Kuda MFB</option>
+                        <option value="POCKET">PiggyTech (Pocket App)</option>
                         <option value="VFD">VFD Microfinance Bank</option>
+                        <option value="SAFEHAVEN">Safe Haven MFB</option>
+                        <option value="HASAL">Hasal MFB</option>
+                        <option value="INFINITY">Infinity MFB</option>
+                        <option value="LIVINGTRUST">LivingTrust MFB</option>
+                        <option value="MINT">Mint MFB</option>
                     </optgroup>
                 </select>
             </div>
@@ -195,7 +226,7 @@
 
 </div>
 
-<!-- Universal Modal Popup for Receipts & Transfer Instructions -->
+<!-- Universal Modal Popup for Transaction Receipts -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
@@ -273,6 +304,24 @@ function closeModal() {
 
 updateDataPlans();
 
+// Render Receipt Function
+function renderReceipt(data) {
+    const modalBody = document.getElementById('modalBody');
+    const isSuccess = data.status === 'success';
+    modalBody.innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid ${isSuccess ? '#10b981' : '#ef4444'};">
+            <p style="color:${isSuccess ? '#10b981' : '#ef4444'}; font-weight:800; font-size:1rem; margin-bottom:8px;">${isSuccess ? '✅ TRANSACTION SUCCESSFUL' : '❌ TRANSACTION DECLINED'}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Transaction Ref:</strong> <span style="color:#38bdf8;">${data.orderRef}</span></p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Service:</strong> ${data.serviceTitle}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Recipient:</strong> ${data.recipient}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount Charged:</strong> ₦${parseFloat(data.amount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Payment Method:</strong> ${data.paymentMethod}</p>
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
+        </div>
+    `;
+    document.getElementById('customModal').style.display = 'flex';
+}
+
 /* ==========================================
    1. AIRTIME FORM SUBMISSION
    ========================================== */
@@ -286,7 +335,6 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
     let merchant = {};
     try { merchant = JSON.parse(rawSession); } catch(err) {}
 
-    const modalBody = document.getElementById('modalBody');
     const network = document.getElementById('airtimeNetworkSelect').value;
     const phone = document.getElementById('airtimePhoneNumber').value;
     const amount = parseFloat(document.getElementById('airtimeAmount').value);
@@ -296,7 +344,7 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
     try {
         if (selectedPayMethodAirtime === 'WALLET') {
             if (!merchant.phone) {
-                modalBody.innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
+                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
                 document.getElementById('customModal').style.display = 'flex';
                 btn.disabled = false;
                 btn.textContent = 'Buy Airtime';
@@ -336,26 +384,24 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
                 }
-                modalBody.innerHTML = `
-                    <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981;">
-                        <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✅ AIRTIME RECHARGE SUCCESSFUL</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Ref:</strong> <span style="color:#38bdf8;">${data.txRef || txRef}</span></p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Network:</strong> ${network}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Recipient:</strong> ${phone}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Amount:</strong> ₦${amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                        <p style="font-size:0.7rem; color:#94a3b8; margin-top:8px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
-                    </div>
-                `;
+                renderReceipt({
+                    status: 'success',
+                    orderRef: data.txRef || txRef,
+                    serviceTitle: `Airtime Recharge (${network})`,
+                    recipient: phone,
+                    amount: amount,
+                    paymentMethod: 'Gateway Wallet Balance'
+                });
             } else {
-                modalBody.innerHTML = `
-                    <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #ef4444;">
-                        <p style="color:#ef4444; font-weight:800; margin-bottom:6px;">❌ TRANSACTION DECLINED</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Ref:</strong> ${txRef}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;">⚠️ ${data.message || 'Insufficient wallet balance.'}</p>
-                    </div>
-                `;
+                renderReceipt({
+                    status: 'declined',
+                    orderRef: txRef,
+                    serviceTitle: `Airtime Recharge (${network})`,
+                    recipient: phone,
+                    amount: amount,
+                    paymentMethod: 'Gateway Wallet Balance'
+                });
             }
-            document.getElementById('customModal').style.display = 'flex';
         } else {
             const res = await fetch('/api/v1/checkout/initialize', {
                 method: 'POST',
@@ -372,7 +418,7 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
             const data = await res.json();
 
             if (res.ok) {
-                modalBody.innerHTML = `
+                document.getElementById('modalBody').innerHTML = `
                     <div style="text-align:center;">
                         <h3 style="color:#38bdf8; margin-bottom:6px;">🏦 Squad Transfer & Release Clause</h3>
                         <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer from <strong>${selectedSourceBank}</strong> to:</p>
@@ -385,14 +431,13 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
                         <small style="color:#cbd5e1; display:block; margin-top:6px;">⚡ Airtime dispatches automatically upon credit confirmation!</small>
                     </div>
                 `;
+                document.getElementById('customModal').style.display = 'flex';
             } else {
-                modalBody.innerHTML = `<p style="color:#ef4444;">⚠️ Unable to initialize checkout.</p>`;
+                renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: `Airtime (${network})`, recipient: phone, amount: amount, paymentMethod: selectedPayMethodAirtime });
             }
-            document.getElementById('customModal').style.display = 'flex';
         }
     } catch (err) {
-        modalBody.innerHTML = `<p style="color:#ef4444;">❌ Network connection error. Please try again.</p>`;
-        document.getElementById('customModal').style.display = 'flex';
+        renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: `Airtime (${network})`, recipient: phone, amount: amount, paymentMethod: selectedPayMethodAirtime });
     }
 
     btn.disabled = false;
@@ -412,7 +457,6 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
     let merchant = {};
     try { merchant = JSON.parse(rawSession); } catch(err) {}
 
-    const modalBody = document.getElementById('modalBody');
     const network = document.getElementById('dataNetworkSelect').value;
     const planSelect = document.getElementById('dataPlanSelect');
     const amount = parseFloat(planSelect.value);
@@ -424,7 +468,7 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
     try {
         if (selectedPayMethodData === 'WALLET') {
             if (!merchant.phone) {
-                modalBody.innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
+                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
                 document.getElementById('customModal').style.display = 'flex';
                 btn.disabled = false;
                 btn.textContent = 'Purchase Data Bundle';
@@ -464,27 +508,24 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
                 }
-                modalBody.innerHTML = `
-                    <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981;">
-                        <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✅ DATA BUNDLE DISPATCHED</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Data Ref:</strong> <span style="color:#38bdf8;">${data.txRef || txRef}</span></p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Network:</strong> ${network}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Plan:</strong> ${planName}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Recipient:</strong> ${phone}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Amount:</strong> ₦${amount.toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-                        <p style="font-size:0.7rem; color:#94a3b8; margin-top:8px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
-                    </div>
-                `;
+                renderReceipt({
+                    status: 'success',
+                    orderRef: data.txRef || txRef,
+                    serviceTitle: `Data Bundle (${network} - ${planName})`,
+                    recipient: phone,
+                    amount: amount,
+                    paymentMethod: 'Gateway Wallet Balance'
+                });
             } else {
-                modalBody.innerHTML = `
-                    <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #ef4444;">
-                        <p style="color:#ef4444; font-weight:800; margin-bottom:6px;">❌ TRANSACTION DECLINED</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;"><strong>Data Ref:</strong> ${txRef}</p>
-                        <p style="font-size:0.85rem; color:#cbd5e1;">⚠️ ${data.message || 'Insufficient wallet balance.'}</p>
-                    </div>
-                `;
+                renderReceipt({
+                    status: 'declined',
+                    orderRef: txRef,
+                    serviceTitle: `Data Bundle (${network} - ${planName})`,
+                    recipient: phone,
+                    amount: amount,
+                    paymentMethod: 'Gateway Wallet Balance'
+                });
             }
-            document.getElementById('customModal').style.display = 'flex';
         } else {
             const res = await fetch('/api/v1/checkout/initialize', {
                 method: 'POST',
@@ -501,7 +542,7 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
             const data = await res.json();
 
             if (res.ok) {
-                modalBody.innerHTML = `
+                document.getElementById('modalBody').innerHTML = `
                     <div style="text-align:center;">
                         <h3 style="color:#38bdf8; margin-bottom:6px;">🏦 Squad Transfer & Release Clause</h3>
                         <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer from <strong>${selectedSourceBank}</strong> to:</p>
@@ -514,14 +555,13 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
                         <small style="color:#cbd5e1; display:block; margin-top:6px;">⚡ Data bundle dispatches automatically upon credit confirmation!</small>
                     </div>
                 `;
+                document.getElementById('customModal').style.display = 'flex';
             } else {
-                modalBody.innerHTML = `<p style="color:#ef4444;">⚠️ Unable to initialize checkout.</p>`;
+                renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: `Data (${network} - ${planName})`, recipient: phone, amount: amount, paymentMethod: selectedPayMethodData });
             }
-            document.getElementById('customModal').style.display = 'flex';
         }
     } catch (err) {
-        modalBody.innerHTML = `<p style="color:#ef4444;">❌ Network connection error. Please try again.</p>`;
-        document.getElementById('customModal').style.display = 'flex';
+        renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: `Data (${network} - ${planName})`, recipient: phone, amount: amount, paymentMethod: selectedPayMethodData });
     }
 
     btn.disabled = false;
