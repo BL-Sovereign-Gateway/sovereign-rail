@@ -78,18 +78,55 @@
             <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
         </div>
 
-        <!-- NIGERIAN BANKS SELECTOR FOR BANK TRANSFER -->
+        <!-- COMPLETE COMPREHENSIVE NIGERIAN BANKS SELECTOR -->
         <div class="form-group" id="bankSelectorGroup" style="display:none; margin-top:12px;">
-            <label>Select Source / Transfer Bank *</label>
+            <label>Select Source / Transfer Bank (All Nigerian Banks) *</label>
             <select id="sourceBankSelect">
-                <option value="GTB">Guaranty Trust Bank (GTBank)</option>
-                <option value="ZENITH">Zenith Bank Plc</option>
-                <option value="ACCESS">Access Bank</option>
-                <option value="FIRST">First Bank of Nigeria</option>
-                <option value="UBA">United Bank for Africa (UBA)</option>
-                <option value="OPAY">OPay Digital Services</option>
-                <option value="MONIEPOINT">Moniepoint MFB</option>
-                <option value="PALMPAY">PalmPay</option>
+                <optgroup label="Commercial Banks">
+                    <option value="ACCESS">Access Bank</option>
+                    <option value="FBN">First Bank of Nigeria</option>
+                    <option value="GTB">Guaranty Trust Bank (GTBank)</option>
+                    <option value="ZENITH">Zenith Bank Plc</option>
+                    <option value="UBA">United Bank for Africa (UBA)</option>
+                    <option value="ACCESSDISTRIB">Access Bank (Diamond)</option>
+                    <option value="FCMB">First City Monument Bank (FCMB)</option>
+                    <option value="FIDELITY">Fidelity Bank</option>
+                    <option value="STANBIC">Stanbic IBTC Bank</option>
+                    <option value="STERLING">Sterling Bank</option>
+                    <option value="UNION">Union Bank of Nigeria</option>
+                    <option value="WEMA">Wema Bank</option>
+                    <option value="POLARIS">Polaris Bank</option>
+                    <option value="KEYSTONE">Keystone Bank</option>
+                    <option value="UNITY">Unity Bank</option>
+                    <option value="JAIZ">Jaiz Bank</option>
+                    <option value="TAJ">TAJ Bank</option>
+                    <option value="GLOBUS">Globus Bank</option>
+                    <option value="PARALLEX">Parallex Bank</option>
+                    <option value="SUNTRUST">SunTrust Bank</option>
+                    <option value="PMB">Providus Bank</option>
+                    <option value="CITIBANK">Citibank Nigeria</option>
+                    <option value="SCBN">Standard Chartered Bank</option>
+                    <option value="NOVA">Nova Merchant Bank</option>
+                </optgroup>
+                <optgroup label="Microfinance Banks & Digital Fintechs">
+                    <option value="OPAY">OPay Digital Services (Paycom)</option>
+                    <option value="PALMPAY">PalmPay</option>
+                    <option value="MONIEPOINT">Moniepoint MFB</option>
+                    <option value="KUDAMFB">Kuda MFB</option>
+                    <option value="PIGGYVEST">PiggyTech (Pocket App)</option>
+                    <option value="COOP">Coronation Merchant Bank</option>
+                    <option value="HASAL">Hasal MFB</option>
+                    <option value="INFINITY">Infinity MFB</option>
+                    <option value="LIVINGTRUST">LivingTrust MFB</option>
+                    <option value="MINT">Mint MFB</option>
+                    <option value="REVO_MFB">Revo MFB</option>
+                    <option value="AMJU">Amju Unique MFB</option>
+                    <option value="ABSL">AB Microfinance Bank</option>
+                    <option value="TCFB">Tangerine Money</option>
+                    <option value="VFD">VFD Microfinance Bank</option>
+                    <option value="SAFEHAVEN">Safe Haven MFB</option>
+                    <option value="CIBN">Central Bank of Nigeria (CBN)</option>
+                </optgroup>
             </select>
         </div>
 
@@ -183,7 +220,7 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
     const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
     const txRef = `BLSG-REF-${Date.now()}`;
-    const selectedSourceBank = document.getElementById('sourceBankSelect').value;
+    const selectedSourceBank = document.getElementById('sourceBankSelect').options[document.getElementById('sourceBankSelect').selectedIndex].text;
 
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
     let merchant = {};
@@ -260,7 +297,7 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
                 renderReceiptFallback(declinedReceipt);
             }
         } else {
-            // Bank Transfer or Card Payment with Bank Selector & Squad Ref
+            // Bank Transfer or Card Payment with Complete Bank Selector & Squad Ref
             const res = await fetch('/api/v1/checkout/initialize', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -279,7 +316,7 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
                 document.getElementById('modalBody').innerHTML = `
                     <div style="text-align:center; padding:10px;">
                         <h3 style="color:#38bdf8; margin-bottom:8px;">🏦 Squad Transfer & Release Clause</h3>
-                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:10px;">Transfer from your selected bank (${selectedSourceBank}) to the virtual NUBAN below:</p>
+                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:10px;">Transfer from <strong>${selectedSourceBank}</strong> to the virtual NUBAN below:</p>
                         
                         <div style="background:#0f172a; padding:14px; border-radius:10px; margin:10px 0; border:1px dashed #38bdf8;">
                             <p style="font-size:0.8rem; color:#94a3b8;">Bank: <strong>GTBank (Squad Engine)</strong></p>
