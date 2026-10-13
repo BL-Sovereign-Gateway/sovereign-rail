@@ -186,11 +186,8 @@
         .btn-email:hover { background: #059669; }
         .btn-sms { background: #f59e0b; color: #0f172a; }
         .btn-sms:hover { background: #d97706; }
-        .btn-lock { background: #ef4444; color: #fff; width: 100%; }
-        .btn-lock:hover { background: #dc2626; }
-        .btn-search { background: #38bdf8; color: #0f172a; padding: 10px 16px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
 
-        /* MERCHANT ROSTER TABLE & DETAILS PANEL */
+        /* MERCHANT ROSTER TABLE */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -249,33 +246,6 @@
         .btn-mini-lock { background: #ef4444; color: #fff; }
         .btn-mini-unlock { background: #10b981; color: #fff; }
 
-        .merchant-details-panel {
-            background: #0f172a;
-            border: 1px solid #38bdf8;
-            border-radius: 10px;
-            padding: 16px;
-            margin-top: 14px;
-            display: none;
-        }
-
-        .merchant-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            font-size: 0.82rem;
-        }
-
-        .merchant-grid div {
-            color: #cbd5e1;
-        }
-
-        .merchant-grid strong {
-            color: #fff;
-            display: block;
-            font-size: 0.88rem;
-            margin-top: 2px;
-        }
-
         /* FOOTER */
         .footer {
             text-align: center;
@@ -287,7 +257,7 @@
         }
 
         @media (max-width: 768px) {
-            .file-grid, .actions-grid, .hud-grid, .merchant-grid { grid-template-columns: 1fr; }
+            .file-grid, .actions-grid, .hud-grid { grid-template-columns: 1fr; }
             .container { padding: 0 15px; }
         }
     </style>
@@ -353,41 +323,6 @@
         </div>
     </div>
 
-    <!-- ONBOARDED MERCHANT DETAIL SEARCH & INSPECTION DESK -->
-    <div class="card">
-        <div class="card-title">🔍 Quick Merchant Account Inspection Desk</div>
-        <div class="form-group" style="display:flex; gap:10px;">
-            <input type="text" id="merchantSearchInput" placeholder="Enter merchant phone number to inspect details (e.g. 08022552528)...">
-            <button class="btn-search" onclick="inspectMerchant()">Lookup</button>
-        </div>
-
-        <div class="merchant-details-panel" id="merchantPanel">
-            <div class="merchant-grid">
-                <div>Merchant Name: <strong id="mName">Tope Ogegbo</strong></div>
-                <div>Phone Number: <strong id="mPhone">08022552528</strong></div>
-                <div>Email Address: <strong id="mEmail">tope.ogegbo@alltimebusiness.com.ng</strong></div>
-                <div>Dedicated Virtual NUBAN: <strong id="mNuban" style="color:#38bdf8;">5000759098 (GTBank)</strong></div>
-                <div>Settlement Account: <strong id="mSettlement">2417626017 (Zenith Bank Plc)</strong></div>
-                <div>Ledger Balance: <strong id="mBalance" style="color:#10b981;">₦248,500.00</strong></div>
-                <div>Account Status: <strong id="mStatus" style="color:#10b981;">ACTIVE & VERIFIED</strong></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SECURITY & ACCOUNT LOCK DESK -->
-    <div class="card">
-        <div class="card-title">🛡️ Security & Merchant Account Restriction Desk</div>
-        <div class="form-group">
-            <label for="targetMerchantPhone">Merchant Phone Number / Account ID *</label>
-            <input type="text" id="targetMerchantPhone" placeholder="Enter merchant phone number (e.g. 08022552528)...">
-        </div>
-        <div class="form-group">
-            <label for="lockReason">Reason for Restriction / Security Flag *</label>
-            <input type="text" id="lockReason" placeholder="Enter reason (e.g. Unusual login spike, requested account lock)...">
-        </div>
-        <button class="btn-dispatch btn-lock" onclick="toggleMerchantAccountLock()">🔒 Lock / Restrict Merchant Account</button>
-    </div>
-
     <!-- NEWSLETTER & ARTICLE PUBLISHING COMPOSER -->
     <div class="card">
         <div class="card-title">📰 Publish Gateway Newsletter & Article Feed</div>
@@ -437,7 +372,7 @@
     © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway Admin Systems
 </footer>
 
-<!-- MASTER PUBLISHER, DIRECTORY & SECURITY SCRIPT -->
+<!-- MASTER PUBLISHER & DIRECTORY SCRIPT -->
 <script>
     // DEFAULT ONBOARDED MERCHANTS DIRECTORY
     let merchantDirectory = [
@@ -522,9 +457,6 @@
     }
 
     function quickToggleLock(phone, shouldLock) {
-        document.getElementById('targetMerchantPhone').value = phone;
-        document.getElementById('lockReason').value = shouldLock ? 'Security restriction enforced by Admin' : 'Restriction lifted by Admin';
-        
         const m = merchantDirectory.find(x => x.phone === phone);
         if (m) m.isLocked = shouldLock;
 
@@ -561,38 +493,6 @@
     function getSelectedFile(id) {
         const el = document.getElementById(id);
         return (el && el.files && el.files[0]) ? el.files[0] : null;
-    }
-
-    // INSPECT MERCHANT DETAILS LAYER
-    function inspectMerchant() {
-        const phone = getInputValue('merchantSearchInput');
-        if (!phone) return alert('Please enter a merchant phone number to inspect.');
-
-        const panel = document.getElementById('merchantPanel');
-        panel.style.display = 'block';
-
-        const found = merchantDirectory.find(m => m.phone === phone);
-        if (found) {
-            document.getElementById('mName').textContent = found.name;
-            document.getElementById('mPhone').textContent = found.phone;
-            document.getElementById('mEmail').textContent = found.email;
-            document.getElementById('mNuban').textContent = found.nuban;
-            document.getElementById('mSettlement').textContent = found.settlement;
-            document.getElementById('mBalance').textContent = `₦${found.balance.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
-            document.getElementById('mStatus').textContent = found.isLocked ? 'RESTRICTED / LOCKED' : 'ACTIVE & VERIFIED';
-            document.getElementById('mStatus').style.color = found.isLocked ? '#ef4444' : '#10b981';
-            document.getElementById('targetMerchantPhone').value = phone;
-        } else {
-            document.getElementById('mName').textContent = 'Tope Ogegbo';
-            document.getElementById('mPhone').textContent = phone;
-            document.getElementById('mEmail').textContent = `${phone}@gateway.com.ng`;
-            document.getElementById('mNuban').textContent = '5000759098 (GTBank)';
-            document.getElementById('mSettlement').textContent = '2417626017 (Zenith Bank Plc)';
-            document.getElementById('mBalance').textContent = '₦248,500.00';
-            document.getElementById('mStatus').textContent = 'ACTIVE & VERIFIED';
-            document.getElementById('mStatus').style.color = '#10b981';
-            document.getElementById('targetMerchantPhone').value = phone;
-        }
     }
 
     // PUBLISH ARTICLE HANDLER
@@ -672,25 +572,6 @@
 
         alert('✅ Success! Mass SMS broadcast successfully dispatched to all registered merchant phones.');
         document.getElementById('smsContent').value = '';
-    }
-
-    // MERCHANT ACCOUNT LOCK ENFORCEMENT
-    async function toggleMerchantAccountLock() {
-        const phone = getInputValue('targetMerchantPhone');
-        const reason = getInputValue('lockReason');
-
-        if (!phone || !reason) {
-            alert('⚠️ Please enter both the merchant phone number and the reason for account restriction.');
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to lock and restrict merchant account ${phone}?`)) {
-            return;
-        }
-
-        quickToggleLock(phone, true);
-        document.getElementById('targetMerchantPhone').value = '';
-        document.getElementById('lockReason').value = '';
     }
 </script>
 
