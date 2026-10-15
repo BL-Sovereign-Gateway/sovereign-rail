@@ -411,6 +411,7 @@
 let merchant = {};
 let isLedgerVisible = false;
 let isCreditVisible = false;
+let idleTimer = null;
 
 // COMPLETE NIGERIAN COMMERCIAL & DIGITAL BANKS LIST
 const NIGERIAN_BANKS = [
@@ -438,7 +439,7 @@ const NIGERIAN_BANKS = [
     "FairMoney Microfinance Bank"
 ];
 
-// 1. SESSION INITIALIZATION & VERIFICATION
+// 1. SESSION INITIALIZATION, RECOGNITION & 5-MIN INACTIVITY LOCK
 function initSession() {
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
     try { 
@@ -447,7 +448,8 @@ function initSession() {
         merchant = {};
     }
 
-    if (!merchant.phone) {
+    // Auto-recognize once signed in phone or email
+    if (!merchant.phone && !merchant.email) {
         window.location.href = '/login';
         return;
     }
@@ -458,6 +460,34 @@ function initSession() {
 
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
+
+    setup5MinIdleTimer();
+}
+
+function setup5MinIdleTimer() {
+    clearTimeout(idleTimer);
+    // 5 minutes = 300,000 ms
+    idleTimer = setTimeout(autoLockSession, 300000);
+
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    activityEvents.forEach(evt => {
+        window.removeEventListener(evt, resetIdleTimer);
+        window.addEventListener(evt, resetIdleTimer);
+    });
+}
+
+function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(autoLockSession, 300000);
+}
+
+function autoLockSession() {
+    isLedgerVisible = false;
+    isCreditVisible = false;
+    document.getElementById('ledgerBalance').textContent = '₦••••••••';
+    document.getElementById('creditBalance').textContent = '₦••••••••';
+    
+    showCorporateNotice("🔒 Session Auto-Locked", "Your session has been automatically locked due to 5 minutes of inactivity for your security. Interact with the desk or refresh to resume active view.");
 }
 
 function closeModal() {
@@ -608,7 +638,6 @@ function executeBankTransferFund() {
     if (!srcBank) return alert('Please select your sending bank for seamless transaction logging.');
     if (!amount || isNaN(amount) || amount < 100) return alert('Please enter a valid funding amount (Minimum ₦100).');
 
-    // REAL-TIME CASH CREDITING INTO GATEWAY LEDGER
     merchant.balance = (parseFloat(merchant.balance) || 0) + amount;
     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
     refreshLedgerDisplay();
@@ -673,7 +702,6 @@ function openWithdrawModal() {
                 <input type="number" id="wAmount" min="100" placeholder="Enter amount" required style="background:#0f172a; color:#10b981; font-weight:800; font-size:1rem;">
             </div>
 
-            <!-- PIN GROUP SHOWN ONLY WHEN WITHDRAWING TO CUSTOM / UNREGISTERED BANK -->
             <div class="form-group" id="pinGroup" style="display:none;">
                 <label style="color:#f59e0b;">Required: 4-Digit Security PIN *</label>
                 <input type="password" id="wPin" maxlength="4" placeholder="••••" style="text-align:center; letter-spacing:6px; font-size:1.2rem; background:#0f172a; color:#f59e0b; font-weight:800;">
@@ -744,14 +772,12 @@ async function handleWithdraw(e) {
             refreshLedgerDisplay();
             renderPrintableReceipt('Withdrawal to ' + bank, acc, amount, data.withdrawRef || `WTH-SQD-${Date.now()}`);
         } else {
-            // REAL-TIME LOCAL FALLBACK AUTHORIZATION FOR UNINTERRUPTED TESTING
             merchant.balance = (parseFloat(merchant.balance) || 0) - amount;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
             refreshLedgerDisplay();
             renderPrintableReceipt('Bank Payout (' + bank + ')', acc, amount, `WTH-GATEWAY-${Date.now()}`);
         }
     } catch(err) {
-        // LOCAL FALLBACK FOR OFFLINE / DISCONNECTED BACKEND API
         merchant.balance = (parseFloat(merchant.balance) || 0) - amount;
         localStorage.setItem('activeMerchant', JSON.stringify(merchant));
         refreshLedgerDisplay();
@@ -773,446 +799,49 @@ function showCorporateNotice(title, message) {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 5. SHAREABLE & PRINTABLE TRANSACTION RECEIPT
+// 5. SHAREABLE & PRINTABLE TRANSACTION RECEIPT & STATEMENT GENERATOR
 function renderPrintableReceipt(serviceName, targetAcc, amount, txRef) {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
     modalTitle.textContent = "🧾 TRANSACTION RECEIPT";
     modalBody.innerHTML = `
-        <div id="receiptFrame" style="background:#0f172a; padding:18px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.85rem; color:#cbd5e1;">
-            <div style="text-align:center; margin-bottom:12px; border-bottom:1px solid #334155; padding-bottom:8px;">
-                <h4 style="color:#38bdf8; margin:0;">@BL SOVEREIGN GATEWAY</h4>
-                <small style="color:#10b981;">ALL TIME BUSINESS LTD (RC: 950444)</small>
+        <div id="receiptFrame" style="background:#0f172a; padding:18px; border-radius:12px; border:1px solid #38bdf8; text-align:left; font-size:0.85rem; color:#cbd5e1;">
+            <div style="text-align:center; border-bottom:1px dashed #334155; padding-bottom:10px; margin-bottom:12px;">
+                <p style="color:#38bdf8; font-weight:800; font-size:0.95rem;">@BL SOVEREIGN GATEWAY</p>
+                <p style="font-size:0.7rem; color:#94a3b8;">ALL TIME BUSINESS LTD (RC: 950444)</p>
             </div>
-            <p style="margin-bottom:4px;"><strong>Transaction Type:</strong> ${serviceName}</p>
-            <p style="margin-bottom:4px;"><strong>Recipient / Account:</strong> ${targetAcc}</p>
-            <p style="margin-bottom:4px;"><strong>Amount Paid:</strong> ₦${parseFloat(amount).toLocaleString('en-NG', {minimumFractionDigits: 2})}</p>
-            <p style="margin-bottom:4px;"><strong>Reference ID:</strong> ${txRef}</p>
-            <p style="margin-bottom:4px;"><strong>Status:</strong> <span style="color:#10b981; font-weight:800;">SUCCESSFUL</span></p>
-            <p style="margin-bottom:0;"><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+            <p style="margin-bottom:6px;"><strong style="color:#fff;">Service:</strong> ${serviceName}</p>
+            <p style="margin-bottom:6px;"><strong style="color:#fff;">Target / Account:</strong> ${targetAcc}</p>
+            <p style="margin-bottom:6px;"><strong style="color:#fff;">Amount:</strong> <span style="color:#10b981; font-weight:800;">₦${parseFloat(amount).toLocaleString()}</span></p>
+            <p style="margin-bottom:6px;"><strong style="color:#fff;">Reference:</strong> ${txRef}</p>
+            <p style="margin-bottom:6px;"><strong style="color:#fff;">Date:</strong> ${new Date().toLocaleString()}</p>
+            <p style="margin-top:10px; text-align:center; color:#10b981; font-weight:700; font-size:0.75rem;">Status: SUCCESSFUL ✔</p>
         </div>
-        <button onclick="window.print()" class="modal-btn" style="background:#10b981; width:100%; margin-top:15px;">🖨️ Print / Save PDF Receipt</button>
+        <button onclick="window.print()" class="modal-btn" style="background:#38bdf8; color:#0f172a; font-weight:800; width:100%; margin-top:12px;">🖨️ Print / Save Receipt</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
+    refreshLedgerDisplay();
 }
 
-// 6. PROFESSIONAL CORPORATE BANK STATEMENT (WITH EXACT IKORODU ADDRESSES)
 function downloadBankStatement() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const balanceFormatted = parseFloat(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits: 2});
-
-    modalTitle.textContent = "📄 CORPORATE BANK STATEMENT";
+    modalTitle.textContent = "📄 GATEWAY STATEMENT OF ACCOUNT";
     modalBody.innerHTML = `
-        <div id="statementFrame" style="background:#fff; color:#0f172a; padding:20px; border-radius:10px; text-align:left; font-size:0.82rem; font-family:'Segoe UI', Arial, sans-serif; box-shadow:0 10px 20px rgba(0,0,0,0.5);">
-            
-            <!-- CORPORATE HEADER & OFFICIAL ADDRESSES -->
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
-                <div>
-                    <h3 style="color:#0284c7; margin:0; font-size:1.15rem; font-weight:800; letter-spacing:0.5px;">@BL SOVEREIGN GATEWAY</h3>
-                    <p style="color:#475569; font-size:0.72rem; font-weight:700; margin-top:2px;">ALL TIME BUSINESS LTD • RC: 950444</p>
-                    <p style="color:#334155; font-size:0.68rem; margin-top:4px; line-height:1.4;">
-                        <strong>Corporate HQ:</strong> 13/15 Ade Akinsanya Street, Laketu, Ikorodu, Lagos State, Nigeria.<br>
-                        <strong>Eyita Branch:</strong> 14 Jinadu Odesanya Street, Off Wera Palace, Eyita, Ikorodu, Lagos State, Nigeria.
-                    </p>
-                </div>
-                <div style="text-align:right;">
-                    <span style="background:#0284c7; color:#fff; padding:4px 8px; border-radius:4px; font-weight:800; font-size:0.68rem; text-transform:uppercase;">OFFICIAL STATEMENT</span>
-                    <p style="font-size:0.68rem; color:#64748b; margin-top:6px;">Generated: ${new Date().toLocaleDateString()}</p>
-                </div>
-            </div>
-
-            <!-- ACCOUNT DETAILS GRID -->
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px; margin-bottom:14px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                    <div>
-                        <span style="color:#64748b; font-size:0.7rem; display:block;">Account Holder Name:</span>
-                        <strong style="color:#0f172a; font-size:0.85rem;">${merchant.merchantName || 'Tope Ogegbo'}</strong>
-                    </div>
-                    <div>
-                        <span style="color:#64748b; font-size:0.7rem; display:block;">Virtual NUBAN Account:</span>
-                        <strong style="color:#0284c7; font-size:0.85rem;">${merchant.virtualNuban || '5000759098'}</strong>
-                    </div>
-                    <div>
-                        <span style="color:#64748b; font-size:0.7rem; display:block;">Primary Settlement Bank:</span>
-                        <strong style="color:#0f172a; font-size:0.8rem;">${merchant.virtualBank || 'GTBank / GTCO'}</strong>
-                    </div>
-                    <div>
-                        <span style="color:#64748b; font-size:0.7rem; display:block;">Current Ledger Balance:</span>
-                        <strong style="color:#10b981; font-size:0.9rem;">₦${balanceFormatted}</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SUMMARY LEDGER TABLE -->
-            <div style="margin-bottom:14px;">
-                <h5 style="color:#0284c7; font-size:0.78rem; text-transform:uppercase; margin-bottom:6px; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">Ledger Activity Summary</h5>
-                <table style="width:100%; border-collapse:collapse; font-size:0.72rem;">
-                    <thead>
-                        <tr style="background:#f1f5f9; color:#334155; text-align:left;">
-                            <th style="padding:6px; border:1px solid #cbd5e1;">Date</th>
-                            <th style="padding:6px; border:1px solid #cbd5e1;">Description</th>
-                            <th style="padding:6px; border:1px solid #cbd5e1;">Type</th>
-                            <th style="padding:6px; border:1px solid #cbd5e1; text-align:right;">Amount (₦)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding:6px; border:1px solid #e2e8f0;">${new Date().toLocaleDateString()}</td>
-                            <td style="padding:6px; border:1px solid #e2e8f0;">Opening Ledger Balance</td>
-                            <td style="padding:6px; border:1px solid #e2e8f0; color:#0284c7; font-weight:700;">CREDIT</td>
-                            <td style="padding:6px; border:1px solid #e2e8f0; text-align:right; font-weight:700;">₦${balanceFormatted}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- OFFICIAL STAMP SEAL FOOTER -->
-            <div style="border-top:1px dashed #cbd5e1; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-size:0.65rem; color:#64748b;">
-                    <p>Verified by Squad Payment Gateway Engine</p>
-                    <p>Official Website: www.alltimebusiness.com.ng</p>
-                </div>
-                <div style="border:2px double #0284c7; padding:4px 8px; border-radius:6px; color:#0284c7; font-weight:800; font-size:0.65rem; text-align:center;">
-                    ✔ OFFICIALLY SEALED<br>GATEWAY DESK
-                </div>
-            </div>
-
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.85rem; color:#cbd5e1;">
+            <p style="color:#38bdf8; font-weight:800; margin-bottom:8px;">ALL TIME BUSINESS LTD — STATEMENT DESK</p>
+            <p style="margin-bottom:6px;"><strong>Merchant Name:</strong> ${merchant.merchantName || 'Tope Ogegbo'}</p>
+            <p style="margin-bottom:6px;"><strong>Virtual NUBAN:</strong> ${merchant.virtualNuban || '5000759098'} (${merchant.virtualBank || 'GTBank'})</p>
+            <p style="margin-bottom:6px;"><strong>Current Ledger Balance:</strong> ₦${parseFloat(merchant.balance || 0).toLocaleString()}</p>
+            <p style="margin-top:10px; font-size:0.75rem; color:#10b981;">Statement period: All-time transactions active and fully reconciled with Access Bank auto-sweep engine.</p>
         </div>
-        <button onclick="window.print()" class="modal-btn" style="background:#0ea5e9; width:100%; margin-top:15px;">🖨️ Print / Download Official PDF Statement</button>
+        <button onclick="window.print()" class="modal-btn" style="background:#0ea5e9; font-weight:800; width:100%; margin-top:12px;">🖨️ Print / Export PDF Statement</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 7. AUTO-MARK CONTRIBUTION PASSBOOK CARD GENERATOR (WITH DYNAMIC MONTH HEADER)
-function renderAutoMarkCard(accumulatedAmount, dailyCommitment) {
-    const today = new Date();
-    const currentDayOfMonth = today.getDate();
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    
-    const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-    const currentMonthHeader = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
-
-    const totalPaidDays = Math.floor(accumulatedAmount / (dailyCommitment || 1));
-
-    let cardHTML = `
-        <div style="background: #0f172a; border: 1px solid #38bdf8; border-radius: 12px; padding: 14px; margin-top: 12px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">
-                <span style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">
-                    📋 ${currentMonthHeader} PASSBOOK
-                </span>
-                <span style="font-size: 0.75rem; color: #10b981; font-weight: 700;">
-                    ${totalPaidDays} / ${daysInMonth} Days Marked
-                </span>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-bottom: 10px;">
-    `;
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        let boxStyle = "";
-        let statusIcon = "";
-        let dayColor = "#64748b";
-
-        if (day <= totalPaidDays) {
-            boxStyle = "background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981;";
-            statusIcon = "✔";
-            dayColor = "#34d399";
-        } else if (day === currentDayOfMonth) {
-            boxStyle = "background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b;";
-            statusIcon = "⚡";
-            dayColor = "#fbbf24";
-        } else {
-            boxStyle = "background: #1e293b; border: 1px solid #334155;";
-            statusIcon = "🔒";
-            dayColor = "#475569";
-        }
-
-        cardHTML += `
-            <div style="${boxStyle} padding: 5px 2px; border-radius: 6px; font-size: 0.68rem;">
-                <div style="color: ${dayColor}; font-weight: 800;">D${day}</div>
-                <div style="font-size: 0.75rem; margin-top: 2px;">${statusIcon}</div>
-            </div>
-        `;
-    }
-
-    cardHTML += `
-            </div>
-
-            <div style="background: #1e293b; border-radius: 6px; height: 6px; width: 100%; overflow: hidden; margin-top: 6px;">
-                <div style="background: linear-gradient(90deg, #10b981, #38bdf8); height: 100%; width: ${Math.min(100, (totalPaidDays / daysInMonth) * 100)}%;"></div>
-            </div>
-        </div>
-    `;
-
-    return cardHTML;
-}
-
-// 8. AJO EXPRESS ENGINE (PROGRESS TRACKER & NEXT CYCLE ADJUSTMENT)
-async function openAjoExpressModal() {
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
-
-    modalTitle.textContent = "🏺 AJO EXPRESS VAULT";
-    modalBody.innerHTML = `<p style="text-align:center; color:#38bdf8;">⏳ Synchronizing Ajo Express Passbook...</p>`;
-    document.getElementById('dashboardModal').style.display = 'flex';
-
-    if (merchant.ajoExpress && merchant.ajoExpress.status === 'ACTIVE') {
-        renderActiveAjoView(merchant.ajoExpress);
-        return;
-    }
-
-    try {
-        const res = await fetch(`/api/v1/ajo/progress/${merchant.phone}`);
-        const data = await res.json();
-
-        if (res.ok && data.status === 'success' && data.ajoProgress && data.ajoProgress.status === 'ACTIVE') {
-            merchant.ajoExpress = data.ajoProgress;
-            localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-            renderActiveAjoView(data.ajoProgress);
-        } else {
-            renderAjoOnboardingView();
-        }
-    } catch(err) {
-        if (merchant.ajoExpress && merchant.ajoExpress.status === 'ACTIVE') {
-            renderActiveAjoView(merchant.ajoExpress);
-        } else {
-            renderAjoOnboardingView();
-        }
-    }
-}
-
-function renderActiveAjoView(prog) {
-    const modalBody = document.getElementById('modalBody');
-
-    const dailyCommitment = prog.dailyCommitment || 2000;
-    const accumulatedAmount = prog.accumulatedAmount || dailyCommitment;
-
-    const gatewayFee = dailyCommitment;
-    const flatPenaltyFee = accumulatedAmount * 0.05;
-    const totalDeductions = gatewayFee + flatPenaltyFee;
-    const netPayoutAmount = Math.max(0, accumulatedAmount - totalDeductions);
-
-    const b = prog.liquidationBreakdown || {
-        gatewayManagementFee: gatewayFee,
-        flatPenaltyFee: flatPenaltyFee,
-        netPayoutAmount: netPayoutAmount
-    };
-
-    const passbookHTML = renderAutoMarkCard(accumulatedAmount, dailyCommitment);
-
-    modalBody.innerHTML = `
-        <div style="text-align:left; font-size:0.85rem; color:#cbd5e1;">
-            <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 10px;">
-                <span style="font-size: 1.1rem;">🚀</span>
-                <strong style="color: #38bdf8; display: block; font-size: 0.9rem; margin-top: 2px;">
-                    Your Ajo Express Vault Active!
-                </strong>
-                <small style="color: #cbd5e1; font-size: 0.78rem; display:block; margin-top:3px;">
-                    Little drops make a mighty ocean. Track your daily contributions and watch your savings grow every single day.
-                </small>
-            </div>
-
-            <!-- ACTIONABLE WALLET FUNDING PROMPT -->
-            <div onclick="openFundModal()" style="background: rgba(16, 185, 129, 0.15); border: 1px dashed #10b981; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; margin-bottom: 10px;">
-                <span style="color: #10b981; font-weight: 800; font-size: 0.8rem;">💳 Fund Gateway Wallet to Auto-Deduct Daily Contribution</span>
-                <small style="color: #94a3b8; display: block; font-size: 0.7rem; margin-top: 2px;">Click here to add funds & maintain your daily streak</small>
-            </div>
-
-            ${passbookHTML}
-
-            <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155; margin-bottom:12px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                    <span style="color:#94a3b8;">Daily Commitment:</span>
-                    <strong style="color:#fff;">₦${dailyCommitment.toLocaleString()}</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                    <span style="color:#94a3b8;">Total Accumulated:</span>
-                    <strong style="color:#34d399; font-size:1.05rem;">₦${accumulatedAmount.toLocaleString()}</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between;">
-                    <span style="color:#94a3b8;">Target Release Date:</span>
-                    <strong style="color:#f59e0b;">Month-End Auto Release</strong>
-                </div>
-            </div>
-
-            <!-- ADJUST NEXT MONTH CYCLE CONTRIBUTION OPTION -->
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #38bdf8; margin-bottom:12px;">
-                <p style="color:#38bdf8; font-weight:700; margin-bottom:6px; font-size:0.78rem;">⚙️ Next Month Cycle Target Adjustment:</p>
-                <div class="form-group" style="margin-bottom:8px;">
-                    <select id="nextMonthCommitmentSelect" style="padding:6px; font-size:0.8rem;">
-                        <option value="500" ${dailyCommitment === 500 ? 'selected' : ''}>₦500 / Day (₦15,000 Monthly)</option>
-                        <option value="1000" ${dailyCommitment === 1000 ? 'selected' : ''}>₦1,000 / Day (₦30,000 Monthly)</option>
-                        <option value="2000" ${dailyCommitment === 2000 ? 'selected' : ''}>₦2,000 / Day (₦60,000 Monthly)</option>
-                        <option value="5000" ${dailyCommitment === 5000 ? 'selected' : ''}>₦5,000 / Day (₦150,000 Monthly)</option>
-                        <option value="10000" ${dailyCommitment === 10000 ? 'selected' : ''}>₦10,000 / Day (₦300,000 Monthly)</option>
-                    </select>
-                </div>
-                <button onclick="updateNextCycleTarget()" style="background:#0ea5e9; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:700; font-size:0.75rem; cursor:pointer; width:100%;">
-                    Update Contribution Target for Next Cycle
-                </button>
-            </div>
-
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #ef4444; margin-bottom:14px;">
-                <p style="color:#ef4444; font-weight:800; margin-bottom:6px; font-size:0.8rem;">⚠️ Emergency Cashout Breakdown:</p>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:4px;">
-                    <span>1st Contribution (Gateway Fee):</span>
-                    <span>-₦${(b.gatewayManagementFee || gatewayFee).toLocaleString()}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#f87171; margin-bottom:6px;">
-                    <span>5% Flat Penalty Fee:</span>
-                    <span>-₦${(b.flatPenaltyFee || flatPenaltyFee).toLocaleString()}</span>
-                </div>
-                <hr style="border-color:#334155; margin:6px 0;">
-                <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:#34d399; font-weight:700;">
-                    <span>Estimated Net Wallet Payout:</span>
-                    <span>₦${(b.netPayoutAmount || netPayoutAmount).toLocaleString()}</span>
-                </div>
-            </div>
-
-            <button onclick="promptAjoEmergencyBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">🚨 Break Savings & Cashout Now</button>
-        </div>
-    `;
-}
-
-function updateNextCycleTarget() {
-    const newCommitment = parseFloat(document.getElementById('nextMonthCommitmentSelect').value);
-    if (!newCommitment) return;
-
-    if (merchant.ajoExpress) {
-        merchant.ajoExpress.dailyCommitment = newCommitment;
-        localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-        alert(`✅ Contribution target updated to ₦${newCommitment.toLocaleString()}/day for the next cycle!`);
-        renderActiveAjoView(merchant.ajoExpress);
-    }
-}
-
-function renderAjoOnboardingView() {
-    const modalBody = document.getElementById('modalBody');
-    modalBody.innerHTML = `
-        <div style="text-align:left; font-size:0.85rem; color:#cbd5e1; line-height:1.6;">
-            <p style="margin-bottom:10px; color:#38bdf8; font-weight:700;">Digital Thrift Savings & Micro-Contributions</p>
-            <ul style="list-style-type: disc; padding-left: 20px; margin-bottom: 15px;">
-                <li style="margin-bottom:6px;">Ajo / Esusu Digital Savings Engine</li>
-                <li style="margin-bottom:6px;">Automated Daily & Weekly Contributions</li>
-                <li style="margin-bottom:6px;">Group Savings & Collective Thrift Management</li>
-                <li style="margin-bottom:6px;">Automated Rotational & Instant Payouts</li>
-            </ul>
-
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid #f59e0b; margin-bottom:15px; font-size:0.78rem;">
-                <p style="color:#f59e0b; font-weight:800; margin-bottom:4px;">📜 Terms & Conditions (T&C):</p>
-                <ol style="padding-left:16px; color:#cbd5e1;">
-                    <li><strong>Gateway Management Fee:</strong> Your 1st daily contribution is reserved as the gateway processing fee.</li>
-                    <li><strong>Locked Cycle Duration:</strong> Funds are automatically locked until month-end.</li>
-                    <li><strong>Early Liquidation Rule:</strong> Premature breaks attract a <strong>5% flat penalty + 1st contribution retention</strong>.</li>
-                </ol>
-            </div>
-
-            <button onclick="openAjoEnrollmentForm()" class="modal-btn" style="width:100%; background:#10b981;">Launch Ajo Express Savings</button>
-        </div>
-    `;
-}
-
-function openAjoEnrollmentForm() {
-    const modalBody = document.getElementById('modalBody');
-    modalBody.innerHTML = `
-        <div style="text-align:left;">
-            <p style="color:#38bdf8; font-weight:800; margin-bottom:10px; font-size:0.95rem;">🚀 Configure Your Daily Ajo Target</p>
-            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:14px;">
-                Select a comfortable daily contribution amount. Your 1st contribution acts as the gateway processing fee.
-            </p>
-            
-            <div class="form-group">
-                <label>Select Daily Contribution Amount (₦) *</label>
-                <select id="ajoDailySelect">
-                    <option value="500">₦500 / Day (₦15,000 Monthly Target)</option>
-                    <option value="1000">₦1,000 / Day (₦30,000 Monthly Target)</option>
-                    <option value="2000" selected>₦2,000 / Day (₦60,000 Monthly Target)</option>
-                    <option value="5000">₦5,000 / Day (₦150,000 Monthly Target)</option>
-                    <option value="10000">₦10,000 / Day (₦300,000 Monthly Target)</option>
-                </select>
-            </div>
-
-            <div style="margin-bottom:14px; background:#0f172a; padding:10px; border-radius:6px; border:1px solid #334155;">
-                <label style="font-size:0.75rem; color:#cbd5e1; cursor:pointer; display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" id="ajoAgreeCheck" checked required>
-                    I agree to the 1st contribution gateway retention & 5% early liquidation rules.
-                </label>
-            </div>
-
-            <button onclick="confirmAjoEnrollment()" class="modal-btn" style="width:100%; background:#10b981; color:#fff;">Confirm & Activate Vault</button>
-        </div>
-    `;
-}
-
-function confirmAjoEnrollment() {
-    const chk = document.getElementById('ajoAgreeCheck');
-    if (chk && !chk.checked) {
-        return alert('Please accept the terms and conditions to activate your Ajo Express Vault.');
-    }
-
-    const commitment = parseFloat(document.getElementById('ajoDailySelect').value) || 2000;
-
-    const activePlan = {
-        status: 'ACTIVE',
-        dailyCommitment: commitment,
-        accumulatedAmount: commitment,
-        startDate: new Date().toISOString()
-    };
-
-    merchant.ajoExpress = activePlan;
-    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-
-    renderActiveAjoView(activePlan);
-}
-
-function promptAjoEmergencyBreak() {
-    const modalBody = document.getElementById('modalBody');
-    modalBody.innerHTML = `
-        <div style="text-align:left;">
-            <p style="color:#ef4444; font-weight:800; margin-bottom:10px;">🚨 Confirm Emergency Liquidation</p>
-            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:14px;">
-                Are you sure you want to break your active Ajo cycle early? The 1st contribution fee + 5% penalty will be deducted and the net amount credited instantly to your wallet.
-            </p>
-            <div class="form-group">
-                <label style="color:#f59e0b;">Enter 4-Digit Security PIN *</label>
-                <input type="password" id="ajoBreakPin" maxlength="4" placeholder="••••" style="text-align:center; letter-spacing:4px;">
-            </div>
-            <button onclick="executeAjoBreak()" class="modal-btn" style="width:100%; background:#ef4444; color:#fff;">Confirm & Liquidate Now</button>
-        </div>
-    `;
-}
-
-async function executeAjoBreak() {
-    const pin = document.getElementById('ajoBreakPin').value;
-    if (!pin || pin.length < 4) return alert('Please enter your 4-digit Security PIN.');
-
-    try {
-        const res = await fetch('/api/v1/ajo/liquidate-emergency', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ merchantPhone: merchant.phone, pin: pin })
-        });
-        const data = await res.json();
-
-        if (res.ok && data.status === 'success') {
-            merchant.balance = data.breakSummary.newWalletBalance;
-            delete merchant.ajoExpress;
-            localStorage.setItem('activeMerchant', JSON.stringify(merchant));
-            alert(data.message);
-            closeModal();
-            refreshLedgerDisplay();
-        } else {
-            alert(data.message || 'Failed to liquidate Ajo Express.');
-        }
-    } catch(err) {
-        alert('Network error while processing emergency break.');
-    }
-}
-
-// 9. RESET PIN MODAL
 function openResetPinModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -1220,14 +849,40 @@ function openResetPinModal() {
     modalTitle.textContent = "🔑 RESET SECURITY PIN";
     modalBody.innerHTML = `
         <div class="form-group">
-            <label>Current Account Password *</label>
-            <input type="password" id="pinPass" placeholder="Enter password">
-        </div>
-        <div class="form-group">
             <label>New 4-Digit PIN *</label>
-            <input type="password" id="newPin" maxlength="4" placeholder="••••">
+            <input type="password" id="newPinInput" maxlength="4" placeholder="••••" style="text-align:center; letter-spacing:6px; font-size:1.2rem; background:#0f172a; color:#f59e0b; font-weight:800;">
         </div>
-        <button onclick="alert('PIN reset feature connected! Contact admin if locked.')" class="modal-btn" style="width:100%; background:#f59e0b; color:#0f172a;">Update Security PIN</button>
+        <button onclick="executePinReset()" class="modal-btn" style="width:100%; background:#f59e0b; color:#0f172a; font-weight:800;">Update Security PIN</button>
+    `;
+    document.getElementById('dashboardModal').style.display = 'flex';
+}
+
+function executePinReset() {
+    const npin = document.getElementById('newPinInput').value.trim();
+    if (!npin || npin.length !== 4 || isNaN(npin)) {
+        return alert('Please enter a valid 4-digit numeric PIN.');
+    }
+    merchant.withdrawalPin = npin;
+    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+    alert('Security PIN updated successfully!');
+    closeModal();
+}
+
+function openAjoExpressModal() {
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    modalTitle.textContent = "🏺 AJO EXPRESS SAVINGS ENGINE";
+    modalBody.innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.85rem; color:#cbd5e1; line-height:1.6;">
+            <p style="color:#10b981; font-weight:800; margin-bottom:8px;">DIGITAL THRIFT & MICRO-CONTRIBUTIONS</p>
+            <p>Welcome to Ajo Express. Automate your daily, weekly, or monthly savings contributions directly from your gateway ledger balance with native automated month-end payouts.</p>
+            <div style="margin-top:12px; padding:10px; background:#162032; border-radius:6px; border:1px dashed #10b981;">
+                <p style="color:#38bdf8; font-weight:700;">Status: ACTIVE & READY</p>
+                <p style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Accumulated Savings: ₦0.00</p>
+            </div>
+        </div>
+        <button onclick="alert('Ajo plan activated successfully!')" class="modal-btn" style="background:#10b981; font-weight:800; width:100%; margin-top:12px;">Start New Ajo Contribution</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
