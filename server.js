@@ -884,6 +884,43 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
     }
 });
 
+// =========================================================================
+// 🧪 SQUAD SANDBOX SIMULATION HELPER ENDPOINT
+// =========================================================================
+
+app.post('/api/v1/squad/simulate', async (req, res) => {
+    try {
+        const { email, virtual_account_number, amount, transaction_ref } = req.body;
+        
+        console.log(`🧪 TRIGGERING SQUAD SANDBOX SIMULATION API [Ref: ${transaction_ref}]...`);
+
+        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/simulate/payment`, {
+            email: email || "merchant@alltimebusiness.com.ng",
+            virtual_account_number: virtual_account_number || MASTER_SQUAD_NUBAN,
+            amount: amount || 500000,
+            transaction_ref: transaction_ref || `BLSG-SIM-${Date.now()}`
+        }, {
+            headers: {
+                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Squad simulation request successfully dispatched.',
+            squadResponse: response.data
+        });
+    } catch (err) {
+        console.error('❌ Simulation Trigger Error:', err.response ? err.response.data : err.message);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Failed to trigger Squad simulation',
+            details: err.response ? err.response.data : err.message
+        });
+    }
+});
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`============================================================`);
