@@ -8,7 +8,7 @@
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
  * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
- * Native Automated Month-End Ajo Payout Engine
+ * Native Automated Month-End Ajo Payout Engine | Dynamic 15-Min Expiring NUBANs
  * ============================================================================
  */
 
@@ -447,6 +447,56 @@ async function generateSquadVirtualAccount(merchantData) {
 }
 
 // =========================================================================
+// ⏱️ SQUAD DYNAMIC (15-MIN EXPIRING) VIRTUAL ACCOUNT ENGINE
+// =========================================================================
+
+async function generateDynamicSquadAccount(orderData) {
+    try {
+        const { amount, email, orderRef } = orderData;
+        console.log(`⏱️ Generating Dynamic 15-Min Virtual Account [Ref: ${orderRef}] for NGN ${amount}...`);
+
+        const amountInKobo = Math.round(parseFloat(amount) * 100);
+
+        const payload = {
+            amount: amountInKobo,
+            email: email || 'checkout@alltimebusiness.com.ng',
+            currency: 'NGN',
+            initiate_type: 'inline',
+            transaction_ref: orderRef,
+            duration: 900 // 15 Minutes
+        };
+
+        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/initiated-dynamic-virtual-account`, payload, {
+            headers: {
+                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.data && response.data.status === 200 && response.data.data) {
+            const dynamicAcc = response.data.data;
+            console.log(`✅ Dynamic Virtual Account Created: ${dynamicAcc.account_number} (${dynamicAcc.bank_name || 'GTBank'}) | Expiring in 15 mins`);
+            return {
+                success: true,
+                virtualNuban: dynamicAcc.account_number,
+                virtualBank: dynamicAcc.bank_name || 'GTBank / Squad',
+                accountName: dynamicAcc.account_name || 'ALL TIME BUSINESS LTD - CHECKOUT',
+                expectedAmount: amount,
+                expiresInSeconds: 900
+            };
+        } else {
+            throw new Error(response.data.message || 'Squad dynamic account generation failed.');
+        }
+    } catch (err) {
+        console.error('❌ Squad Dynamic Virtual Account Error:', err.response ? err.response.data : err.message);
+        return {
+            success: false,
+            error: err.response ? err.response.data.message : err.message
+        };
+    }
+}
+
+// =========================================================================
 // 🔔 SQUAD WEBHOOK PAYMENT LISTENER WITH CLUBKONNECT AUTO-DISPATCH
 // =========================================================================
 
@@ -551,8 +601,32 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
                 return res.status(200).json({ status: 'success', message: 'Merchant credited and order fulfilled successfully' });
             } else {
-                console.warn(`❌ No matching merchant account found for Customer Identifier: [${customerId}]`);
-                return res.status(404).json({ status: 'error', message: 'Merchant account not found' });
+                // Handle guest checkouts via dynamic 15-min NUBANs
+                pendingOrders = loadPendingOrders();
+                const matchedOrder = Object.values(pendingOrders).find(
+                    ord => ord.orderRef === txRef || ord.dynamicNuban === paymentData.virtual_account_number
+                );
+
+                if (matchedOrder) {
+                    console.log(`✅ Fulfilling Dynamic Checkout Order [Ref: ${txRef}]...`);
+                    await executeClubKonnectFulfillment(matchedOrder);
+                    delete pendingOrders[matchedOrder.orderRef];
+                    savePendingOrders(pendingOrders);
+
+                    processedTxns[txRef] = {
+                        principalAmount,
+                        squadFee,
+                        settledAmount,
+                        timestamp: new Date().toISOString()
+                    };
+                    saveProcessedTxns(processedTxns);
+
+                    executeAccessBankAutoSweep(settledAmount, txRef, 'Dynamic Checkout Settlement');
+                    return res.status(200).json({ status: 'success', message: 'Dynamic checkout order fulfilled successfully' });
+                }
+
+                console.warn(`❌ No matching merchant account or order found for Customer Identifier: [${customerId}]`);
+                return res.status(404).json({ status: 'error', message: 'Account or order not found' });
             }
         }
 
@@ -842,7 +916,8 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
 
 app.post('/api/v1/checkout/initialize', async (req, res) => {
     try {
-        const { serviceType, targetInput, amount, paymentMethod, sourceBank, reference } = req.body;
+        const { serviceType, targetInput, amount, paymentMethod, email, sourceBank, reference } = req.body;
+        
         const baseAmount = parseFloat(amount);
         if (isNaN(baseAmount) || baseAmount <= 0) {
             return res.status(400).json({ status: 'error', message: 'Invalid amount.' });
@@ -852,6 +927,21 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
         const totalPayable = baseAmount + markupFee;
         const txRef = reference || `BLSG-CHK-${Date.now()}`;
 
+        let dynamicAccountInfo = null;
+
+        // If payment method specifies direct bank transfer, generate a 15-min expiring NUBAN from Squad
+        if (paymentMethod === 'bank_transfer' || paymentMethod === 'transfer') {
+            const squadDynamicRes = await generateDynamicSquadAccount({
+                amount: totalPayable,
+                email: email || 'customer@alltimebusiness.com.ng',
+                orderRef: txRef
+            });
+
+            if (squadDynamicRes.success) {
+                dynamicAccountInfo = squadDynamicRes;
+            }
+        }
+
         pendingOrders = loadPendingOrders();
         pendingOrders[txRef] = {
             serviceType,
@@ -860,7 +950,9 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
             totalPayable,
             orderRef: txRef,
             paymentMethod,
-            sourceBank
+            sourceBank,
+            dynamicNuban: dynamicAccountInfo ? dynamicAccountInfo.virtualNuban : MASTER_SQUAD_NUBAN,
+            createdAt: new Date().toISOString()
         };
         savePendingOrders(pendingOrders);
 
@@ -872,9 +964,10 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
             totalPayable: totalPayable,
             paymentMethod: paymentMethod,
             bankDetails: {
-                bankName: MASTER_SQUAD_BANK,
-                accountNumber: MASTER_SQUAD_NUBAN,
-                accountName: 'ALL TIME BUSINESS LTD'
+                bankName: dynamicAccountInfo ? dynamicAccountInfo.virtualBank : MASTER_SQUAD_BANK,
+                accountNumber: dynamicAccountInfo ? dynamicAccountInfo.virtualNuban : MASTER_SQUAD_NUBAN,
+                accountName: dynamicAccountInfo ? dynamicAccountInfo.accountName : 'ALL TIME BUSINESS LTD',
+                expiresIn: dynamicAccountInfo ? '15 Minutes' : 'Static Merchant Account'
             },
             message: 'Checkout initialized successfully. Await transfer confirmation.'
         });
