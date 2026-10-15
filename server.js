@@ -43,6 +43,7 @@ const CLUBKONNECT_API_KEY = process.env.CLUBKONNECT_API_KEY || 'ck_live_secret_k
 // Persistent Master Account Credentials (from Squad Decal)
 const MASTER_SQUAD_NUBAN = '5000759098';
 const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
+const MASTER_SQUAD_ACCOUNT_NAME = 'ALL TIME BUSINESS LTD';
 const MASTER_SQUAD_USSD_MERCHANT_CODE = '411727';
 
 // Persistent Database Handlers
@@ -683,8 +684,9 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             withdrawalPin: (withdrawalPin && /^\d{4}$/.test(withdrawalPin.trim())) ? withdrawalPin.trim() : '1234',
             settlementAccount,
             bankName,
-            virtualNuban: squadRes.virtualNuban,
-            virtualBank: squadRes.virtualBank,
+            virtualNuban: squadRes.virtualNuban || MASTER_SQUAD_NUBAN,
+            virtualBank: squadRes.virtualBank || MASTER_SQUAD_BANK,
+            accountBeneficiary: MASTER_SQUAD_ACCOUNT_NAME,
             balance: 0.00,
             isLocked: false,
             createdAt: new Date().toISOString()
@@ -728,20 +730,20 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     <div class="account-box">
                         <div style="color: #38bdf8; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">📌 DEDICATED COLLECTION ACCOUNT DETAILS</div>
                         <div class="info-row">
-                            <span class="info-label">Account Name:</span>
-                            <span class="info-val">${merchantName}</span>
+                            <span class="info-label">Account Beneficiary:</span>
+                            <span class="info-val">${MASTER_SQUAD_ACCOUNT_NAME}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Virtual NUBAN:</span>
-                            <span class="info-val" style="color: #38bdf8; font-size: 15px;">${squadRes.virtualNuban}</span>
+                            <span class="info-val" style="color: #38bdf8; font-size: 15px;">${newMerchant.virtualNuban}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Bank Name:</span>
-                            <span class="info-val">${squadRes.virtualBank}</span>
+                            <span class="info-val">${newMerchant.virtualBank}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">USSD Merchant Code:</span>
-                            <span class="info-val" style="color: #f59e0b;">*BankCode*000*898+411727+AMOUNT#</span>
+                            <span class="info-val" style="color: #f59e0b;">*BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+AMOUNT#</span>
                         </div>
                     </div>
 
@@ -757,7 +759,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         `;
 
         await dispatchEmail(cleanEmail, '⚡ Welcome to @BL Sovereign Gateway — Dedicated Account Active', welcomeMailHtml);
-        sendTermiiSMS(cleanPhone, `Welcome to @BL Sovereign Gateway, ${merchantName}! Your dedicated GTBank NUBAN is ${squadRes.virtualNuban}. Manage your desk at www.alltimebusiness.com.ng`).catch(() => {});
+        sendTermiiSMS(cleanPhone, `Welcome to @BL Sovereign Gateway, ${merchantName}! Your dedicated GTBank NUBAN is ${newMerchant.virtualNuban}. Manage your desk at www.alltimebusiness.com.ng`).catch(() => {});
 
         return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
 
@@ -929,7 +931,6 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
 
         let dynamicAccountInfo = null;
 
-        // If payment method specifies direct bank transfer, generate a 15-min expiring NUBAN from Squad
         if (paymentMethod === 'bank_transfer' || paymentMethod === 'transfer') {
             const squadDynamicRes = await generateDynamicSquadAccount({
                 amount: totalPayable,
@@ -966,7 +967,7 @@ app.post('/api/v1/checkout/initialize', async (req, res) => {
             bankDetails: {
                 bankName: dynamicAccountInfo ? dynamicAccountInfo.virtualBank : MASTER_SQUAD_BANK,
                 accountNumber: dynamicAccountInfo ? dynamicAccountInfo.virtualNuban : MASTER_SQUAD_NUBAN,
-                accountName: dynamicAccountInfo ? dynamicAccountInfo.accountName : 'ALL TIME BUSINESS LTD',
+                accountName: dynamicAccountInfo ? dynamicAccountInfo.accountName : MASTER_SQUAD_ACCOUNT_NAME,
                 expiresIn: dynamicAccountInfo ? '15 Minutes' : 'Static Merchant Account'
             },
             message: 'Checkout initialized successfully. Await transfer confirmation.'
