@@ -731,10 +731,10 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                         <div style="color: #38bdf8; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">📌 DEDICATED COLLECTION ACCOUNT DETAILS</div>
                         <div class="info-row">
                             <span class="info-label">Account Beneficiary:</span>
-                            <span class="info-val">${MASTER_SQUAD_ACCOUNT_NAME}</span>
+                            <span class="info-val">${newMerchant.accountBeneficiary}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Virtual NUBAN:</span>
+                            <span class="info-label">Virtual Account Number:</span>
                             <span class="info-val" style="color: #38bdf8; font-size: 15px;">${newMerchant.virtualNuban}</span>
                         </div>
                         <div class="info-row">
@@ -742,30 +742,31 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                             <span class="info-val">${newMerchant.virtualBank}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">USSD Merchant Code:</span>
-                            <span class="info-val" style="color: #f59e0b;">*BankCode*000*898+${MASTER_SQUAD_USSD_MERCHANT_CODE}+AMOUNT#</span>
+                            <span class="info-label">Settlement Account:</span>
+                            <span class="info-val">${newMerchant.settlementAccount} (${newMerchant.bankName})</span>
                         </div>
                     </div>
 
-                    <a href="https://www.alltimebusiness.com.ng" class="action-btn">ACCESS MERCHANT DESK</a>
+                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">Sign In to Dashboard</a>
 
                     <div class="footer">
-                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | @BL Sovereign Gateway<br>
-                        Official Website: <a href="https://www.alltimebusiness.com.ng" style="color: #38bdf8; text-decoration: none;">www.alltimebusiness.com.ng</a>
+                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | Automated Gateway & Fintech Infrastructure.
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        await dispatchEmail(cleanEmail, '⚡ Welcome to @BL Sovereign Gateway — Dedicated Account Active', welcomeMailHtml);
-        sendTermiiSMS(cleanPhone, `Welcome to @BL Sovereign Gateway, ${merchantName}! Your dedicated GTBank NUBAN is ${newMerchant.virtualNuban}. Manage your desk at www.alltimebusiness.com.ng`).catch(() => {});
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway — Account Activated', welcomeMailHtml);
 
-        return res.status(201).json({ status: 'success', message: 'Onboarding complete!', merchant: newMerchant });
-
+        return res.status(200).json({
+            status: 'success',
+            message: 'Merchant successfully registered and virtual NUBAN activated.',
+            merchant: newMerchant
+        });
     } catch (err) {
-        console.error('Signup Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Server error during onboarding.' });
+        console.error('❌ Signup Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
     }
 });
 
@@ -773,100 +774,112 @@ app.post('/api/v1/auth/signin', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
         const { phone, password } = req.body;
-        const cleanPhone = normalizePhoneNumber(phone);
 
-        const account = merchantAccounts[cleanPhone];
-        if (!account) return res.status(404).json({ status: 'error', message: 'Account not found.' });
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked by management. Please contact support.' });
+        if (!phone || !password) {
+            return res.status(400).json({ status: 'error', message: 'Phone number and password are required.' });
         }
 
-        const isMatch = await bcrypt.compare(password, account.password);
-        if (!isMatch) return res.status(401).json({ status: 'error', message: 'Incorrect password.' });
-
-        return res.status(200).json({ status: 'success', message: 'Signed in successfully!', merchant: account });
-    } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Sign in processing failed.' });
-    }
-});
-
-// =========================================================================
-// 🛒 SERVICE TRANSACTION & CHECKOUT ENDPOINTS WITH TIERED MARKUP ENGINE
-// =========================================================================
-
-app.post('/api/v1/services/transact', async (req, res) => {
-    try {
-        merchantAccounts = loadAccounts();
-        const { merchantPhone, serviceType, recipient, amount, pin, networkCode, planCode, reference } = req.body;
-
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const cleanPhone = normalizePhoneNumber(phone);
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found. Please register first.' });
         }
 
         if (account.isLocked) {
             return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
         }
 
-        if (pin && pin !== account.withdrawalPin) {
-            return res.status(401).json({ status: 'error', message: 'Invalid transaction PIN.' });
+        const isPasswordValid = await bcrypt.compare(password, account.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ status: 'error', message: 'Invalid password. Please check your credentials.' });
         }
 
-        const baseAmount = parseFloat(amount);
-        if (isNaN(baseAmount) || baseAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
-        }
-
-        const markupFee = calculateTieredMarkup(baseAmount);
-        const totalDebit = baseAmount + markupFee;
-
-        if ((account.balance || 0) < totalDebit) {
-            return res.status(400).json({ 
-                status: 'error', 
-                message: `Insufficient wallet balance. Required: ₦${totalDebit.toLocaleString()} (Includes ₦${markupFee.toLocaleString()} platform fee).` 
-            });
-        }
-
-        account.balance -= totalDebit;
-        saveAccounts(merchantAccounts);
-
-        const txRef = reference || `BLSG-TXN-${Date.now()}`;
-
-        const fulfillmentResult = await executeClubKonnectFulfillment({
-            serviceType,
-            targetInput: recipient,
-            amount: baseAmount,
-            orderRef: txRef,
-            networkCode,
-            planCode
-        });
-
-        dispatchImmediateTransactionSMS(cleanPhone, serviceType, recipient, baseAmount, account.balance, txRef);
+        const sessionMerchant = { ...account };
+        delete sessionMerchant.password;
 
         return res.status(200).json({
             status: 'success',
-            message: 'Transaction processed successfully',
-            txRef: txRef,
-            baseAmount: baseAmount,
-            markupFee: markupFee,
-            totalCharged: totalDebit,
-            newBalance: account.balance,
-            fulfillment: fulfillmentResult
+            message: 'Sign in successful.',
+            merchant: sessionMerchant
         });
-
     } catch (err) {
-        console.error('❌ Transaction Processing Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error processing transaction.' });
+        console.error('❌ Signin Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error during sign in.' });
     }
 });
+
+// =========================================================================
+// 🚀 CHECKOUT INITIALIZATION ENDPOINT (15-MIN DYNAMIC ACCOUNTS)
+// =========================================================================
+
+app.post('/api/v1/checkout/initialize', async (req, res) => {
+    try {
+        const { serviceType, targetInput, amount, paymentMethod, email } = req.body;
+
+        if (!amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
+        }
+
+        const totalPayable = calculateTotalPayableAmount(amount);
+        const orderRef = `ORD-${Date.now()}`;
+
+        if (paymentMethod === 'bank_transfer' || !paymentMethod) {
+            const dynamicAccRes = await generateDynamicSquadAccount({
+                amount: totalPayable,
+                email: email || 'customer@alltimebusiness.com.ng',
+                orderRef: orderRef
+            });
+
+            if (dynamicAccRes.success) {
+                pendingOrders = loadPendingOrders();
+                pendingOrders[orderRef] = {
+                    serviceType,
+                    targetInput,
+                    amount: parseFloat(amount),
+                    totalPayable,
+                    orderRef,
+                    dynamicNuban: dynamicAccRes.virtualNuban,
+                    timestamp: new Date().toISOString()
+                };
+                savePendingOrders(pendingOrders);
+
+                return res.status(200).json({
+                    status: 'success',
+                    message: 'Dynamic 15-min virtual account generated successfully.',
+                    txRef: orderRef,
+                    totalPayable,
+                    bankDetails: {
+                        bankName: dynamicAccRes.virtualBank,
+                        accountNumber: dynamicAccRes.virtualNuban,
+                        accountName: dynamicAccRes.accountName,
+                        expiresInSeconds: dynamicAccRes.expiresInSeconds
+                    }
+                });
+            } else {
+                return res.status(500).json({ status: 'error', message: 'Failed to initialize dynamic transfer checkout.' });
+            }
+        } else {
+            return res.status(200).json({
+                status: 'success',
+                message: 'Checkout initialized for card payment.',
+                checkoutUrl: `${SQUAD_BASE_URL}/checkout?reference=${orderRef}&amount=${totalPayable * 100}`
+            });
+        }
+    } catch (err) {
+        console.error('❌ Checkout Initialization Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error initializing checkout.' });
+    }
+});
+
+// =========================================================================
+// 💼 WALLET CHECKOUT & SERVICES DISPATCH
+// =========================================================================
 
 app.post('/api/v1/checkout/wallet', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
-        const { merchantPhone, serviceType, targetInput, amount, reference } = req.body;
+        const { merchantPhone, serviceType, targetInput, amount } = req.body;
 
         const cleanPhone = normalizePhoneNumber(merchantPhone);
         const account = merchantAccounts[cleanPhone];
@@ -875,150 +888,99 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         }
 
-        const baseAmount = parseFloat(amount);
-        if (isNaN(baseAmount) || baseAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid amount.' });
+        const numericAmount = parseFloat(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid amount specified.' });
         }
 
-        const markupFee = calculateTieredMarkup(baseAmount);
-        const totalDebit = baseAmount + markupFee;
-
-        if ((account.balance || 0) < totalDebit) {
-            return res.status(400).json({ status: 'error', message: `Insufficient wallet balance. Required: ₦${totalDebit.toLocaleString()}` });
+        if ((account.balance || 0) < numericAmount) {
+            return res.status(400).json({ status: 'error', message: `Insufficient ledger balance. Available: ₦${(account.balance || 0).toLocaleString()}` });
         }
 
-        account.balance -= totalDebit;
+        account.balance -= numericAmount;
         saveAccounts(merchantAccounts);
 
-        const txRef = reference || `BLSG-WLT-${Date.now()}`;
-
+        const orderRef = `WLT-${Date.now()}`;
         const fulfillmentResult = await executeClubKonnectFulfillment({
             serviceType,
             targetInput,
-            amount: baseAmount,
-            orderRef: txRef
+            amount: numericAmount,
+            orderRef
         });
 
-        dispatchImmediateTransactionSMS(cleanPhone, serviceType, targetInput, baseAmount, account.balance, txRef);
+        dispatchImmediateTransactionSMS(cleanPhone, serviceType, targetInput, numericAmount, account.balance, orderRef);
 
         return res.status(200).json({
             status: 'success',
-            txRef: txRef,
-            baseAmount: baseAmount,
-            markupFee: markupFee,
-            totalCharged: totalDebit,
+            message: `${serviceType} fulfilled successfully from wallet ledger.`,
             newBalance: account.balance,
+            txRef: orderRef,
             fulfillment: fulfillmentResult
         });
     } catch (err) {
         console.error('❌ Wallet Checkout Error:', err.message);
-        return res.status(500).json({ status: 'error', message: err.message });
-    }
-});
-
-app.post('/api/v1/checkout/initialize', async (req, res) => {
-    try {
-        const { serviceType, targetInput, amount, paymentMethod, email, sourceBank, reference } = req.body;
-        
-        const baseAmount = parseFloat(amount);
-        if (isNaN(baseAmount) || baseAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid amount.' });
-        }
-
-        const markupFee = calculateTieredMarkup(baseAmount);
-        const totalPayable = baseAmount + markupFee;
-        const txRef = reference || `BLSG-CHK-${Date.now()}`;
-
-        let dynamicAccountInfo = null;
-
-        if (paymentMethod === 'bank_transfer' || paymentMethod === 'transfer') {
-            const squadDynamicRes = await generateDynamicSquadAccount({
-                amount: totalPayable,
-                email: email || 'customer@alltimebusiness.com.ng',
-                orderRef: txRef
-            });
-
-            if (squadDynamicRes.success) {
-                dynamicAccountInfo = squadDynamicRes;
-            }
-        }
-
-        pendingOrders = loadPendingOrders();
-        pendingOrders[txRef] = {
-            serviceType,
-            targetInput,
-            amount: baseAmount,
-            totalPayable,
-            orderRef: txRef,
-            paymentMethod,
-            sourceBank,
-            dynamicNuban: dynamicAccountInfo ? dynamicAccountInfo.virtualNuban : MASTER_SQUAD_NUBAN,
-            createdAt: new Date().toISOString()
-        };
-        savePendingOrders(pendingOrders);
-
-        return res.status(200).json({
-            status: 'success',
-            txRef: txRef,
-            baseAmount: baseAmount,
-            markupFee: markupFee,
-            totalPayable: totalPayable,
-            paymentMethod: paymentMethod,
-            bankDetails: {
-                bankName: dynamicAccountInfo ? dynamicAccountInfo.virtualBank : MASTER_SQUAD_BANK,
-                accountNumber: dynamicAccountInfo ? dynamicAccountInfo.virtualNuban : MASTER_SQUAD_NUBAN,
-                accountName: dynamicAccountInfo ? dynamicAccountInfo.accountName : MASTER_SQUAD_ACCOUNT_NAME,
-                expiresIn: dynamicAccountInfo ? '15 Minutes' : 'Static Merchant Account'
-            },
-            message: 'Checkout initialized successfully. Await transfer confirmation.'
-        });
-    } catch (err) {
-        console.error('❌ Checkout Init Error:', err.message);
-        return res.status(500).json({ status: 'error', message: err.message });
+        return res.status(500).json({ status: 'error', message: 'Server error processing wallet checkout.' });
     }
 });
 
 // =========================================================================
-// 🧪 SQUAD SANDBOX SIMULATION HELPER ENDPOINT
+// 💸 MERCHANT WITHDRAWAL ENDPOINT
 // =========================================================================
 
-app.post('/api/v1/squad/simulate', async (req, res) => {
+app.post('/api/v1/services/withdraw', async (req, res) => {
     try {
-        const { email, virtual_account_number, amount, transaction_ref } = req.body;
-        
-        console.log(`🧪 TRIGGERING SQUAD SANDBOX SIMULATION API [Ref: ${transaction_ref}]...`);
+        merchantAccounts = loadAccounts();
+        const { merchantPhone, amount, bankName, accountNumber, pin } = req.body;
 
-        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/simulate/payment`, {
-            email: email || "merchant@alltimebusiness.com.ng",
-            virtual_account_number: virtual_account_number || MASTER_SQUAD_NUBAN,
-            amount: amount || 500000,
-            transaction_ref: transaction_ref || `BLSG-SIM-${Date.now()}`
-        }, {
-            headers: {
-                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        const numericAmount = parseFloat(amount);
+        if (isNaN(numericAmount) || numericAmount < 100) {
+            return res.status(400).json({ status: 'error', message: 'Minimum withdrawal amount is ₦100.' });
+        }
+
+        if ((account.balance || 0) < numericAmount) {
+            return res.status(400).json({ status: 'error', message: 'Insufficient ledger balance.' });
+        }
+
+        if (pin && account.withdrawalPin && pin.trim() !== account.withdrawalPin) {
+            return res.status(401).json({ status: 'error', message: 'Invalid 4-digit security PIN.' });
+        }
+
+        account.balance -= numericAmount;
+        saveAccounts(merchantAccounts);
+
+        const withdrawRef = `WTH-${Date.now()}`;
+        console.log(`💸 Payout processed: ₦${numericAmount.toLocaleString()} sent to ${bankName} (${accountNumber}) [Ref: ${withdrawRef}]`);
+
+        dispatchImmediateTransactionSMS(cleanPhone, 'Bank Withdrawal', `${bankName} - ${accountNumber}`, numericAmount, account.balance, withdrawRef);
 
         return res.status(200).json({
             status: 'success',
-            message: 'Squad simulation request successfully dispatched.',
-            squadResponse: response.data
+            message: 'Withdrawal processed and dispatched successfully.',
+            remainingBalance: account.balance,
+            withdrawRef
         });
     } catch (err) {
-        console.error('❌ Simulation Trigger Error:', err.response ? err.response.data : err.message);
-        return res.status(500).json({
-            status: 'error',
-            message: 'Failed to trigger Squad simulation',
-            details: err.response ? err.response.data : err.message
-        });
+        console.error('❌ Withdrawal Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing withdrawal.' });
     }
 });
 
-// Start Server
+// =========================================================================
+// 🚀 SERVER LISTENING STARTUP
+// =========================================================================
+
 app.listen(PORT, () => {
     console.log(`============================================================`);
-    console.log(`🚀 @BL SOVEREIGN GATEWAY MASTER SERVER ACTIVE ON PORT ${PORT}`);
+    console.log(`⚡ ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY ACTIVE ⚡`);
     console.log(`🏢 Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
+    console.log(`🌍 Domain: www.alltimebusiness.com.ng`);
+    console.log(`🚀 Server listening on port ${PORT}`);
     console.log(`============================================================`);
 });
