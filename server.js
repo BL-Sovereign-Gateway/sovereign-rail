@@ -32,6 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Environment Variables & Credentials
 const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sk_8000a1fe2299833dea7f8db8d6ab063fbe973740';
 const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://api-d.squadco.com';
+const BL_SOVEREIGN_SUBACCOUNT_CODE = process.env.BL_SOVEREIGN_SUBACCOUNT_CODE || 'sub_acct_sample_code';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const ACCESS_BANK_DESTINATION_ACCOUNT = process.env.ACCESS_BANK_ACCOUNT || '0123456789';
@@ -45,6 +46,7 @@ const MASTER_SQUAD_NUBAN = '5000759098';
 const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
 const MASTER_SQUAD_ACCOUNT_NAME = 'ALL TIME BUSINESS LTD';
 const MASTER_SQUAD_USSD_MERCHANT_CODE = '411727';
+const VAT_RATE = 0.075; // Statutory VAT rate (7.5%)
 
 // Persistent Database Handlers
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -181,6 +183,41 @@ function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
 }
 
 // =========================================================================
+// 🧮 FEE CALCULATION & TIERED MARKUP ENGINE (@BL SOVEREIGN + SQUAD + VAT)
+// =========================================================================
+
+function getBLSovereignFee(amount) {
+    const amt = parseFloat(amount);
+    if (amt < 1000) return 10.00;
+    if (amt <= 20000) return 20.00;
+    if (amt <= 50000) return 25.00;
+    return 30.00;
+}
+
+function getSquadRailFee(amount, channel) {
+    const ch = (channel || 'pg').toLowerCase();
+    const amt = parseFloat(amount);
+    if (ch === 'va' || ch === 'virtual_account') {
+        return Math.min(amt * 0.01, 1000.00); // 1% capped at ₦1,000
+    } else if (ch === 'ussd') {
+        return Math.max(amt * 0.012, 20.00);   // Min ₦20
+    } else {
+        return Math.min(amt * 0.012, 1500.00); // PG: 1.2% capped at ₦1,500
+    }
+}
+
+function calculateTotalPayableAmount(principalAmount, channel) {
+    const amount = parseFloat(principalAmount);
+    if (isNaN(amount) || amount <= 0) return 0;
+
+    const blFee = getBLSovereignFee(amount);
+    const squadBase = getSquadRailFee(amount, channel);
+    const squadVat = squadBase * VAT_RATE;
+
+    return Math.ceil(amount + blFee + squadBase + squadVat);
+}
+
+// =========================================================================
 // 🔌 CLUBKONNECT AUTO-DISPATCH ENGINE
 // =========================================================================
 
@@ -252,49 +289,6 @@ app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
 // =========================================================================
-// 🧮 DYNAMIC TIERED MARKUP & SQUAD FEE CALCULATOR ENGINE
-// =========================================================================
-
-function calculateTotalPayableAmount(principalAmount) {
-    const amount = parseFloat(principalAmount);
-    if (isNaN(amount) || amount <= 0) return 0;
-
-    let platformMarkup = 0;
-    if (amount < 1000) {
-        platformMarkup = 10.00;
-    } else if (amount >= 1000 && amount <= 20000) {
-        platformMarkup = 20.00;
-    } else if (amount >= 20001 && amount <= 50000) {
-        platformMarkup = 25.00;
-    } else if (amount >= 50001) {
-        platformMarkup = 30.00;
-    }
-
-    let squadFee = Math.min(amount * 0.0025, 1000.00);
-    let vatOnSquadFee = squadFee * 0.075;
-
-    const totalPayable = amount + platformMarkup + squadFee + vatOnSquadFee;
-    return Math.ceil(totalPayable);
-}
-
-function calculateTieredMarkup(principalAmount) {
-    const amount = parseFloat(principalAmount);
-    let markup = 0;
-
-    if (amount < 1000) {
-        markup = 10.00;
-    } else if (amount >= 1000 && amount <= 20000) {
-        markup = 20.00;
-    } else if (amount >= 20001 && amount <= 50000) {
-        markup = 25.00;
-    } else if (amount >= 50001) {
-        markup = 30.00;
-    }
-
-    return markup;
-}
-
-// =========================================================================
 // 📲 TERMII SMS DISPATCH ENGINE (UNIFIED ₦6.00 RATE)
 // =========================================================================
 
@@ -328,7 +322,6 @@ async function sendTermiiSMS(recipientPhone, messageText) {
 
 async function dispatchImmediateTransactionSMS(merchantPhone, serviceCategory, target, amount, newBalance, txRef) {
     const smsMessage = `OE Alert: @BL SOVEREIGN ALERT: Successful ${serviceCategory} of NGN ${parseFloat(amount).toLocaleString()} to ${target}. Bal: NGN ${parseFloat(newBalance).toLocaleString()}. Ref: ${txRef}. www.alltimebusiness.com.ng`;
-    
     sendTermiiSMS(merchantPhone, smsMessage).catch(err => console.error('SMS Alert Error:', err.message));
 }
 
@@ -389,7 +382,7 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS)
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -453,10 +446,11 @@ async function generateSquadVirtualAccount(merchantData) {
 
 async function generateDynamicSquadAccount(orderData) {
     try {
-        const { amount, email, orderRef } = orderData;
+        const { amount, email, orderRef, channel } = orderData;
         console.log(`⏱️ Generating Dynamic 15-Min Virtual Account [Ref: ${orderRef}] for NGN ${amount}...`);
 
-        const amountInKobo = Math.round(parseFloat(amount) * 100);
+        const totalPayable = calculateTotalPayableAmount(amount, channel);
+        const amountInKobo = Math.round(totalPayable * 100);
 
         const payload = {
             amount: amountInKobo,
@@ -482,7 +476,7 @@ async function generateDynamicSquadAccount(orderData) {
                 virtualNuban: dynamicAcc.account_number,
                 virtualBank: dynamicAcc.bank_name || 'GTBank / Squad',
                 accountName: dynamicAcc.account_name || 'ALL TIME BUSINESS LTD - CHECKOUT',
-                expectedAmount: amount,
+                expectedAmount: totalPayable,
                 expiresInSeconds: 900
             };
         } else {
@@ -498,7 +492,7 @@ async function generateDynamicSquadAccount(orderData) {
 }
 
 // =========================================================================
-// 🔔 SQUAD WEBHOOK PAYMENT LISTENER WITH CLUBKONNECT AUTO-DISPATCH
+// 🔔 SQUAD WEBHOOK PAYMENT LISTENER WITH AUTOMATED SPLITS & CLUBKONNECT
 // =========================================================================
 
 app.get('/api/v1/webhook/squad', (req, res) => {
@@ -558,7 +552,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
             if (targetAccount) {
                 const phone = normalizePhoneNumber(targetAccount.phone);
-                const platformMarkup = calculateTieredMarkup(principalAmount);
+                const platformMarkup = getBLSovereignFee(principalAmount);
 
                 merchantAccounts[phone].balance = (merchantAccounts[phone].balance || 0) + principalAmount;
 
@@ -639,7 +633,7 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 });
 
 // =========================================================================
-// 🔐 AUTHENTICATION & ONBOARDING
+// 🔐 AUTHENTICATION & ONBOARDING ROUTE
 // =========================================================================
 
 app.post('/api/v1/auth/signup', async (req, res) => {
@@ -730,39 +724,42 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     <div class="account-box">
                         <div style="color: #38bdf8; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">📌 DEDICATED COLLECTION ACCOUNT DETAILS</div>
                         <div class="info-row">
-                            <span class="info-label">Account Beneficiary:</span>
-                            <span class="info-val">${newMerchant.accountBeneficiary}</span>
+                            <span class="info-label">Account Name:</span>
+                            <span class="info-val">${MASTER_SQUAD_ACCOUNT_NAME}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Virtual Account Number:</span>
-                            <span class="info-val" style="color: #38bdf8; font-size: 15px;">${newMerchant.virtualNuban}</span>
+                            <span class="info-label">Account Number:</span>
+                            <span class="info-val">${newMerchant.virtualNuban}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Bank Name:</span>
                             <span class="info-val">${newMerchant.virtualBank}</span>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Settlement Account:</span>
-                            <span class="info-val">${newMerchant.settlementAccount} (${newMerchant.bankName})</span>
-                        </div>
                     </div>
 
-                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">Sign In to Dashboard</a>
+                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">ACCESS MERCHANT DASHBOARD</a>
 
                     <div class="footer">
-                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | Automated Gateway & Fintech Infrastructure.
+                        &copy; 2026 ALL TIME BUSINESS LTD. All rights reserved.<br>
+                        Powered by Squad Co & GTBank Rails.
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway — Account Activated', welcomeMailHtml);
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Dedicated NUBAN Provisioned', welcomeMailHtml);
 
         return res.status(200).json({
             status: 'success',
-            message: 'Merchant successfully registered and virtual NUBAN activated.',
-            merchant: newMerchant
+            message: 'Merchant account created successfully.',
+            merchant: {
+                merchantName: newMerchant.merchantName,
+                phone: newMerchant.phone,
+                email: newMerchant.email,
+                virtualNuban: newMerchant.virtualNuban,
+                virtualBank: newMerchant.virtualBank
+            }
         });
     } catch (err) {
         console.error('❌ Signup Error:', err.message);
@@ -770,217 +767,10 @@ app.post('/api/v1/auth/signup', async (req, res) => {
     }
 });
 
-app.post('/api/v1/auth/signin', async (req, res) => {
-    try {
-        merchantAccounts = loadAccounts();
-        const { phone, password } = req.body;
-
-        if (!phone || !password) {
-            return res.status(400).json({ status: 'error', message: 'Phone number and password are required.' });
-        }
-
-        const cleanPhone = normalizePhoneNumber(phone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found. Please register first.' });
-        }
-
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, account.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ status: 'error', message: 'Invalid password. Please check your credentials.' });
-        }
-
-        const sessionMerchant = { ...account };
-        delete sessionMerchant.password;
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Sign in successful.',
-            merchant: sessionMerchant
-        });
-    } catch (err) {
-        console.error('❌ Signin Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error during sign in.' });
-    }
-});
-
-// =========================================================================
-// 🚀 CHECKOUT INITIALIZATION ENDPOINT (15-MIN DYNAMIC ACCOUNTS)
-// =========================================================================
-
-app.post('/api/v1/checkout/initialize', async (req, res) => {
-    try {
-        const { serviceType, targetInput, amount, paymentMethod, email } = req.body;
-
-        if (!amount || isNaN(amount) || amount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
-        }
-
-        const totalPayable = calculateTotalPayableAmount(amount);
-        const orderRef = `ORD-${Date.now()}`;
-
-        if (paymentMethod === 'bank_transfer' || !paymentMethod) {
-            const dynamicAccRes = await generateDynamicSquadAccount({
-                amount: totalPayable,
-                email: email || 'customer@alltimebusiness.com.ng',
-                orderRef: orderRef
-            });
-
-            if (dynamicAccRes.success) {
-                pendingOrders = loadPendingOrders();
-                pendingOrders[orderRef] = {
-                    serviceType,
-                    targetInput,
-                    amount: parseFloat(amount),
-                    totalPayable,
-                    orderRef,
-                    dynamicNuban: dynamicAccRes.virtualNuban,
-                    timestamp: new Date().toISOString()
-                };
-                savePendingOrders(pendingOrders);
-
-                return res.status(200).json({
-                    status: 'success',
-                    message: 'Dynamic 15-min virtual account generated successfully.',
-                    txRef: orderRef,
-                    totalPayable,
-                    bankDetails: {
-                        bankName: dynamicAccRes.virtualBank,
-                        accountNumber: dynamicAccRes.virtualNuban,
-                        accountName: dynamicAccRes.accountName,
-                        expiresInSeconds: dynamicAccRes.expiresInSeconds
-                    }
-                });
-            } else {
-                return res.status(500).json({ status: 'error', message: 'Failed to initialize dynamic transfer checkout.' });
-            }
-        } else {
-            return res.status(200).json({
-                status: 'success',
-                message: 'Checkout initialized for card payment.',
-                checkoutUrl: `${SQUAD_BASE_URL}/checkout?reference=${orderRef}&amount=${totalPayable * 100}`
-            });
-        }
-    } catch (err) {
-        console.error('❌ Checkout Initialization Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Server error initializing checkout.' });
-    }
-});
-
-// =========================================================================
-// 💼 WALLET CHECKOUT & SERVICES DISPATCH
-// =========================================================================
-
-app.post('/api/v1/checkout/wallet', async (req, res) => {
-    try {
-        merchantAccounts = loadAccounts();
-        const { merchantPhone, serviceType, targetInput, amount } = req.body;
-
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        const numericAmount = parseFloat(amount);
-        if (isNaN(numericAmount) || numericAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid amount specified.' });
-        }
-
-        if ((account.balance || 0) < numericAmount) {
-            return res.status(400).json({ status: 'error', message: `Insufficient ledger balance. Available: ₦${(account.balance || 0).toLocaleString()}` });
-        }
-
-        account.balance -= numericAmount;
-        saveAccounts(merchantAccounts);
-
-        const orderRef = `WLT-${Date.now()}`;
-        const fulfillmentResult = await executeClubKonnectFulfillment({
-            serviceType,
-            targetInput,
-            amount: numericAmount,
-            orderRef
-        });
-
-        dispatchImmediateTransactionSMS(cleanPhone, serviceType, targetInput, numericAmount, account.balance, orderRef);
-
-        return res.status(200).json({
-            status: 'success',
-            message: `${serviceType} fulfilled successfully from wallet ledger.`,
-            newBalance: account.balance,
-            txRef: orderRef,
-            fulfillment: fulfillmentResult
-        });
-    } catch (err) {
-        console.error('❌ Wallet Checkout Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Server error processing wallet checkout.' });
-    }
-});
-
-// =========================================================================
-// 💸 MERCHANT WITHDRAWAL ENDPOINT
-// =========================================================================
-
-app.post('/api/v1/services/withdraw', async (req, res) => {
-    try {
-        merchantAccounts = loadAccounts();
-        const { merchantPhone, amount, bankName, accountNumber, pin } = req.body;
-
-        const cleanPhone = normalizePhoneNumber(merchantPhone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
-        }
-
-        const numericAmount = parseFloat(amount);
-        if (isNaN(numericAmount) || numericAmount < 100) {
-            return res.status(400).json({ status: 'error', message: 'Minimum withdrawal amount is ₦100.' });
-        }
-
-        if ((account.balance || 0) < numericAmount) {
-            return res.status(400).json({ status: 'error', message: 'Insufficient ledger balance.' });
-        }
-
-        if (pin && account.withdrawalPin && pin.trim() !== account.withdrawalPin) {
-            return res.status(401).json({ status: 'error', message: 'Invalid 4-digit security PIN.' });
-        }
-
-        account.balance -= numericAmount;
-        saveAccounts(merchantAccounts);
-
-        const withdrawRef = `WTH-${Date.now()}`;
-        console.log(`💸 Payout processed: ₦${numericAmount.toLocaleString()} sent to ${bankName} (${accountNumber}) [Ref: ${withdrawRef}]`);
-
-        dispatchImmediateTransactionSMS(cleanPhone, 'Bank Withdrawal', `${bankName} - ${accountNumber}`, numericAmount, account.balance, withdrawRef);
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Withdrawal processed and dispatched successfully.',
-            remainingBalance: account.balance,
-            withdrawRef
-        });
-    } catch (err) {
-        console.error('❌ Withdrawal Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error processing withdrawal.' });
-    }
-});
-
-// =========================================================================
-// 🚀 SERVER LISTENING STARTUP
-// =========================================================================
-
+// Start Server Engine
 app.listen(PORT, () => {
-    console.log(`============================================================`);
-    console.log(`⚡ ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY ACTIVE ⚡`);
-    console.log(`🏢 Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`🌍 Domain: www.alltimebusiness.com.ng`);
-    console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`============================================================`);
+    console.log(`============================================================================`);
+    console.log(`🚀 @BL SOVEREIGN GATEWAY MASTER ENGINE RUNNING ON PORT ${PORT}`);
+    console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444) | GTBank VA / USSD 411727`);
+    console.log(`============================================================================`);
 });
