@@ -511,7 +511,7 @@ function refreshLedgerDisplay() {
 }
 
 // =========================================================================
-// 🏺 AJO EXPRESS FRONTEND & SERVER-CONNECTED ROUTINES
+// 🏺 AJO EXPRESS FRONTEND & SERVER-CONNECTED ROUTINES WITH DYNAMIC MONTH & DAYS
 // =========================================================================
 
 window.openAjoExpressModal = function() {
@@ -606,6 +606,8 @@ window.startAjoPlan = async function() {
 
         const result = await response.json();
         if (result.status === 'success') {
+            result.ajoData.selectedMonth = selectedMonthName;
+            result.ajoData.daysInMonth = daysInMonth;
             localStorage.setItem('activeAjoPlan', JSON.stringify(result.ajoData));
             alert('🎉 Ajo Subscription Successful! Welcome to your automated Ajo Space.');
             openAjoSpace();
@@ -614,7 +616,6 @@ window.startAjoPlan = async function() {
         }
     } catch (err) {
         console.error('Network Error:', err);
-        // Fallback locally if network connection fails
         const grossAccumulated = amount * totalDays;
         const gatewayFees = amount * durationMonths;
         const localAjoData = {
@@ -645,13 +646,16 @@ window.openAjoSpace = function() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
+    const monthDisplay = ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'CURRENT MONTH';
+    const totalDaysDisplay = ajo.totalDays || ajo.daysInMonth || 30;
+
     modalTitle.textContent = "🏺 YOUR DEDICATED AJO SPACE";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:16px; border-radius:12px; border:1px solid #38bdf8; text-align:left; font-size:0.85rem; color:#cbd5e1; margin-bottom:12px;">
-            <p style="color:#38bdf8; font-weight:800; font-size:0.95rem; margin-bottom:10px;">📊 Live Ajo Financial Performance & Calculations</p>
+            <p style="color:#38bdf8; font-weight:800; font-size:0.95rem; margin-bottom:10px;">📊 Live Ajo Financial Performance (${monthDisplay})</p>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>Selected Month & Duration:</span>
-                <span style="color:#38bdf8; font-weight:700;">${ajo.selectedMonth} (${ajo.durationMonths} Month${ajo.durationMonths > 1 ? 's' : ''}, ${ajo.totalDays || 30} Days)</span>
+                <span style="color:#38bdf8; font-weight:700;">${monthDisplay} (${ajo.durationMonths || 1} Month, ${totalDaysDisplay} Days)</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>Daily Contribution:</span>
@@ -690,12 +694,15 @@ window.viewAjoCalendar = function() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const totalDisplayDays = ajo.daysInMonth || 30;
-    modalTitle.textContent = `📅 ${ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'AJO'} CALENDAR (${totalDisplayDays} Days)`;
+    const monthName = ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'CURRENT MONTH';
+    const totalDaysInMonth = ajo.daysInMonth || ajo.totalDays || 30;
+    const completedCount = ajo.completedDays || 0;
+
+    modalTitle.textContent = `📅 AJO CALENDAR - ${monthName} (${totalDaysDays = totalDaysInMonth} Days)`;
 
     let calendarGridHtml = '';
-    for (let day = 1; day <= totalDisplayDays; day++) {
-        let isCompleted = day <= (ajo.completedDays || 0);
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+        let isCompleted = day <= completedCount;
         let bgStyle = isCompleted ? 'background:#10b981; color:#0f172a; border-color:#059669;' : 'background:#0f172a; color:#94a3b8; border-color:#334155;';
         let markIcon = isCompleted ? '✓' : day;
         calendarGridHtml += `
@@ -708,7 +715,7 @@ window.viewAjoCalendar = function() {
 
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.82rem; color:#cbd5e1;">
-            <p style="color:#38bdf8; font-weight:800; text-align:center; margin-bottom:6px;">🌟 @BL SOVEREIGN GATEWAY THRIFT TRACKER 🌟</p>
+            <p style="color:#38bdf8; font-weight:800; text-align:center; margin-bottom:6px;">🌟 @BL SOVEREIGN GATEWAY THRIFT TRACKER (${monthName}) 🌟</p>
             <p style="text-align:center; color:#10b981; font-weight:700; font-size:0.8rem; margin-bottom:12px;">"Small drops of daily savings make a mighty ocean of financial freedom!"</p>
             
             <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; margin-bottom:12px; max-height:180px; overflow-y:auto; padding:4px;">
@@ -716,7 +723,7 @@ window.viewAjoCalendar = function() {
             </div>
 
             <div style="padding:10px; background:#162032; border-radius:8px; border:1px dashed #10b981; text-align:center;">
-                <p style="color:#f59e0b; font-weight:800;">🔥 Streak Status: ${ajo.completedDays || 0} / ${totalDisplayDays} Days Auto-Marked!</p>
+                <p style="color:#f59e0b; font-weight:800;">🔥 Streak Status: ${completedCount} / ${totalDaysInMonth} Days Auto-Marked!</p>
                 <p style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Monthly first contributions underwritten by @BL.</p>
             </div>
         </div>
@@ -726,17 +733,21 @@ window.viewAjoCalendar = function() {
 
 window.downloadAjoStatement = function() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 4000, netEntitlement: 145000, selectedMonth: 'Monthly', durationMonths: 1, totalDays: 30, accumulatedProceeds: 150000, gatewayFee: 5000 };
+    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 4000, netEntitlement: 145000, selectedMonth: 'Current Month', durationMonths: 1, daysInMonth: 30, totalDays: 30, accumulatedProceeds: 120000, gatewayFee: 4000 };
     
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
+
+    const monthName = ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'CURRENT MONTH';
+    const totalDaysCount = ajo.daysInMonth || ajo.totalDays || 30;
 
     modalTitle.textContent = "📄 AJO EXPRESS STATEMENT OF ACCOUNT";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.8rem; color:#cbd5e1; font-family:monospace;">
             <p style="color:#38bdf8; font-weight:800; text-align:center; margin-bottom:8px;">@BL SOVEREIGN GATEWAY - OFFICIAL AJO STATEMENT</p>
             <p><b>Merchant Name:</b> ${merchant.merchantName || 'Tope Ogegbo'}</p>
-            <p><b>Cycle / Month:</b> ${ajo.selectedMonth} (${ajo.durationMonths} Month Plan - ${ajo.totalDays} Days)</p>
+            <p><b>Target Month & Days:</b> ${monthName} (${totalDaysCount} Days Auto-Aligned)</p>
+            <p><b>Plan Duration:</b> ${ajo.durationMonths || 1} Month(s)</p>
             <p><b>Daily Contribution:</b> ₦${parseFloat(ajo.dailyAmount).toLocaleString()}</p>
             <p><b>Gross Accumulated:</b> ₦${parseFloat(ajo.accumulatedProceeds).toLocaleString()}</p>
             <p><b>Gateway Underwriting Deductions:</b> - ₦${parseFloat(ajo.gatewayFee).toLocaleString()}</p>
@@ -772,7 +783,6 @@ window.triggerEmergencyExit = async function() {
             }
         } catch (err) {
             console.error('Network Error:', err);
-            // Fallback emergency exit client-side handler
             const rawAjo = localStorage.getItem('activeAjoPlan');
             if (rawAjo) {
                 let ajo = JSON.parse(rawAjo);
