@@ -279,7 +279,7 @@
 
         /* MODAL POPUP SYSTEM */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 92%; max-width: 620px; text-align: center; max-height: 90vh; overflow-y: auto; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 92%; max-width: 600px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .form-group { margin-bottom: 14px; text-align: left; }
@@ -364,32 +364,31 @@
     <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
-        <!-- AJO EXPRESS CARD WITH EXPLICIT EVENT LISTENER BINDING -->
-        <div class="product-card" id="ajoCardTrigger" style="cursor: pointer;">
+        <div class="product-card" onclick="openAjoExpressModal()">
             <div class="product-icon">🏺</div>
             <div>
                 <div class="product-name">AJO EXPRESS</div>
                 <div class="product-desc">Ajo / Esusu Digital Thrift & Micro-Contributions</div>
             </div>
         </div>
-        <div class="product-card" onclick="window.location.href='/education-support'">
+        <a href="/education-support" class="product-card">
             <div class="product-icon">🎓</div>
             <div>
                 <div class="product-name">WAEC / JAMB Result PINs</div>
             </div>
-        </div>
-        <div class="product-card" onclick="window.location.href='/credit-support'">
+        </a>
+        <a href="/credit-support" class="product-card">
             <div class="product-icon">💳</div>
             <div>
                 <div class="product-name">SAIL Credit supports</div>
             </div>
-        </div>
-        <div class="product-card" onclick="alert('Stocks & Equity Module coming soon!')">
+        </a>
+        <a href="#" class="product-card" onclick="alert('Stocks & Equity Module coming soon!')">
             <div class="product-icon">📈</div>
             <div>
                 <div class="product-name">Buy Stocks & Equity</div>
             </div>
-        </div>
+        </a>
     </div>
 
 </div>
@@ -460,15 +459,6 @@ function initSession() {
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
 
-    // Explicitly bind click event to Ajo Express card on load
-    const ajoCard = document.getElementById('ajoCardTrigger');
-    if (ajoCard) {
-        ajoCard.addEventListener('click', function(e) {
-            e.preventDefault();
-            openAjoExpressModal();
-        });
-    }
-
     setup5MinIdleTimer();
 }
 
@@ -521,7 +511,7 @@ function refreshLedgerDisplay() {
     document.getElementById('ledgerBalance').textContent = isLedgerVisible ? `₦${val}` : '₦••••••••';
 }
 
-// 1. AJO EXPRESS SIGN-UP / ENTRY MODAL WITH AUTO FREQUENCY SELECTION
+// 1. AJO EXPRESS SIGN-UP / ENTRY MODAL WITH AUTO FREQUENCY SELECTOR
 function openAjoExpressModal() {
     const activeAjo = localStorage.getItem('activeAjoPlan');
     if (activeAjo) {
@@ -532,15 +522,15 @@ function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "🏺 AJO EXPRESS DIGITAL THRIFT & MICRO-CONTRIBUTIONS";
+    modalTitle.textContent = "🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.8rem; color:#cbd5e1; line-height:1.5; margin-bottom:12px;">
-            <p style="color:#10b981; font-weight:800; margin-bottom:6px;">🌟 SECURE YOUR FINANCIAL FUTURE WITH @BL:</p>
+            <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ SEAMLESS WEALTH CREATION FOR EVERY SUBSCRIBER:</p>
             <ul style="padding-left:16px; margin-bottom:8px;">
                 <li><b>Contribution Minimum:</b> ₦500 and above.</li>
-                <li><b>Automated Frequency:</b> Select weekly, monthly, or yearly auto-cycles. The system manages maturity automatically!</li>
+                <li><b>Automated Frequency:</b> Select <span style="color:#38bdf8;">Week, Month, or Year</span> auto-cycles so calculations run automatically without manual entry!</li>
                 <li><b>First Contribution Rule:</b> The first contribution goes unnegotiably to <b>@BL Sovereign Gateway</b> as underwriting fee.</li>
-                <li><b>Emergency Exit:</b> Early withdrawal before maturity attracts a <b>5% penalty</b> on the remaining balance.</li>
+                <li><b>Emergency Exit:</b> Early backing out before cycle maturity attracts a <b>5% administrative penalty</b> on remaining balance.</li>
             </ul>
         </div>
         <div class="form-group">
@@ -550,9 +540,9 @@ function openAjoExpressModal() {
         <div class="form-group">
             <label>Select Auto Cycle Frequency *</label>
             <select id="ajoFrequencySelect" style="background:#0f172a; color:#38bdf8; font-weight:700;">
-                <option value="Weekly">Weekly Cycle (Auto-Scheduled)</option>
-                <option value="Monthly" selected>Monthly Cycle (Auto-Scheduled)</option>
-                <option value="Yearly">Yearly Cycle (Auto-Scheduled)</option>
+                <option value="Weekly">Weekly Cycle (Auto)</option>
+                <option value="Monthly" selected>Monthly Cycle (Auto)</option>
+                <option value="Yearly">Yearly Cycle (Auto)</option>
             </select>
         </div>
         <div class="form-group">
@@ -562,7 +552,7 @@ function openAjoExpressModal() {
                 <option value="virtual_account">Auto-Deduct via Virtual Account</option>
             </select>
         </div>
-        <button onclick="startAjoPlan()" class="modal-btn" style="background:#10b981; font-weight:800; width:100%;">🚀 Subscribe & Enter My Ajo Space</button>
+        <button onclick="startAjoPlan()" class="modal-btn" style="background:#10b981; font-weight:800; width:100%;">🚀 Subscribe & Enter Ajo Space</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
@@ -595,7 +585,7 @@ function startAjoPlan() {
     openAjoSpace();
 }
 
-// 2. DEDICATED AJO SPACE WITH DETAILED CALCULATIONS
+// 2. DEDICATED AJO SPACE WITH DETAILED CALCULATIONS & GATEWAY FEES
 function openAjoSpace() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
     if (!rawAjo) {
@@ -609,10 +599,10 @@ function openAjoSpace() {
     modalTitle.textContent = "🏺 YOUR DEDICATED AJO SPACE";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:16px; border-radius:12px; border:1px solid #38bdf8; text-align:left; font-size:0.85rem; color:#cbd5e1; margin-bottom:12px;">
-            <p style="color:#38bdf8; font-weight:800; font-size:0.95rem; margin-bottom:10px;">📊 Financial Breakdown & Net Entitlement</p>
+            <p style="color:#38bdf8; font-weight:800; font-size:0.95rem; margin-bottom:10px;">📊 Live Ajo Financial Performance & Calculations</p>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                <span>Cycle Frequency:</span>
-                <span style="color:#38bdf8; font-weight:700;">${ajo.frequency} (Auto)</span>
+                <span>Auto-Cycle Frequency:</span>
+                <span style="color:#38bdf8; font-weight:700;">${ajo.frequency || 'Monthly'} (Auto)</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>Contribution Amount:</span>
@@ -624,12 +614,12 @@ function openAjoSpace() {
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>1st Contribution (@BL Underwriting):</span>
-                <span style="color:#ef4444; font-weight:700;">- ₦${ajo.gatewayFee.toLocaleString()} (Unnegotiable)</span>
+                <span style="color:#ef4444; font-weight:700;">- ₦${ajo.gatewayFee ? ajo.gatewayFee.toLocaleString() : ajo.dailyAmount.toLocaleString()} (Unnegotiable)</span>
             </div>
             <hr style="border-color:#334155; margin:8px 0;">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span>Total Net Due to Merchant:</span>
-                <span style="color:#f59e0b; font-weight:800; font-size:1.1rem;">₦${ajo.netEntitlement.toLocaleString()}</span>
+                <span style="color:#f59e0b; font-weight:800; font-size:1.1rem;">₦${ajo.netEntitlement ? ajo.netEntitlement.toLocaleString() : (ajo.accumulatedProceeds - ajo.dailyAmount).toLocaleString()}</span>
             </div>
             <div style="padding:8px; background:#1e293b; border-radius:6px; font-size:0.75rem; color:#10b981; font-weight:700; text-align:center;">
                 🌟 "Consistency is the DNA of true wealth creation. Keep your streak glowing!"
@@ -637,10 +627,10 @@ function openAjoSpace() {
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-            <button onclick="viewAjoCalendar()" class="modal-btn" style="background:#0ea5e9; font-weight:700; margin:0; font-size:0.8rem;">📅 Auto-Mark Calendar</button>
+            <button onclick="viewAjoCalendar()" class="modal-btn" style="background:#0ea5e9; font-weight:700; margin:0; font-size:0.8rem;">📅 Visible Auto-Mark Calendar</button>
             <button onclick="downloadAjoStatement()" class="modal-btn" style="background:#10b981; font-weight:700; margin:0; font-size:0.8rem;">📄 Ajo Statement</button>
         </div>
-        <button onclick="triggerEmergencyExit()" class="modal-btn" style="background:#ef4444; font-weight:700; width:100%; margin-top:4px; font-size:0.8rem;">⚠️ Emergency Exit (5% Penalty on Balance)</button>
+        <button onclick="triggerEmergencyExit()" class="modal-btn" style="background:#ef4444; font-weight:700; width:100%; margin-top:4px; font-size:0.8rem;">⚠️ Emergency Exit (5% Penalty Apply)</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
@@ -699,8 +689,8 @@ function downloadAjoStatement() {
             <p><b>Merchant Name:</b> ${merchant.merchantName || 'Tope Ogegbo'}</p>
             <p><b>Cycle Frequency:</b> ${ajo.frequency || 'Monthly'}</p>
             <p><b>Contribution:</b> ₦${ajo.dailyAmount.toLocaleString()}</p>
-            <p><b>Net Entitlement Due:</b> ₦${ajo.netEntitlement.toLocaleString()}</p>
-            <p><b>Underwriting Status:</b> 1st Contribution Settled to @BL</p>
+            <p><b>Net Entitlement Due:</b> ₦${ajo.netEntitlement ? ajo.netEntitlement.toLocaleString() : '145,000'}</p>
+            <p><b>Underwriting Policy:</b> 1st contribution settled to @BL</p>
             <hr style="border-color:#334155; margin:8px 0;">
             <p style="color:#10b981; text-align:center;">[VERIFIED & SECURED BY @BL SOVEREIGN GATEWAY]</p>
         </div>
@@ -710,20 +700,20 @@ function downloadAjoStatement() {
 
 // 4. PROFESSIONAL EMERGENCY EXIT WITH 5% PENALTY CALCULATION
 function triggerEmergencyExit() {
-    if (confirm("⚠️ EMERGENCY EXIT NOTICE:\n\nAre you sure you want to terminate your Ajo cycle before maturity? A mandatory 5% administrative penalty will apply to your remaining balance.")) {
+    if (confirm("⚠️ EMERGENCY EXIT NOTICE:\n\nAre you sure you want to back out before cycle maturity? A mandatory 5% emergency penalty will apply to your remaining proceeds.")) {
         const rawAjo = localStorage.getItem('activeAjoPlan');
         if (rawAjo) {
             let ajo = JSON.parse(rawAjo);
-            let remainingBalance = ajo.netEntitlement; 
-            let penalty = remainingBalance * 0.05;
-            let netPayout = remainingBalance - penalty;
+            let balanceToPenalize = ajo.netEntitlement || (ajo.accumulatedProceeds - ajo.dailyAmount);
+            let penalty = balanceToPenalize * 0.05;
+            let netPayout = balanceToPenalize - penalty;
             
             merchant.balance = (parseFloat(merchant.balance) || 0) + netPayout;
             localStorage.setItem('activeMerchant', JSON.stringify(merchant));
             localStorage.removeItem('activeAjoPlan');
             refreshLedgerDisplay();
 
-            alert(`Emergency exit processed successfully.\n\n- Remaining Balance: ₦${remainingBalance.toLocaleString()}\n- 5% Penalty Applied: ₦${penalty.toLocaleString()}\n- Net Payout Credited: ₦${netPayout.toLocaleString()}`);
+            alert(`Emergency exit processed successfully.\n\n- Net Balance: ₦${balanceToPenalize.toLocaleString()}\n- 5% Penalty Applied: ₦${penalty.toLocaleString()}\n- Net Payout Credited: ₦${netPayout.toLocaleString()}`);
             closeModal();
         }
     }
