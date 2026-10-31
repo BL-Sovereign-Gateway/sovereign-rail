@@ -279,7 +279,7 @@
 
         /* MODAL POPUP SYSTEM */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 92%; max-width: 600px; text-align: center; max-height: 90vh; overflow-y: auto; }
+        .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 24px; width: 92%; max-width: 620px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .modal-btn { background: #0ea5e9; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .form-group { margin-bottom: 14px; text-align: left; }
@@ -469,6 +469,7 @@ function setup5MinIdleTimer() {
     const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
     activityEvents.forEach(evt => {
         window.removeEventListener(evt, resetIdleTimer);
+        window.removeEventListener(evt, resetIdleTimer);
         window.addEventListener(evt, resetIdleTimer);
     });
 }
@@ -511,7 +512,7 @@ function refreshLedgerDisplay() {
     document.getElementById('ledgerBalance').textContent = isLedgerVisible ? `₦${val}` : '₦••••••••';
 }
 
-// 1. AJO EXPRESS SIGN-UP / ENTRY MODAL WITH AUTO FREQUENCY SELECTOR
+// 1. AJO EXPRESS SIGN-UP / ENTRY MODAL WITH AUTO MONTH/DURATION ALIGNMENT
 function openAjoExpressModal() {
     const activeAjo = localStorage.getItem('activeAjoPlan');
     if (activeAjo) {
@@ -522,34 +523,53 @@ function openAjoExpressModal() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE";
+    const currentYear = new Date().getFullYear();
+    const monthsList = [
+        {name: "January", days: 31, val: 0},
+        {name: "February", days: (currentYear % 4 === 0 ? 29 : 28), val: 1},
+        {name: "March", days: 31, val: 2},
+        {name: "April", days: 30, val: 3},
+        {name: "May", days: 31, val: 4},
+        {name: "June", days: 30, val: 5},
+        {name: "July", days: 31, val: 6},
+        {name: "August", days: 31, val: 7},
+        {name: "September", days: 30, val: 8},
+        {name: "October", days: 31, val: 9},
+        {name: "November", days: 30, val: 10},
+        {name: "December", days: 31, val: 11}
+    ];
+
+    let monthOptions = monthsList.map((m, idx) => `<option value="${idx}" data-days="${m.days}">${m.name} (${m.days} Days)</option>`).join('');
+
+    modalTitle.textContent = "🏺 AJO EXPRESS DIGITAL THRIFT & MICRO-CONTRIBUTIONS";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.8rem; color:#cbd5e1; line-height:1.5; margin-bottom:12px;">
-            <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ SEAMLESS WEALTH CREATION FOR EVERY SUBSCRIBER:</p>
+            <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ SEAMLESS MULTI-MONTH & CALENDAR ALIGNMENT:</p>
             <ul style="padding-left:16px; margin-bottom:8px;">
-                <li><b>Contribution Minimum:</b> ₦500 and above.</li>
-                <li><b>Automated Frequency:</b> Select <span style="color:#38bdf8;">Week, Month, or Year</span> auto-cycles so calculations run automatically without manual entry!</li>
-                <li><b>First Contribution Rule:</b> The first contribution goes unnegotiably to <b>@BL Sovereign Gateway</b> as underwriting fee.</li>
-                <li><b>Emergency Exit:</b> Early backing out before cycle maturity attracts a <b>5% administrative penalty</b> on remaining balance.</li>
+                <li><b>Contribution Minimum:</b> ₦500 and above daily.</li>
+                <li><b>Auto-Month Alignment:</b> System automatically handles 28, 29, 30, or 31 days depending on the selected month and multi-month duration.</li>
+                <li><b>Underwriting Policy:</b> Every monthly first contribution goes unnegotiably to <b>@BL Sovereign Gateway</b> as underwriting fee.</li>
+                <li><b>Emergency Exit Rule:</b> Backing out before maturity attracts a <b>5% administrative penalty</b> on remaining balance.</li>
             </ul>
         </div>
         <div class="form-group">
-            <label>Contribution Amount (₦500 and above) *</label>
-            <input type="number" id="ajoAmountInput" placeholder="e.g. 5000" min="500" style="background:#0f172a; color:#10b981; font-weight:800;">
+            <label>Daily Contribution Amount (₦500 and above) *</label>
+            <input type="number" id="ajoAmountInput" placeholder="e.g. 4000" min="500" style="background:#0f172a; color:#10b981; font-weight:800;">
         </div>
         <div class="form-group">
-            <label>Select Auto Cycle Frequency *</label>
-            <select id="ajoFrequencySelect" style="background:#0f172a; color:#38bdf8; font-weight:700;">
-                <option value="Weekly">Weekly Cycle (Auto)</option>
-                <option value="Monthly" selected>Monthly Cycle (Auto)</option>
-                <option value="Yearly">Yearly Cycle (Auto)</option>
+            <label>Select Starting Month *</label>
+            <select id="ajoMonthSelect" style="background:#0f172a; color:#38bdf8; font-weight:700;">
+                ${monthOptions}
             </select>
         </div>
         <div class="form-group">
-            <label>Funding Source</label>
-            <select id="ajoSourceSelect" style="background:#0f172a; color:#38bdf8;">
-                <option value="wallet">Auto-Deduct from Merchant Wallet</option>
-                <option value="virtual_account">Auto-Deduct via Virtual Account</option>
+            <label>Select Duration (Number of Months) *</label>
+            <select id="ajoDurationSelect" style="background:#0f172a; color:#38bdf8; font-weight:700;">
+                <option value="1" selected>1 Month Plan</option>
+                <option value="2">2 Months Plan</option>
+                <option value="3">3 Months (Quarterly)</option>
+                <option value="6">6 Months (Bi-Annual)</option>
+                <option value="12">12 Months (Full Year)</option>
             </select>
         </div>
         <button onclick="startAjoPlan()" class="modal-btn" style="background:#10b981; font-weight:800; width:100%;">🚀 Subscribe & Enter Ajo Space</button>
@@ -559,22 +579,30 @@ function openAjoExpressModal() {
 
 function startAjoPlan() {
     const amount = parseFloat(document.getElementById('ajoAmountInput').value);
-    const frequency = document.getElementById('ajoFrequencySelect').value;
+    const monthSelect = document.getElementById('ajoMonthSelect');
+    const selectedMonthName = monthSelect.options[monthSelect.selectedIndex].text.split(' ')[0];
+    const daysInMonth = parseInt(monthSelect.options[monthSelect.selectedIndex].getAttribute('data-days'));
+    const durationMonths = parseInt(document.getElementById('ajoDurationSelect').value);
 
     if (!amount || isNaN(amount) || amount < 500) {
-        return alert('Minimum contribution for Ajo Express is ₦500.');
+        return alert('Minimum daily contribution for Ajo Express is ₦500.');
     }
 
-    const totalAccumulated = amount * 30; // Simulated accumulation
-    const gatewayFirstFee = amount; // Unnegotiable first contribution to @BL
-    const netDueToMerchant = totalAccumulated - gatewayFirstFee;
+    const totalDays = daysInMonth * durationMonths;
+    const grossAccumulated = amount * totalDays;
+    // Every monthly first contribution goes to gateway (durationMonths * daily amount)
+    const gatewayFirstFees = amount * durationMonths;
+    const netEntitlementDue = grossAccumulated - gatewayFirstFees;
 
     const ajoData = {
         dailyAmount: amount,
-        frequency: frequency,
-        accumulatedProceeds: totalAccumulated,
-        gatewayFee: gatewayFirstFee,
-        netEntitlement: netDueToMerchant,
+        selectedMonth: selectedMonthName,
+        daysInMonth: daysInMonth,
+        durationMonths: durationMonths,
+        totalDays: totalDays,
+        accumulatedProceeds: grossAccumulated,
+        gatewayFee: gatewayFirstFees,
+        netEntitlement: netEntitlementDue,
         completedDays: 5,
         startDate: new Date().toLocaleDateString(),
         status: 'Active & Automated'
@@ -585,7 +613,7 @@ function startAjoPlan() {
     openAjoSpace();
 }
 
-// 2. DEDICATED AJO SPACE WITH DETAILED CALCULATIONS & GATEWAY FEES
+// 2. DEDICATED AJO SPACE WITH DETAILED CALCULATIONS
 function openAjoSpace() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
     if (!rawAjo) {
@@ -601,11 +629,11 @@ function openAjoSpace() {
         <div style="background:#0f172a; padding:16px; border-radius:12px; border:1px solid #38bdf8; text-align:left; font-size:0.85rem; color:#cbd5e1; margin-bottom:12px;">
             <p style="color:#38bdf8; font-weight:800; font-size:0.95rem; margin-bottom:10px;">📊 Live Ajo Financial Performance & Calculations</p>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                <span>Auto-Cycle Frequency:</span>
-                <span style="color:#38bdf8; font-weight:700;">${ajo.frequency || 'Monthly'} (Auto)</span>
+                <span>Selected Month & Duration:</span>
+                <span style="color:#38bdf8; font-weight:700;">${ajo.selectedMonth} (${ajo.durationMonths} Month${ajo.durationMonths > 1 ? 's' : ''}, ${ajo.totalDays} Days)</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                <span>Contribution Amount:</span>
+                <span>Daily Contribution:</span>
                 <span style="color:#10b981; font-weight:700;">₦${ajo.dailyAmount.toLocaleString()}</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
@@ -613,13 +641,13 @@ function openAjoSpace() {
                 <span style="color:#fff; font-weight:700;">₦${ajo.accumulatedProceeds.toLocaleString()}</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                <span>1st Contribution (@BL Underwriting):</span>
-                <span style="color:#ef4444; font-weight:700;">- ₦${ajo.gatewayFee ? ajo.gatewayFee.toLocaleString() : ajo.dailyAmount.toLocaleString()} (Unnegotiable)</span>
+                <span>1st Contributions (@BL Underwriting):</span>
+                <span style="color:#ef4444; font-weight:700;">- ₦${ajo.gatewayFee.toLocaleString()} (Unnegotiable)</span>
             </div>
             <hr style="border-color:#334155; margin:8px 0;">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span>Total Net Due to Merchant:</span>
-                <span style="color:#f59e0b; font-weight:800; font-size:1.1rem;">₦${ajo.netEntitlement ? ajo.netEntitlement.toLocaleString() : (ajo.accumulatedProceeds - ajo.dailyAmount).toLocaleString()}</span>
+                <span style="color:#f59e0b; font-weight:800; font-size:1.1rem;">₦${ajo.netEntitlement.toLocaleString()}</span>
             </div>
             <div style="padding:8px; background:#1e293b; border-radius:6px; font-size:0.75rem; color:#10b981; font-weight:700; text-align:center;">
                 🌟 "Consistency is the DNA of true wealth creation. Keep your streak glowing!"
@@ -635,17 +663,17 @@ function openAjoSpace() {
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
-// 3. VISIBLE AUTO-MARK CALENDAR
+// 3. AUTO-ALIGNING CALENDAR FOR 28, 29, 30, OR 31 DAYS
 function viewAjoCalendar() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { completedDays: 5 };
+    const ajo = rawAjo ? JSON.parse(rawAjo) : { daysInMonth: 30, completedDays: 5, selectedMonth: 'Current' };
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    modalTitle.textContent = "📅 FANCY AUTO-MARKING CALENDAR";
+    modalTitle.textContent = `📅 ${ajo.selectedMonth.toUpperCase()} AUTO-MARKING CALENDAR (${ajo.daysInMonth} Days)`;
 
     let calendarGridHtml = '';
-    for (let day = 1; day <= 30; day++) {
+    for (let day = 1; day <= ajo.daysInMonth; day++) {
         let isCompleted = day <= ajo.completedDays;
         let bgStyle = isCompleted ? 'background:#10b981; color:#0f172a; border-color:#059669;' : 'background:#0f172a; color:#94a3b8; border-color:#334155;';
         let markIcon = isCompleted ? '✓' : day;
@@ -667,17 +695,18 @@ function viewAjoCalendar() {
             </div>
 
             <div style="padding:10px; background:#162032; border-radius:8px; border:1px dashed #10b981; text-align:center;">
-                <p style="color:#f59e0b; font-weight:800;">🔥 Streak Status: ${ajo.completedDays} Days Auto-Marked!</p>
-                <p style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">First contribution successfully locked & underwritten by @BL.</p>
+                <p style="color:#f59e0b; font-weight:800;">🔥 Streak Status: ${ajo.completedDays} / ${ajo.daysInMonth} Days Auto-Marked!</p>
+                <p style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Monthly first contributions underwritten by @BL.</p>
             </div>
         </div>
         <button onclick="openAjoSpace()" class="modal-btn" style="background:#334155; width:100%; margin-top:10px;">← Back to Ajo Space</button>
     `;
 }
 
+// 4. STATEMENT CAPTURING NET DUE AFTER GATEWAY DEDUCTIONS & EMERGENCY PENALTY
 function downloadAjoStatement() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 5000, netEntitlement: 145000 };
+    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 4000, netEntitlement: 145000, selectedMonth: 'Monthly', durationMonths: 1 };
     
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
@@ -687,10 +716,12 @@ function downloadAjoStatement() {
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.8rem; color:#cbd5e1; font-family:monospace;">
             <p style="color:#38bdf8; font-weight:800; text-align:center; margin-bottom:8px;">@BL SOVEREIGN GATEWAY - OFFICIAL AJO STATEMENT</p>
             <p><b>Merchant Name:</b> ${merchant.merchantName || 'Tope Ogegbo'}</p>
-            <p><b>Cycle Frequency:</b> ${ajo.frequency || 'Monthly'}</p>
-            <p><b>Contribution:</b> ₦${ajo.dailyAmount.toLocaleString()}</p>
-            <p><b>Net Entitlement Due:</b> ₦${ajo.netEntitlement ? ajo.netEntitlement.toLocaleString() : '145,000'}</p>
-            <p><b>Underwriting Policy:</b> 1st contribution settled to @BL</p>
+            <p><b>Cycle / Month:</b> ${ajo.selectedMonth} (${ajo.durationMonths} Month Plan)</p>
+            <p><b>Daily Contribution:</b> ₦${ajo.dailyAmount.toLocaleString()}</p>
+            <p><b>Gross Accumulated:</b> ₦${ajo.accumulatedProceeds.toLocaleString()}</p>
+            <p><b>Gateway Underwriting Deductions:</b> - ₦${ajo.gatewayFee.toLocaleString()}</p>
+            <p style="color:#f59e0b; font-weight:800; margin-top:6px;"><b>Net Entitlement Due:</b> ₦${ajo.netEntitlement.toLocaleString()}</p>
+            <p><b>Underwriting Policy:</b> 1st contribution per month settled to @BL</p>
             <hr style="border-color:#334155; margin:8px 0;">
             <p style="color:#10b981; text-align:center;">[VERIFIED & SECURED BY @BL SOVEREIGN GATEWAY]</p>
         </div>
@@ -698,13 +729,13 @@ function downloadAjoStatement() {
     `;
 }
 
-// 4. PROFESSIONAL EMERGENCY EXIT WITH 5% PENALTY CALCULATION
+// 5. PROFESSIONAL EMERGENCY EXIT WITH 5% PENALTY ON REMAINING BALANCE
 function triggerEmergencyExit() {
-    if (confirm("⚠️ EMERGENCY EXIT NOTICE:\n\nAre you sure you want to back out before cycle maturity? A mandatory 5% emergency penalty will apply to your remaining proceeds.")) {
+    if (confirm("⚠️ EMERGENCY EXIT NOTICE:\n\nAre you sure you want to back out before maturity? A mandatory 5% emergency penalty will apply to your net entitlement balance.")) {
         const rawAjo = localStorage.getItem('activeAjoPlan');
         if (rawAjo) {
             let ajo = JSON.parse(rawAjo);
-            let balanceToPenalize = ajo.netEntitlement || (ajo.accumulatedProceeds - ajo.dailyAmount);
+            let balanceToPenalize = ajo.netEntitlement; 
             let penalty = balanceToPenalize * 0.05;
             let netPayout = balanceToPenalize - penalty;
             
@@ -713,7 +744,7 @@ function triggerEmergencyExit() {
             localStorage.removeItem('activeAjoPlan');
             refreshLedgerDisplay();
 
-            alert(`Emergency exit processed successfully.\n\n- Net Balance: ₦${balanceToPenalize.toLocaleString()}\n- 5% Penalty Applied: ₦${penalty.toLocaleString()}\n- Net Payout Credited: ₦${netPayout.toLocaleString()}`);
+            alert(`Emergency exit processed successfully.\n\n- Net Entitlement: ₦${balanceToPenalize.toLocaleString()}\n- 5% Penalty Applied: ₦${penalty.toLocaleString()}\n- Net Payout Credited to Ledger: ₦${netPayout.toLocaleString()}`);
             closeModal();
         }
     }
