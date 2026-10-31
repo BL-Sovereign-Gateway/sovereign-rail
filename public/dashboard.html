@@ -364,7 +364,8 @@
     <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
-        <div class="product-card" onclick="openAjoExpressModal()">
+        <!-- AJO EXPRESS CARD WITH GUARANTEED BINDING -->
+        <div class="product-card" id="ajoCardTrigger" style="cursor: pointer;">
             <div class="product-icon">🏺</div>
             <div>
                 <div class="product-name">AJO EXPRESS</div>
@@ -459,6 +460,15 @@ function initSession() {
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
 
+    // Guarantee Ajo card click binding
+    const ajoCard = document.getElementById('ajoCardTrigger');
+    if (ajoCard) {
+        ajoCard.addEventListener('click', function(e) {
+            e.preventDefault();
+            openAjoExpressModal();
+        });
+    }
+
     setup5MinIdleTimer();
 }
 
@@ -468,7 +478,6 @@ function setup5MinIdleTimer() {
 
     const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
     activityEvents.forEach(evt => {
-        window.removeEventListener(evt, resetIdleTimer);
         window.removeEventListener(evt, resetIdleTimer);
         window.addEventListener(evt, resetIdleTimer);
     });
@@ -547,9 +556,9 @@ function openAjoExpressModal() {
             <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ SEAMLESS MULTI-MONTH & CALENDAR ALIGNMENT:</p>
             <ul style="padding-left:16px; margin-bottom:8px;">
                 <li><b>Contribution Minimum:</b> ₦500 and above daily.</li>
-                <li><b>Auto-Month Alignment:</b> System automatically handles 28, 29, 30, or 31 days depending on the selected month and multi-month duration.</li>
+                <li><b>Auto-Month Alignment:</b> System automatically handles 28, 29, 30, or 31 days depending on selected months.</li>
                 <li><b>Underwriting Policy:</b> Every monthly first contribution goes unnegotiably to <b>@BL Sovereign Gateway</b> as underwriting fee.</li>
-                <li><b>Emergency Exit Rule:</b> Backing out before maturity attracts a <b>5% administrative penalty</b> on remaining balance.</li>
+                <li><b>Emergency Exit Rule:</b> Backing out before maturity attracts a <b>5% administrative penalty</b> on net balance.</li>
             </ul>
         </div>
         <div class="form-group">
@@ -590,8 +599,7 @@ function startAjoPlan() {
 
     const totalDays = daysInMonth * durationMonths;
     const grossAccumulated = amount * totalDays;
-    // Every monthly first contribution goes to gateway (durationMonths * daily amount)
-    const gatewayFirstFees = amount * durationMonths;
+    const gatewayFirstFees = amount * durationMonths; // Every monthly first contribution goes to gateway
     const netEntitlementDue = grossAccumulated - gatewayFirstFees;
 
     const ajoData = {
@@ -716,12 +724,12 @@ function downloadAjoStatement() {
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.8rem; color:#cbd5e1; font-family:monospace;">
             <p style="color:#38bdf8; font-weight:800; text-align:center; margin-bottom:8px;">@BL SOVEREIGN GATEWAY - OFFICIAL AJO STATEMENT</p>
             <p><b>Merchant Name:</b> ${merchant.merchantName || 'Tope Ogegbo'}</p>
-            <p><b>Cycle / Month:</b> ${ajo.selectedMonth} (${ajo.durationMonths} Month Plan)</p>
+            <p><b>Cycle / Month:</b> ${ajo.selectedMonth} (${ajo.durationMonths} Month Plan - ${ajo.totalDays} Days)</p>
             <p><b>Daily Contribution:</b> ₦${ajo.dailyAmount.toLocaleString()}</p>
             <p><b>Gross Accumulated:</b> ₦${ajo.accumulatedProceeds.toLocaleString()}</p>
             <p><b>Gateway Underwriting Deductions:</b> - ₦${ajo.gatewayFee.toLocaleString()}</p>
             <p style="color:#f59e0b; font-weight:800; margin-top:6px;"><b>Net Entitlement Due:</b> ₦${ajo.netEntitlement.toLocaleString()}</p>
-            <p><b>Underwriting Policy:</b> 1st contribution per month settled to @BL</p>
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:4px;">* Note: In case of early emergency exit, a 5% penalty applies to the net balance above.</p>
             <hr style="border-color:#334155; margin:8px 0;">
             <p style="color:#10b981; text-align:center;">[VERIFIED & SECURED BY @BL SOVEREIGN GATEWAY]</p>
         </div>
@@ -729,7 +737,7 @@ function downloadAjoStatement() {
     `;
 }
 
-// 5. PROFESSIONAL EMERGENCY EXIT WITH 5% PENALTY ON REMAINING BALANCE
+// 5. PROFESSIONAL EMERGENCY EXIT WITH 5% PENALTY ON NET ENTITLEMENT
 function triggerEmergencyExit() {
     if (confirm("⚠️ EMERGENCY EXIT NOTICE:\n\nAre you sure you want to back out before maturity? A mandatory 5% emergency penalty will apply to your net entitlement balance.")) {
         const rawAjo = localStorage.getItem('activeAjoPlan');
