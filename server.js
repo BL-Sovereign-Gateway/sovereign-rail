@@ -767,6 +767,92 @@ app.post('/api/v1/auth/signup', async (req, res) => {
     }
 });
 
+// =========================================================================
+// 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE BACKEND ENDPOINTS
+// =========================================================================
+
+// Save or Subscribe to Ajo Plan
+app.post('/api/v1/ajo/subscribe', async (req, res) => {
+    try {
+        const { phone, dailyAmount, selectedMonth, durationMonths, totalDays } = req.body;
+        merchantAccounts = loadAccounts();
+        const cleanPhone = normalizePhoneNumber(phone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        const grossAccumulated = parseFloat(dailyAmount) * parseInt(totalDays);
+        const gatewayFirstFees = parseFloat(dailyAmount) * parseInt(durationMonths);
+        const netEntitlementDue = grossAccumulated - gatewayFirstFees;
+
+        account.ajoExpress = {
+            status: 'ACTIVE',
+            dailyAmount: parseFloat(dailyAmount),
+            selectedMonth,
+            durationMonths: parseInt(durationMonths),
+            totalDays: parseInt(totalDays),
+            accumulatedProceeds: grossAccumulated,
+            gatewayFee: gatewayFirstFees,
+            netEntitlement: netEntitlementDue,
+            completedDays: 0,
+            startDate: new Date().toISOString()
+        };
+
+        saveAccounts(merchantAccounts);
+        console.log(`🏺 Ajo Plan Activated for Merchant [${cleanPhone}] | Net Due: ₦${netEntitlementDue.toLocaleString()}`);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Ajo plan successfully activated.',
+            ajoData: account.ajoExpress
+        });
+    } catch (err) {
+        console.error('❌ Ajo Subscription Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing Ajo subscription.' });
+    }
+});
+
+// Process Emergency Exit with 5% Penalty
+app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        merchantAccounts = loadAccounts();
+        const cleanPhone = normalizePhoneNumber(phone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account || !account.ajoExpress || account.ajoExpress.status !== 'ACTIVE') {
+            return res.status(404).json({ status: 'error', message: 'No active Ajo plan found.' });
+        }
+
+        const balanceToPenalize = account.ajoExpress.netEntitlement || 0;
+        const penalty = balanceToPenalize * 0.05;
+        const netPayout = balanceToPenalize - penalty;
+
+        account.balance = (parseFloat(account.balance) || 0) + netPayout;
+        account.ajoExpress.status = 'EXITED_PREMATURELY';
+        
+        saveAccounts(merchantAccounts);
+        console.log(`⚠️ Ajo Emergency Exit Processed for [${cleanPhone}] | Net Payout Credited: ₦${netPayout.toLocaleString()}`);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Emergency exit processed successfully.',
+            netPayout,
+            penalty,
+            newLedgerBalance: account.balance
+        });
+    } catch (err) {
+        console.error('❌ Ajo Emergency Exit Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing emergency exit.' });
+    }
+});
+
+// ⬇️ LEAVE app.listen(...) BELOW THIS POINT ⬇️
+app.listen(PORT, () => {
+    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER RUNNING ON PORT ${PORT}`);
+});
 // Start Server Engine
 app.listen(PORT, () => {
     console.log(`============================================================================`);
