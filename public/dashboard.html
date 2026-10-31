@@ -534,29 +534,29 @@ function openAjoExpressModal() {
 
     const currentYear = new Date().getFullYear();
     const monthsList = [
-        {name: "January", days: 31, val: 0},
-        {name: "February", days: (currentYear % 4 === 0 ? 29 : 28), val: 1},
-        {name: "March", days: 31, val: 2},
-        {name: "April", days: 30, val: 3},
-        {name: "May", days: 31, val: 4},
-        {name: "June", days: 30, val: 5},
-        {name: "July", days: 31, val: 6},
-        {name: "August", days: 31, val: 7},
-        {name: "September", days: 30, val: 8},
-        {name: "October", days: 31, val: 9},
-        {name: "November", days: 30, val: 10},
-        {name: "December", days: 31, val: 11}
+        {name: "January", days: 31},
+        {name: "February", days: (currentYear % 4 === 0 ? 29 : 28)},
+        {name: "March", days: 31},
+        {name: "April", days: 30},
+        {name: "May", days: 31},
+        {name: "June", days: 30},
+        {name: "July", days: 31},
+        {name: "August", days: 31},
+        {name: "September", days: 30},
+        {name: "October", days: 31},
+        {name: "November", days: 30},
+        {name: "December", days: 31}
     ];
 
-    let monthOptions = monthsList.map((m, idx) => `<option value="${idx}" data-days="${m.days}">${m.name} (${m.days} Days)</option>`).join('');
+    let monthOptions = monthsList.map((m, idx) => `<option value="${m.name}" data-days="${m.days}">${m.name} (${m.days} Days)</option>`).join('');
 
-    modalTitle.textContent = "🏺 AJO EXPRESS DIGITAL THRIFT & MICRO-CONTRIBUTIONS";
+    modalTitle.textContent = "🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.8rem; color:#cbd5e1; line-height:1.5; margin-bottom:12px;">
             <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ SEAMLESS MULTI-MONTH & CALENDAR ALIGNMENT:</p>
             <ul style="padding-left:16px; margin-bottom:8px;">
                 <li><b>Contribution Minimum:</b> ₦500 and above daily.</li>
-                <li><b>Auto-Month Alignment:</b> System automatically handles 28, 29, 30, or 31 days depending on selected months.</li>
+                <li><b>Auto-Month Alignment:</b> System automatically handles 28, 29, 30, or 31 days seamlessly across multi-month selections.</li>
                 <li><b>Underwriting Policy:</b> Every monthly first contribution goes unnegotiably to <b>@BL Sovereign Gateway</b> as underwriting fee.</li>
                 <li><b>Emergency Exit Rule:</b> Backing out before maturity attracts a <b>5% administrative penalty</b> on net balance.</li>
             </ul>
@@ -589,7 +589,7 @@ function openAjoExpressModal() {
 function startAjoPlan() {
     const amount = parseFloat(document.getElementById('ajoAmountInput').value);
     const monthSelect = document.getElementById('ajoMonthSelect');
-    const selectedMonthName = monthSelect.options[monthSelect.selectedIndex].text.split(' ')[0];
+    const selectedMonthName = monthSelect.value;
     const daysInMonth = parseInt(monthSelect.options[monthSelect.selectedIndex].getAttribute('data-days'));
     const durationMonths = parseInt(document.getElementById('ajoDurationSelect').value);
 
