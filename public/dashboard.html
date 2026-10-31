@@ -364,8 +364,8 @@
     <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
-        <!-- AJO EXPRESS CARD WITH GUARANTEED ONCLICK LISTENER -->
-        <div class="product-card" onclick="openAjoExpressModal()">
+        <!-- AJO EXPRESS CARD WITH EXPLICIT EVENT LISTENER BINDING -->
+        <div class="product-card" id="ajoCardTrigger" style="cursor: pointer;">
             <div class="product-icon">🏺</div>
             <div>
                 <div class="product-name">AJO EXPRESS</div>
@@ -459,6 +459,15 @@ function initSession() {
 
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
+
+    // Explicitly bind click event to Ajo Express card on load
+    const ajoCard = document.getElementById('ajoCardTrigger');
+    if (ajoCard) {
+        ajoCard.addEventListener('click', function(e) {
+            e.preventDefault();
+            openAjoExpressModal();
+        });
+    }
 
     setup5MinIdleTimer();
 }
