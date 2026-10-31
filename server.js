@@ -198,11 +198,11 @@ function getSquadRailFee(amount, channel) {
     const ch = (channel || 'pg').toLowerCase();
     const amt = parseFloat(amount);
     if (ch === 'va' || ch === 'virtual_account') {
-        return Math.min(amt * 0.01, 1000.00); // 1% capped at ₦1,000
+        return Math.min(amt * 0.01, 1000.00);
     } else if (ch === 'ussd') {
-        return Math.max(amt * 0.012, 20.00);   // Min ₦20
+        return Math.max(amt * 0.012, 20.00);
     } else {
-        return Math.min(amt * 0.012, 1500.00); // PG: 1.2% capped at ₦1,500
+        return Math.min(amt * 0.012, 1500.00);
     }
 }
 
@@ -458,7 +458,7 @@ async function generateDynamicSquadAccount(orderData) {
             currency: 'NGN',
             initiate_type: 'inline',
             transaction_ref: orderRef,
-            duration: 900 // 15 Minutes
+            duration: 900
         };
 
         const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/initiated-dynamic-virtual-account`, payload, {
@@ -596,7 +596,6 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 
                 return res.status(200).json({ status: 'success', message: 'Merchant credited and order fulfilled successfully' });
             } else {
-                // Handle guest checkouts via dynamic 15-min NUBANs
                 pendingOrders = loadPendingOrders();
                 const matchedOrder = Object.values(pendingOrders).find(
                     ord => ord.orderRef === txRef || ord.dynamicNuban === paymentData.virtual_account_number
@@ -722,54 +721,47 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     </div>
 
                     <div class="account-box">
-                        <div style="color: #38bdf8; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">📌 DEDICATED COLLECTION ACCOUNT DETAILS</div>
-                        <div class="info-row">
-                            <span class="info-label">Account Name:</span>
-                            <span class="info-val">${MASTER_SQUAD_ACCOUNT_NAME}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Account Number:</span>
-                            <span class="info-val">${newMerchant.virtualNuban}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Bank Name:</span>
-                            <span class="info-val">${newMerchant.virtualBank}</span>
-                        </div>
+                        <div style="color: #38bdf8; font-size: 12px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">Your Dedicated NUBAN Details:</div>
+                        <div class="info-row"><span class="info-label">Account Name:</span> <span class="info-val">${newMerchant.accountBeneficiary}</span></div>
+                        <div class="info-row"><span class="info-label">Account Number:</span> <span class="info-val">${newMerchant.virtualNuban}</span></div>
+                        <div class="info-row"><span class="info-label">Bank Name:</span> <span class="info-val">${newMerchant.virtualBank}</span></div>
                     </div>
 
-                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">ACCESS MERCHANT DASHBOARD</a>
+                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">Launch Dashboard Desk</a>
 
                     <div class="footer">
-                        &copy; 2026 ALL TIME BUSINESS LTD. All rights reserved.<br>
-                        Powered by Squad Co & GTBank Rails.
+                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | All Rights Reserved.
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Dedicated NUBAN Provisioned', welcomeMailHtml);
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Your Virtual Account is Live', welcomeMailHtml);
 
         return res.status(200).json({
             status: 'success',
-            message: 'Merchant account created successfully.',
+            message: 'Merchant registered successfully.',
             merchant: {
+                id: newMerchant.id,
                 merchantName: newMerchant.merchantName,
                 phone: newMerchant.phone,
                 email: newMerchant.email,
                 virtualNuban: newMerchant.virtualNuban,
-                virtualBank: newMerchant.virtualBank
+                virtualBank: newMerchant.virtualBank,
+                balance: newMerchant.balance
             }
         });
     } catch (err) {
         console.error('❌ Signup Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
     }
+});
+
 // =========================================================================
 // 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE BACKEND ENDPOINTS
 // =========================================================================
 
-// Save or Subscribe to Ajo Plan
 app.post('/api/v1/ajo/subscribe', async (req, res) => {
     try {
         const { phone, dailyAmount, selectedMonth, durationMonths, totalDays } = req.body;
@@ -812,7 +804,6 @@ app.post('/api/v1/ajo/subscribe', async (req, res) => {
     }
 });
 
-// Process Emergency Exit with 5% Penalty
 app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
     try {
         const { phone } = req.body;
@@ -846,14 +837,11 @@ app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
         return res.status(500).json({ status: 'error', message: 'Internal server error processing emergency exit.' });
     }
 });
-// ⬇️ LEAVE app.listen(...) BELOW THIS POINT ⬇️
+
+// =========================================================================
+// 🚀 SERVER LISTENER
+// =========================================================================
+
 app.listen(PORT, () => {
     console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER RUNNING ON PORT ${PORT}`);
-});
-// Start Server Engine
-app.listen(PORT, () => {
-    console.log(`============================================================================`);
-    console.log(`🚀 @BL SOVEREIGN GATEWAY MASTER ENGINE RUNNING ON PORT ${PORT}`);
-    console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444) | GTBank VA / USSD 411727`);
-    console.log(`============================================================================`);
 });
