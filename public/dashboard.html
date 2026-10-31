@@ -364,7 +364,7 @@
     <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
-        <!-- AJO EXPRESS CARD WITH FIXED CLICK HANDLER -->
+        <!-- AJO EXPRESS CARD WITH GUARANTEED ONCLICK LISTENER -->
         <div class="product-card" onclick="openAjoExpressModal()">
             <div class="product-icon">🏺</div>
             <div>
@@ -372,24 +372,24 @@
                 <div class="product-desc">Ajo / Esusu Digital Thrift & Micro-Contributions</div>
             </div>
         </div>
-        <a href="/education-support" class="product-card">
+        <div class="product-card" onclick="window.location.href='/education-support'">
             <div class="product-icon">🎓</div>
             <div>
                 <div class="product-name">WAEC / JAMB Result PINs</div>
             </div>
-        </a>
-        <a href="/credit-support" class="product-card">
+        </div>
+        <div class="product-card" onclick="window.location.href='/credit-support'">
             <div class="product-icon">💳</div>
             <div>
                 <div class="product-name">SAIL Credit supports</div>
             </div>
-        </a>
-        <a href="#" class="product-card" onclick="alert('Stocks & Equity Module coming soon!')">
+        </div>
+        <div class="product-card" onclick="alert('Stocks & Equity Module coming soon!')">
             <div class="product-icon">📈</div>
             <div>
                 <div class="product-name">Buy Stocks & Equity</div>
             </div>
-        </a>
+        </div>
     </div>
 
 </div>
@@ -586,7 +586,7 @@ function startAjoPlan() {
     openAjoSpace();
 }
 
-// 2. DEDICATED AJO SPACE WITH DETAILED CALCULATIONS (PICTURE 1)
+// 2. DEDICATED AJO SPACE WITH DETAILED CALCULATIONS
 function openAjoSpace() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
     if (!rawAjo) {
