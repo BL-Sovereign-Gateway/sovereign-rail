@@ -364,8 +364,8 @@
     <!-- VTU, BILLS & FINANCIAL PRODUCTS -->
     <div class="section-title">VTU, Bills & Financial Products</div>
     <div class="products-grid">
-        <!-- AJO EXPRESS CARD WITH GUARANTEED BINDING -->
-        <div class="product-card" id="ajoCardTrigger" style="cursor: pointer;">
+        <!-- DIRECT ONCLICK HANDLER ON THE CARD TO ENSURE 100% RESPONSIVENESS -->
+        <div class="product-card" onclick="openAjoExpressModal()" style="cursor: pointer;">
             <div class="product-icon">🏺</div>
             <div>
                 <div class="product-name">AJO EXPRESS</div>
@@ -460,15 +460,6 @@ function initSession() {
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
 
-    // Guarantee Ajo card click binding
-    const ajoCard = document.getElementById('ajoCardTrigger');
-    if (ajoCard) {
-        ajoCard.addEventListener('click', function(e) {
-            e.preventDefault();
-            openAjoExpressModal();
-        });
-    }
-
     setup5MinIdleTimer();
 }
 
@@ -548,7 +539,7 @@ function openAjoExpressModal() {
         {name: "December", days: 31}
     ];
 
-    let monthOptions = monthsList.map((m, idx) => `<option value="${m.name}" data-days="${m.days}">${m.name} (${m.days} Days)</option>`).join('');
+    let monthOptions = monthsList.map((m) => `<option value="${m.name}" data-days="${m.days}">${m.name} (${m.days} Days)</option>`).join('');
 
     modalTitle.textContent = "🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE";
     modalBody.innerHTML = `
