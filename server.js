@@ -765,8 +765,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         console.error('❌ Signup Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
     }
-});
-
 // =========================================================================
 // 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE BACKEND ENDPOINTS
 // =========================================================================
@@ -848,7 +846,6 @@ app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
         return res.status(500).json({ status: 'error', message: 'Internal server error processing emergency exit.' });
     }
 });
-
 // ⬇️ LEAVE app.listen(...) BELOW THIS POINT ⬇️
 app.listen(PORT, () => {
     console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER RUNNING ON PORT ${PORT}`);
