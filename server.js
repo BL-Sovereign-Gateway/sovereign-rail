@@ -8,7 +8,7 @@
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
  * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
- * Native Automated Month-End Ajo Payout Engine | Dynamic 15-Min Expiring NUBANs
+ * Automated Real-Time Month & Calendar Engine | Dynamic 15-Min Expiring NUBANs
  * ============================================================================
  */
 
@@ -170,7 +170,17 @@ function normalizePhoneNumber(phone) {
     return cleaned;
 }
 
-// Helper to serve specific static HTML file if it exists, otherwise fall back to target
+// Dynamic Real-Time Date & Month Calculator Helper
+function getCurrentCalendarMonthDetails() {
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const now = new Date();
+    const monthName = months[now.getMonth()];
+    const year = now.getFullYear();
+    const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
+    return { monthName, year, daysInMonth };
+}
+
+// Helper to serve specific static HTML file if it exists
 function serveModuleFile(fileName, fallbackName = 'dashboard.html') {
     return (req, res) => {
         const targetPath = path.join(__dirname, 'public', fileName);
@@ -759,12 +769,24 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 });
 
 // =========================================================================
-// 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE BACKEND ENDPOINTS
+// 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE BACKEND ENDPOINTS (AUTOMATED MONTHS)
 // =========================================================================
 
+// Fetch Current Active Server Month Info
+app.get('/api/v1/ajo/current-month', (req, res) => {
+    const calendar = getCurrentCalendarMonthDetails();
+    return res.status(200).json({
+        status: 'success',
+        monthName: calendar.monthName,
+        year: calendar.year,
+        daysInMonth: calendar.daysInMonth
+    });
+});
+
+// Subscribe to or Update Ajo Plan
 app.post('/api/v1/ajo/subscribe', async (req, res) => {
     try {
-        const { phone, dailyAmount, selectedMonth, durationMonths, totalDays } = req.body;
+        const { phone, dailyAmount, durationMonths } = req.body;
         merchantAccounts = loadAccounts();
         const cleanPhone = normalizePhoneNumber(phone);
         const account = merchantAccounts[cleanPhone];
@@ -773,16 +795,21 @@ app.post('/api/v1/ajo/subscribe', async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
         }
 
-        const grossAccumulated = parseFloat(dailyAmount) * parseInt(totalDays);
-        const gatewayFirstFees = parseFloat(dailyAmount) * parseInt(durationMonths);
+        const { monthName, year, daysInMonth } = getCurrentCalendarMonthDetails();
+        const selectedDuration = parseInt(durationMonths || 1);
+        const totalDays = daysInMonth * selectedDuration;
+
+        const grossAccumulated = parseFloat(dailyAmount) * totalDays;
+        const gatewayFirstFees = parseFloat(dailyAmount) * selectedDuration;
         const netEntitlementDue = grossAccumulated - gatewayFirstFees;
 
         account.ajoExpress = {
             status: 'ACTIVE',
             dailyAmount: parseFloat(dailyAmount),
-            selectedMonth,
-            durationMonths: parseInt(durationMonths),
-            totalDays: parseInt(totalDays),
+            selectedMonth: `${monthName} ${year}`,
+            durationMonths: selectedDuration,
+            daysInMonth: daysInMonth,
+            totalDays: totalDays,
             accumulatedProceeds: grossAccumulated,
             gatewayFee: gatewayFirstFees,
             netEntitlement: netEntitlementDue,
@@ -791,7 +818,7 @@ app.post('/api/v1/ajo/subscribe', async (req, res) => {
         };
 
         saveAccounts(merchantAccounts);
-        console.log(`🏺 Ajo Plan Activated for Merchant [${cleanPhone}] | Net Due: ₦${netEntitlementDue.toLocaleString()}`);
+        console.log(`🏺 Ajo Plan Activated for Merchant [${cleanPhone}] | Month: ${monthName} ${year} | Net Due: ₦${netEntitlementDue.toLocaleString()}`);
 
         return res.status(200).json({
             status: 'success',
@@ -804,6 +831,7 @@ app.post('/api/v1/ajo/subscribe', async (req, res) => {
     }
 });
 
+// Process Emergency Exit with 5% Penalty
 app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
     try {
         const { phone } = req.body;
@@ -839,9 +867,57 @@ app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
 });
 
 // =========================================================================
+// 🌙 AUTOMATED MIDNIGHT MONTH-END ROLLOVER SCHEDULER (AUTOMATIC PAYOUTS)
+// =========================================================================
+
+function checkAndProcessMonthEndRollover() {
+    const now = new Date();
+    // Run checks at midnight on the 1st day of every month
+    if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 5) {
+        console.log(`🌙 INITIATING AUTOMATED MIDNIGHT AJO MONTH-END ROLLOVER...`);
+        merchantAccounts = loadAccounts();
+        let rolloverCount = 0;
+
+        const { monthName, year } = getCurrentCalendarMonthDetails();
+
+        Object.keys(merchantAccounts).forEach(phone => {
+            const acc = merchantAccounts[phone];
+            if (acc.ajoExpress && acc.ajoExpress.status === 'ACTIVE') {
+                const payoutAmount = acc.ajoExpress.netEntitlement || 0;
+                acc.balance = (parseFloat(acc.balance) || 0) + payoutAmount;
+                
+                acc.ajoExpress.status = 'COMPLETED_AUTOMATED_ROLLOVER';
+                acc.ajoExpress.completedAt = now.toISOString();
+
+                console.log(`🎉 Automated Month-End Payout Credited for [${phone}]: ₦${payoutAmount.toLocaleString()}`);
+                
+                dispatchImmediateTransactionSMS(
+                    phone,
+                    `Automated Ajo Maturity Payout (${monthName})`,
+                    'Gateway Ledger',
+                    payoutAmount,
+                    acc.balance,
+                    `AJO-MAT-${Date.now()}`
+                );
+
+                rolloverCount++;
+            }
+        });
+
+        saveAccounts(merchantAccounts);
+        console.log(`✅ MONTH-END ROLLOVER COMPLETE: ${rolloverCount} Ajo Express plans matured and credited.`);
+    }
+}
+
+// Check every 30 minutes for midnight month-end transition
+setInterval(checkAndProcessMonthEndRollover, 1800000);
+
+// =========================================================================
 // 🚀 SERVER LISTENER
 // =========================================================================
 
 app.listen(PORT, () => {
     console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER RUNNING ON PORT ${PORT}`);
+    const current = getCurrentCalendarMonthDetails();
+    console.log(`📅 Real-Time Calendar Engine Active: Current Month is ${current.monthName} ${current.year} (${current.daysInMonth} Days)`);
 });
