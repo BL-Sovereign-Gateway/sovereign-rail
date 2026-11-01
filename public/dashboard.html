@@ -412,6 +412,7 @@ let merchant = {};
 let isLedgerVisible = false;
 let isCreditVisible = false;
 let idleTimer = null;
+let currentServerMonth = { monthName: "November", year: 2026, daysInMonth: 30 };
 
 const NIGERIAN_BANKS = [
     "Access Bank Plc",
@@ -438,7 +439,7 @@ const NIGERIAN_BANKS = [
     "FairMoney Microfinance Bank"
 ];
 
-function initSession() {
+async function initSession() {
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
     try { 
         merchant = JSON.parse(rawSession); 
@@ -457,6 +458,17 @@ function initSession() {
 
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
+
+    // Auto-Fetch Active Real-Time Server Month
+    try {
+        const res = await fetch('/api/v1/ajo/current-month');
+        const data = await res.json();
+        if (data.status === 'success') {
+            currentServerMonth = data;
+        }
+    } catch (e) {
+        console.warn('Using local November 2026 month fallback.');
+    }
 
     setup5MinIdleTimer();
 }
@@ -511,27 +523,32 @@ function refreshLedgerDisplay() {
 }
 
 // =========================================================================
-// 🏺 AJO EXPRESS FRONTEND & SERVER-CONNECTED ROUTINES (AUTO-DETECT OCTOBER)
+// 🏺 AJO EXPRESS FRONTEND (AUTOMATED NOVEMBER 2026 CALENDAR & STATEMENT)
 // =========================================================================
 
 window.openAjoExpressModal = function() {
-    const activeAjo = localStorage.getItem('activeAjoPlan');
+    let activeAjo = localStorage.getItem('activeAjoPlan');
     if (activeAjo) {
-        openAjoSpace(); 
-        return;
+        let ajoObj = JSON.parse(activeAjo);
+        // Auto-purge stale October or old month plans
+        if (ajoObj.selectedMonth && !ajoObj.selectedMonth.includes(currentServerMonth.monthName)) {
+            localStorage.removeItem('activeAjoPlan');
+            activeAjo = null;
+        } else {
+            openAjoSpace(); 
+            return;
+        }
     }
 
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    // Auto-detect current month (October)
-    const defaultMonthName = "October";
-    const defaultDays = 31;
+    const defaultMonthName = currentServerMonth.monthName;
+    const defaultDays = currentServerMonth.daysInMonth;
 
-    const currentYear = new Date().getFullYear();
     const monthsList = [
         {name: "January", days: 31},
-        {name: "February", days: (currentYear % 4 === 0 ? 29 : 28)},
+        {name: "February", days: 28},
         {name: "March", days: 31},
         {name: "April", days: 30},
         {name: "May", days: 31},
@@ -552,10 +569,10 @@ window.openAjoExpressModal = function() {
     modalTitle.textContent = "🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.8rem; color:#cbd5e1; line-height:1.5; margin-bottom:12px;">
-            <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ PROFESSIONAL AUTO-MONTH ALIGNMENT (${defaultMonthName.toUpperCase()} 2026):</p>
+            <p style="color:#10b981; font-weight:800; margin-bottom:6px;">✨ PROFESSIONAL AUTO-MONTH ALIGNMENT (${defaultMonthName.toUpperCase()} ${currentServerMonth.year}):</p>
             <ul style="padding-left:16px; margin-bottom:8px;">
                 <li><b>Contribution Minimum:</b> ₦500 and above daily.</li>
-                <li><b>Auto-Month Alignment:</b> Current month active (${defaultMonthName} with ${defaultDays} Days).</li>
+                <li><b>Auto-Month Alignment:</b> Active Current Month (${defaultMonthName} with ${defaultDays} Days).</li>
                 <li><b>Underwriting Policy:</b> Every monthly first contribution goes unnegotiably to <b>@BL Sovereign Gateway</b> as underwriting fee.</li>
                 <li><b>Emergency Exit Rule:</b> Backing out before maturity attracts a <b>5% administrative penalty</b> on net balance.</li>
             </ul>
@@ -613,7 +630,7 @@ window.startAjoPlan = async function() {
 
         const result = await response.json();
         if (result.status === 'success') {
-            result.ajoData.selectedMonth = selectedMonthName;
+            result.ajoData.selectedMonth = `${selectedMonthName} ${currentServerMonth.year}`;
             result.ajoData.daysInMonth = daysInMonth;
             localStorage.setItem('activeAjoPlan', JSON.stringify(result.ajoData));
             alert('🎉 Ajo Subscription Successful! Welcome to your automated Ajo Space.');
@@ -627,7 +644,7 @@ window.startAjoPlan = async function() {
         const gatewayFees = amount * durationMonths;
         const localAjoData = {
             dailyAmount: amount,
-            selectedMonth: selectedMonthName,
+            selectedMonth: `${selectedMonthName} ${currentServerMonth.year}`,
             durationMonths: durationMonths,
             daysInMonth: daysInMonth,
             totalDays: totalDays,
@@ -653,8 +670,8 @@ window.openAjoSpace = function() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const monthDisplay = ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'OCTOBER';
-    const totalDaysDisplay = ajo.totalDays || ajo.daysInMonth || 31;
+    const monthDisplay = (ajo.selectedMonth || `NOVEMBER ${currentServerMonth.year}`).toUpperCase();
+    const totalDaysDisplay = ajo.totalDays || ajo.daysInMonth || 30;
 
     modalTitle.textContent = "🏺 YOUR DEDICATED AJO SPACE";
     modalBody.innerHTML = `
@@ -697,12 +714,12 @@ window.openAjoSpace = function() {
 
 window.viewAjoCalendar = function() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { daysInMonth: 31, completedDays: 0, selectedMonth: 'October' };
+    const ajo = rawAjo ? JSON.parse(rawAjo) : { daysInMonth: 30, completedDays: 0, selectedMonth: `November ${currentServerMonth.year}` };
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const monthName = ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'OCTOBER';
-    const totalDaysInMonth = ajo.daysInMonth || ajo.totalDays || 31;
+    const monthName = (ajo.selectedMonth || `NOVEMBER ${currentServerMonth.year}`).toUpperCase();
+    const totalDaysInMonth = ajo.daysInMonth || ajo.totalDays || 30;
     const completedCount = ajo.completedDays || 0;
 
     modalTitle.textContent = `📅 AJO CALENDAR - ${monthName} (${totalDaysInMonth} Days)`;
@@ -741,13 +758,13 @@ window.viewAjoCalendar = function() {
 
 window.downloadAjoStatement = function() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 4000, netEntitlement: 120000, selectedMonth: 'October', durationMonths: 1, daysInMonth: 31, totalDays: 31, accumulatedProceeds: 124000, gatewayFee: 4000 };
+    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 4000, netEntitlement: 116000, selectedMonth: `November ${currentServerMonth.year}`, durationMonths: 1, daysInMonth: 30, totalDays: 30, accumulatedProceeds: 120000, gatewayFee: 4000 };
     
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const monthName = ajo.selectedMonth ? ajo.selectedMonth.toUpperCase() : 'OCTOBER';
-    const totalDaysCount = ajo.daysInMonth || ajo.totalDays || 31;
+    const monthName = (ajo.selectedMonth || `NOVEMBER ${currentServerMonth.year}`).toUpperCase();
+    const totalDaysCount = ajo.daysInMonth || ajo.totalDays || 30;
 
     modalTitle.textContent = "📄 AJO EXPRESS STATEMENT OF ACCOUNT";
     modalBody.innerHTML = `
