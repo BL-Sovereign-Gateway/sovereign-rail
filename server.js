@@ -724,200 +724,97 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                         <div class="brand-title">@BL SOVEREIGN GATEWAY</div>
                         <div class="brand-subtitle">ALL TIME BUSINESS LTD • RC: 950444</div>
                     </div>
-                    
                     <div class="welcome-text">
                         Hello <strong>${merchantName}</strong>,<br><br>
-                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all Nigerian financial institutions.
+                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all banking apps and USSD channels.
+                        <div class="account-box">
+                            <div class="info-row"><span class="info-label">Account Number:</span><span class="info-val">${newMerchant.virtualNuban}</span></div>
+                            <div class="info-row"><span class="info-label">Bank Name:</span><span class="info-val">${newMerchant.virtualBank}</span></div>
+                            <div class="info-row"><span class="info-label">Beneficiary:</span><span class="info-val">${newMerchant.accountBeneficiary}</span></div>
+                            <div class="info-row"><span class="info-label">USSD Code:</span><span class="info-val">*737*35*${MASTER_SQUAD_USSD_MERCHANT_CODE}*Amount#</span></div>
+                        </div>
+                        You can now accept payments, manage savings, and disburse services directly from your merchant ledger with automated Access Bank sweeps.
                     </div>
-
-                    <div class="account-box">
-                        <div style="color: #38bdf8; font-size: 12px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">Your Dedicated NUBAN Details:</div>
-                        <div class="info-row"><span class="info-label">Account Name:</span> <span class="info-val">${newMerchant.accountBeneficiary}</span></div>
-                        <div class="info-row"><span class="info-label">Account Number:</span> <span class="info-val">${newMerchant.virtualNuban}</span></div>
-                        <div class="info-row"><span class="info-label">Bank Name:</span> <span class="info-val">${newMerchant.virtualBank}</span></div>
-                    </div>
-
-                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">Launch Dashboard Desk</a>
-
+                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">Access Dashboard</a>
                     <div class="footer">
-                        © 2026 ALL TIME BUSINESS LTD (RC: 950444) | All Rights Reserved.
+                        &copy; 2026 ALL TIME BUSINESS LTD (RC: 950444). All Rights Reserved.<br>
+                        Lagos East Senatorial District Operations.
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Your Virtual Account is Live', welcomeMailHtml);
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Account Provisioned', welcomeMailHtml);
 
-        return res.status(200).json({
+        return res.status(201).json({
             status: 'success',
-            message: 'Merchant registered successfully.',
-            merchant: {
-                id: newMerchant.id,
+            message: 'Merchant account onboarded successfully.',
+            data: {
                 merchantName: newMerchant.merchantName,
                 phone: newMerchant.phone,
                 email: newMerchant.email,
                 virtualNuban: newMerchant.virtualNuban,
-                virtualBank: newMerchant.virtualBank,
-                balance: newMerchant.balance
+                virtualBank: newMerchant.virtualBank
             }
         });
     } catch (err) {
-        console.error('❌ Signup Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error during registration.' });
+        console.error('❌ Onboarding Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal Server Error during registration.' });
     }
 });
 
-// =========================================================================
-// 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE BACKEND ENDPOINTS (AUTOMATED MONTHS)
-// =========================================================================
-
-// Fetch Current Active Server Month Info
-app.get('/api/v1/ajo/current-month', (req, res) => {
-    const calendar = getCurrentCalendarMonthDetails();
-    return res.status(200).json({
-        status: 'success',
-        monthName: calendar.monthName,
-        year: calendar.year,
-        daysInMonth: calendar.daysInMonth
-    });
-});
-
-// Subscribe to or Update Ajo Plan
-app.post('/api/v1/ajo/subscribe', async (req, res) => {
+app.post('/api/v1/auth/login', async (req, res) => {
     try {
-        const { phone, dailyAmount, durationMonths } = req.body;
         merchantAccounts = loadAccounts();
+        const { phone, password } = req.body;
+
         const cleanPhone = normalizePhoneNumber(phone);
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+            return res.status(404).json({ status: 'error', message: 'Account not found with this phone number.' });
         }
 
-        const { monthName, year, daysInMonth } = getCurrentCalendarMonthDetails();
-        const selectedDuration = parseInt(durationMonths || 1);
-        const totalDays = daysInMonth * selectedDuration;
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+        }
 
-        const grossAccumulated = parseFloat(dailyAmount) * totalDays;
-        const gatewayFirstFees = parseFloat(dailyAmount) * selectedDuration;
-        const netEntitlementDue = grossAccumulated - gatewayFirstFees;
-
-        account.ajoExpress = {
-            status: 'ACTIVE',
-            dailyAmount: parseFloat(dailyAmount),
-            selectedMonth: `${monthName} ${year}`,
-            durationMonths: selectedDuration,
-            daysInMonth: daysInMonth,
-            totalDays: totalDays,
-            accumulatedProceeds: grossAccumulated,
-            gatewayFee: gatewayFirstFees,
-            netEntitlement: netEntitlementDue,
-            completedDays: 0,
-            startDate: new Date().toISOString()
-        };
-
-        saveAccounts(merchantAccounts);
-        console.log(`🏺 Ajo Plan Activated for Merchant [${cleanPhone}] | Month: ${monthName} ${year} | Net Due: ₦${netEntitlementDue.toLocaleString()}`);
+        const isMatch = await bcrypt.compare(password, account.password);
+        if (!isMatch) {
+            return res.status(401).json({ status: 'error', message: 'Invalid password credential.' });
+        }
 
         return res.status(200).json({
             status: 'success',
-            message: 'Ajo plan successfully activated.',
-            ajoData: account.ajoExpress
-        });
-    } catch (err) {
-        console.error('❌ Ajo Subscription Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error processing Ajo subscription.' });
-    }
-});
-
-// Process Emergency Exit with 5% Penalty
-app.post('/api/v1/ajo/emergency-exit', async (req, res) => {
-    try {
-        const { phone } = req.body;
-        merchantAccounts = loadAccounts();
-        const cleanPhone = normalizePhoneNumber(phone);
-        const account = merchantAccounts[cleanPhone];
-
-        if (!account || !account.ajoExpress || account.ajoExpress.status !== 'ACTIVE') {
-            return res.status(404).json({ status: 'error', message: 'No active Ajo plan found.' });
-        }
-
-        const balanceToPenalize = account.ajoExpress.netEntitlement || 0;
-        const penalty = balanceToPenalize * 0.05;
-        const netPayout = balanceToPenalize - penalty;
-
-        account.balance = (parseFloat(account.balance) || 0) + netPayout;
-        account.ajoExpress.status = 'EXITED_PREMATURELY';
-        
-        saveAccounts(merchantAccounts);
-        console.log(`⚠️ Ajo Emergency Exit Processed for [${cleanPhone}] | Net Payout Credited: ₦${netPayout.toLocaleString()}`);
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Emergency exit processed successfully.',
-            netPayout,
-            penalty,
-            newLedgerBalance: account.balance
-        });
-    } catch (err) {
-        console.error('❌ Ajo Emergency Exit Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error processing emergency exit.' });
-    }
-});
-
-// =========================================================================
-// 🌙 AUTOMATED MIDNIGHT MONTH-END ROLLOVER SCHEDULER (AUTOMATIC PAYOUTS)
-// =========================================================================
-
-function checkAndProcessMonthEndRollover() {
-    const now = new Date();
-    // Run checks at midnight on the 1st day of every month
-    if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 5) {
-        console.log(`🌙 INITIATING AUTOMATED MIDNIGHT AJO MONTH-END ROLLOVER...`);
-        merchantAccounts = loadAccounts();
-        let rolloverCount = 0;
-
-        const { monthName, year } = getCurrentCalendarMonthDetails();
-
-        Object.keys(merchantAccounts).forEach(phone => {
-            const acc = merchantAccounts[phone];
-            if (acc.ajoExpress && acc.ajoExpress.status === 'ACTIVE') {
-                const payoutAmount = acc.ajoExpress.netEntitlement || 0;
-                acc.balance = (parseFloat(acc.balance) || 0) + payoutAmount;
-                
-                acc.ajoExpress.status = 'COMPLETED_AUTOMATED_ROLLOVER';
-                acc.ajoExpress.completedAt = now.toISOString();
-
-                console.log(`🎉 Automated Month-End Payout Credited for [${phone}]: ₦${payoutAmount.toLocaleString()}`);
-                
-                dispatchImmediateTransactionSMS(
-                    phone,
-                    `Automated Ajo Maturity Payout (${monthName})`,
-                    'Gateway Ledger',
-                    payoutAmount,
-                    acc.balance,
-                    `AJO-MAT-${Date.now()}`
-                );
-
-                rolloverCount++;
+            message: 'Authentication successful.',
+            data: {
+                merchantName: account.merchantName,
+                phone: account.phone,
+                email: account.email,
+                virtualNuban: account.virtualNuban,
+                virtualBank: account.virtualBank,
+                balance: account.balance
             }
         });
-
-        saveAccounts(merchantAccounts);
-        console.log(`✅ MONTH-END ROLLOVER COMPLETE: ${rolloverCount} Ajo Express plans matured and credited.`);
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Server authentication error.' });
     }
-}
-
-// Check every 30 minutes for midnight month-end transition
-setInterval(checkAndProcessMonthEndRollover, 1800000);
+});
 
 // =========================================================================
-// 🚀 SERVER LISTENER
+// 🚀 MASTER ENGINE STARTUP
 // =========================================================================
 
 app.listen(PORT, () => {
-    console.log(`🚀 @BL SOVEREIGN GATEWAY SERVER RUNNING ON PORT ${PORT}`);
-    const current = getCurrentCalendarMonthDetails();
-    console.log(`📅 Real-Time Calendar Engine Active: Current Month is ${current.monthName} ${current.year} (${current.daysInMonth} Days)`);
+    console.log(`
+====================================================================
+⚡ ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY SERVER ENGINE LIVE
+🚀 Operating on Port: ${PORT}
+🌐 Entity: ALL TIME BUSINESS LTD (RC: 950444)
+💳 Master Decal NUBAN: ${MASTER_SQUAD_NUBAN} (${MASTER_SQUAD_BANK})
+📲 Squad USSD Code: *737*35*${MASTER_SQUAD_USSD_MERCHANT_CODE}*Amount#
+🏦 Auto-Sweep Settlement Account: Access Bank (${ACCESS_BANK_DESTINATION_ACCOUNT})
+====================================================================
+    `);
 });
