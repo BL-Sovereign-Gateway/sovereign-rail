@@ -2,7 +2,8 @@
  * ============================================================================
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
- * Features: Squad Co GTBank Virtual Account API | Squad Webhook Listener |
+ * Features: Squad Co GTBank Virtual Account API (Individual & Business KYC) |
+ * Squad Webhook Listener & Signature Verification |
  * Squad Decal Master NUBAN (5000759098) | Squad USSD Code (411727) |
  * Intact Merchant Principal Crediting | Dynamic Tiered Markup Engine |
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
@@ -392,7 +393,7 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS)
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS - EXACT DASHBOARD ALIGNED)
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -402,19 +403,20 @@ async function generateSquadVirtualAccount(merchantData) {
         const nameParts = merchantData.merchantName.trim().split(' ');
         const firstName = nameParts[0] || 'Merchant';
         const lastName = nameParts.slice(1).join(' ') || 'User';
+        const cleanPhone = normalizePhoneNumber(merchantData.phone);
 
         const payload = {
+            customer_identifier: cleanPhone,
             first_name: firstName,
             last_name: lastName,
             middle_name: "",
-            mobile_num: normalizePhoneNumber(merchantData.phone),
+            mobile_num: cleanPhone,
             email: merchantData.email,
             bvn: merchantData.bvn,
-            dob: "1995-01-01",
+            dob: "01/01/1995",
+            gender: 1,
             address: "Lagos, Nigeria",
-            gender: "1",
-            customer_identifier: normalizePhoneNumber(merchantData.phone),
-            beneficiary_account: ACCESS_BANK_DESTINATION_ACCOUNT
+            beneficiary_account_number: ACCESS_BANK_DESTINATION_ACCOUNT
         };
 
         const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account`, payload, {
@@ -424,16 +426,19 @@ async function generateSquadVirtualAccount(merchantData) {
             }
         });
 
-        if (response.data && response.data.status === 200 && response.data.data) {
+        console.log('🏛️ Squad API Raw Response:', response.data);
+
+        if (response.data && (response.data.status === 200 || response.data.success) && response.data.data) {
             const accData = response.data.data;
-            console.log(`✅ Squad GTBank Virtual Account Created: ${accData.account_number} (GTBank)`);
+            const assignedNuban = accData.virtual_account_number || accData.account_number;
+            console.log(`✅ Squad GTBank Virtual Account Created: ${assignedNuban} (GTBank)`);
             return {
                 success: true,
-                virtualNuban: accData.account_number,
-                virtualBank: 'GTBank / Squad'
+                virtualNuban: assignedNuban,
+                virtualBank: accData.bank_name || 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad returned non-200 response, assigning master account.');
+            console.warn('⚠️ Squad rejected account creation, assigning master account fallback:', response.data.message);
             return {
                 success: true,
                 virtualNuban: MASTER_SQUAD_NUBAN,
@@ -468,7 +473,7 @@ async function generateDynamicSquadAccount(orderData) {
             currency: 'NGN',
             initiate_type: 'inline',
             transaction_ref: orderRef,
-            duration: 900
+            duration: 900 // 15 minutes expiration window
         };
 
         const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/initiated-dynamic-virtual-account`, payload, {
@@ -841,7 +846,7 @@ app.post('/api/v1/ajo/subscribe', async (req, res) => {
         const monthsCount = parseInt(durationMonths) || 1;
         const daysCount = parseInt(totalDays) || 30;
         const grossAccumulated = dailyAmt * daysCount;
-        const gatewayFee = dailyAmt * monthsCount; // 1st contribution per month goes to gateway underwriting
+        const gatewayFee = dailyAmt * monthsCount;
         const netEntitlement = grossAccumulated - gatewayFee;
 
         account.ajoExpress = {
