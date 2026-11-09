@@ -406,16 +406,14 @@ async function generateSquadVirtualAccount(merchantData) {
         const cleanPhone = normalizePhoneNumber(merchantData.phone);
         const customerId = merchantData.customerIdentifier || cleanPhone;
 
-        // Convert any date format to MM/DD/YYYY (Squad Standard Format)
         let formattedDob = "01/01/1995";
         if (merchantData.dob) {
             const raw = merchantData.dob.replace(/-/g, '/');
             const p = raw.split('/');
             if (p.length === 3) {
-                // If YYYY/MM/DD -> convert to MM/DD/YYYY
                 if (p[0].length === 4) {
                     formattedDob = `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
-                } else if (p[2].length === 4) { // If DD/MM/YYYY -> MM/DD/YYYY
+                } else if (p[2].length === 4) {
                     formattedDob = `${p[1].padStart(2, '0')}/${p[0].padStart(2, '0')}/${p[2]}`;
                 }
             }
@@ -455,19 +453,21 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: accData.bank_name || 'GTBank / Squad'
             };
         } else {
-            console.error('❌ Squad rejected payload:', response.data.message || response.data);
+            const errorReason = response.data.message || JSON.stringify(response.data);
+            console.error('❌ Squad rejected payload:', errorReason);
             return {
                 success: false,
-                virtualNuban: MASTER_SQUAD_NUBAN,
-                virtualBank: MASTER_SQUAD_BANK
+                message: errorReason,
+                virtualNuban: null
             };
         }
     } catch (err) {
-        console.error('❌ Squad API Request Exception:', err.response ? err.response.data : err.message);
+        const errorMsg = err.response ? JSON.stringify(err.response.data) : err.message;
+        console.error('❌ Squad API Request Exception:', errorMsg);
         return {
             success: false,
-            virtualNuban: MASTER_SQUAD_NUBAN,
-            virtualBank: MASTER_SQUAD_BANK
+            message: errorMsg,
+            virtualNuban: null
         };
     }
 }
@@ -692,6 +692,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         const cleanBvn = bvn.trim();
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Call Squad API and enforce failure if Squad rejects creation
         const squadRes = await generateSquadVirtualAccount({
             merchantName,
             customerIdentifier,
@@ -701,6 +702,13 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             dob,
             gender
         });
+
+        if (!squadRes.success || !squadRes.virtualNuban) {
+            return res.status(400).json({
+                status: 'error',
+                message: `Squad Virtual Account Creation Failed: ${squadRes.message}`
+            });
+        }
 
         const newMerchant = {
             id: `MCH-${Date.now()}`,
@@ -712,8 +720,8 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             withdrawalPin: (withdrawalPin && /^\d{4}$/.test(withdrawalPin.trim())) ? withdrawalPin.trim() : '1234',
             settlementAccount,
             bankName,
-            virtualNuban: squadRes.virtualNuban || MASTER_SQUAD_NUBAN,
-            virtualBank: squadRes.virtualBank || MASTER_SQUAD_BANK,
+            virtualNuban: squadRes.virtualNuban,
+            virtualBank: squadRes.virtualBank,
             accountBeneficiary: MASTER_SQUAD_ACCOUNT_NAME,
             balance: 0.00,
             isLocked: false,
@@ -725,7 +733,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 
         return res.status(200).json({
             status: 'success',
-            message: 'Merchant registered successfully.',
+            message: 'Merchant registered and unique virtual account provisioned successfully.',
             merchant: {
                 id: newMerchant.id,
                 merchantName: newMerchant.merchantName,
