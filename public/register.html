@@ -52,6 +52,27 @@
             <input type="tel" id="phone" placeholder="08022552528" required>
         </div>
 
+        <!-- REQUIRED FOR SQUAD VIRTUAL ACCOUNT GENERATION -->
+        <div class="form-group">
+            <label>Bank Verification Number (BVN) / NIN (11 Digits) *</label>
+            <input type="text" id="bvn" maxlength="11" placeholder="22222222222" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+                <label>Date of Birth *</label>
+                <input type="date" id="dob" required>
+            </div>
+            <div class="form-group">
+                <label>Gender *</label>
+                <select id="gender" required>
+                    <option value="" disabled selected>Select...</option>
+                    <option value="1">Male</option>
+                    <option value="2">Female</option>
+                </select>
+            </div>
+        </div>
+
         <div class="form-group">
             <label>Account Password *</label>
             <input type="password" id="password" placeholder="••••••••" required>
@@ -61,7 +82,6 @@
             <label>Settlement Bank Name *</label>
             <select id="bankName" required>
                 <option value="" disabled selected>Select Settlement Bank...</option>
-                <!-- Major Commercial Banks -->
                 <option value="Access Bank Plc">Access Bank Plc</option>
                 <option value="Zenith Bank">Zenith Bank</option>
                 <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
@@ -74,7 +94,6 @@
                 <option value="Wema Bank">Wema Bank</option>
                 <option value="Ecobank Nigeria">Ecobank Nigeria</option>
                 <option value="FCMB (First City Monument Bank)">FCMB (First City Monument Bank)</option>
-                <option value="Heritage Bank">Heritage Bank</option>
                 <option value="Keystone Bank">Keystone Bank</option>
                 <option value="Polaris Bank">Polaris Bank</option>
                 <option value="Titan Trust Bank">Titan Trust Bank</option>
@@ -82,16 +101,12 @@
                 <option value="Jaiz Bank">Jaiz Bank</option>
                 <option value="TAJBank">TAJBank</option>
                 <option value="Lotus Bank">Lotus Bank</option>
-                
-                <!-- Digital Banks, Fintechs & MFBs -->
                 <option value="OPay Digital Services">OPay Digital Services</option>
                 <option value="PalmPay">PalmPay</option>
                 <option value="Moniepoint Microfinance Bank">Moniepoint Microfinance Bank</option>
                 <option value="Kuda Bank">Kuda Bank</option>
-                <option value="Nomba / MFB">Nomba / MFB</option>
                 <option value="FairMoney Microfinance Bank">FairMoney Microfinance Bank</option>
                 <option value="VFD Microfinance Bank">VFD Microfinance Bank</option>
-                <option value="Rubies Bank">Rubies Bank</option>
             </select>
         </div>
 
@@ -100,7 +115,7 @@
             <input type="text" id="settlementAccount" placeholder="0037323182" maxlength="10" required>
         </div>
 
-        <button type="submit" class="btn">Register Merchant Account</button>
+        <button type="submit" class="btn">Register Merchant Account & Generate NUBAN</button>
     </form>
 </div>
 
@@ -109,16 +124,20 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     e.preventDefault();
 
     const payload = {
-        merchantName: document.getElementById('merchantName').value,
-        email: document.getElementById('email').value,
-        phone: document.getElementById('phone').value,
+        merchantName: document.getElementById('merchantName').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        bvn: document.getElementById('bvn').value.trim(),
+        dob: document.getElementById('dob').value,
+        gender: parseInt(document.getElementById('gender').value),
         password: document.getElementById('password').value,
-        settlementAccount: document.getElementById('settlementAccount').value,
-        bankName: document.getElementById('bankName').value
+        bankName: document.getElementById('bankName').value,
+        settlementAccount: document.getElementById('settlementAccount').value.trim()
     };
 
     try {
-        const response = await fetch('/api/v1/register', {
+        // Aligned with server.js route /api/v1/auth/signup
+        const response = await fetch('/api/v1/auth/signup', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -129,11 +148,12 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 
         const result = await response.json();
 
-        if (result.status === 'success') {
-            alert('Account created! Redirecting to dashboard...');
+        if (response.ok && result.status === 'success') {
+            alert('🎉 Account created successfully! Your unique GTBank Virtual Account is now live.');
+            localStorage.setItem('activeMerchant', JSON.stringify(result.merchant));
             window.location.href = '/dashboard';
         } else {
-            alert(`Error: ${result.message}`);
+            alert(`Error: ${result.message || 'Registration failed'}`);
         }
     } catch (err) {
         console.error('Registration submit error:', err);
