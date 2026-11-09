@@ -16,7 +16,17 @@
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
         input:focus { border-color: #38bdf8; }
-        button.btn { width: 100%; padding: 14px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 10px; transition: background 0.2s ease; }
+
+        .password-wrapper { position: relative; width: 100%; }
+        .password-wrapper input { padding-right: 42px; }
+        .toggle-password-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+        .toggle-password-btn:hover { color: #38bdf8; }
+
+        .auth-links-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 0.82rem; }
+        .auth-links-row a { color: #38bdf8; text-decoration: none; font-weight: 600; }
+        .auth-links-row a:hover { text-decoration: underline; }
+
+        button.btn { width: 100%; padding: 14px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 14px; transition: background 0.2s ease; }
         button.btn:hover { background: #0ea5e9; color: #fff; }
 
         .auth-footer {
@@ -49,18 +59,37 @@
 
         <div class="form-group">
             <label>Account Password *</label>
-            <input type="password" id="password" placeholder="••••••••" required>
+            <div class="password-wrapper">
+                <input type="password" id="password" placeholder="••••••••" required>
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('password', this)">👁️</button>
+            </div>
         </div>
 
         <button type="submit" class="btn">Sign In to Dashboard</button>
+
+        <div class="auth-links-row">
+            <a href="/register">Create Account (Sign Up)</a>
+            <a href="#" onclick="alert('Please contact @BL Sovereign Gateway support or use your dashboard PIN reset.')">Forgot Password?</a>
+        </div>
     </form>
 
     <div class="auth-footer">
-        Don't have an account yet? <a href="/register">Sign Up (Onboarding)</a>
+        New merchant? <a href="/register">Complete Onboarding Here</a>
     </div>
 </div>
 
 <script>
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = '🙈';
+    } else {
+        input.type = 'password';
+        btn.innerText = '👁️';
+    }
+}
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
