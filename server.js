@@ -406,7 +406,21 @@ async function generateSquadVirtualAccount(merchantData) {
         const cleanPhone = normalizePhoneNumber(merchantData.phone);
         const customerId = merchantData.customerIdentifier || cleanPhone;
 
-        // Squad API Payload Specs
+        // Convert any date format to MM/DD/YYYY (Squad Standard Format)
+        let formattedDob = "01/01/1995";
+        if (merchantData.dob) {
+            const raw = merchantData.dob.replace(/-/g, '/');
+            const p = raw.split('/');
+            if (p.length === 3) {
+                // If YYYY/MM/DD -> convert to MM/DD/YYYY
+                if (p[0].length === 4) {
+                    formattedDob = `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
+                } else if (p[2].length === 4) { // If DD/MM/YYYY -> MM/DD/YYYY
+                    formattedDob = `${p[1].padStart(2, '0')}/${p[0].padStart(2, '0')}/${p[2]}`;
+                }
+            }
+        }
+
         const payload = {
             customer_identifier: customerId,
             first_name: firstName,
@@ -414,13 +428,13 @@ async function generateSquadVirtualAccount(merchantData) {
             mobile_num: cleanPhone,
             email: merchantData.email,
             bvn: merchantData.bvn,
-            dob: merchantData.dob || "1995-01-01", // Squad expects YYYY-MM-DD
-            gender: parseInt(merchantData.gender) || 1, // Integer: 1 = Male, 2 = Female
+            dob: formattedDob,
+            gender: merchantData.gender ? String(merchantData.gender) : "1",
             address: "Lagos, Nigeria",
             beneficiary_account_number: ACCESS_BANK_DESTINATION_ACCOUNT
         };
 
-        console.log('📤 Sending Squad Payload:', payload);
+        console.log('📤 Sending Payload to Squad API:', payload);
 
         const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account`, payload, {
             headers: {
@@ -429,19 +443,19 @@ async function generateSquadVirtualAccount(merchantData) {
             }
         });
 
-        console.log('🏛️ Squad API Raw Response:', response.data);
+        console.log('🏛️ Squad API Response:', response.data);
 
         if (response.data && (response.data.status === 200 || response.data.success) && response.data.data) {
             const accData = response.data.data;
             const assignedNuban = accData.virtual_account_number || accData.account_number;
-            console.log(`✅ SUCCESS! Unique Squad NUBAN Created: ${assignedNuban}`);
+            console.log(`✅ SUCCESS! Unique Virtual Account Created: ${assignedNuban}`);
             return {
                 success: true,
                 virtualNuban: assignedNuban,
                 virtualBank: accData.bank_name || 'GTBank / Squad'
             };
         } else {
-            console.error('❌ Squad rejected creation:', response.data.message || response.data);
+            console.error('❌ Squad rejected payload:', response.data.message || response.data);
             return {
                 success: false,
                 virtualNuban: MASTER_SQUAD_NUBAN,
@@ -449,7 +463,7 @@ async function generateSquadVirtualAccount(merchantData) {
             };
         }
     } catch (err) {
-        console.error('❌ Squad Virtual Account API Exception:', err.response ? err.response.data : err.message);
+        console.error('❌ Squad API Request Exception:', err.response ? err.response.data : err.message);
         return {
             success: false,
             virtualNuban: MASTER_SQUAD_NUBAN,
@@ -659,7 +673,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         const { merchantName, customerIdentifier, phone, email, bvn, dob, gender, password, settlementAccount, bankName, withdrawalPin } = req.body;
 
         if (!merchantName || !phone || !email || !bvn || !password || !settlementAccount || !bankName) {
-            return res.status(400).json({ status: 'error', message: 'All fields including BVN are required.' });
+            return res.status(400).json({ status: 'error', message: 'All mandatory fields including BVN are required.' });
         }
 
         const cleanPhone = normalizePhoneNumber(phone);
@@ -670,7 +684,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         if (merchantAccounts[cleanPhone]) {
             return res.status(400).json({ 
                 status: 'error', 
-                message: `Phone number (${cleanPhone}) is already registered. Please sign in instead.` 
+                message: `Phone number (${cleanPhone}) is already registered.` 
             });
         }
 
@@ -678,7 +692,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         const cleanBvn = bvn.trim();
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Call Squad API with full parameters
         const squadRes = await generateSquadVirtualAccount({
             merchantName,
             customerIdentifier,
@@ -712,7 +725,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 
         return res.status(200).json({
             status: 'success',
-            message: 'Merchant registered and virtual account provisioned successfully.',
+            message: 'Merchant registered successfully.',
             merchant: {
                 id: newMerchant.id,
                 merchantName: newMerchant.merchantName,
@@ -724,7 +737,7 @@ app.post('/api/v1/auth/signup', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('❌ Signup Error:', err.message);
+        console.error('❌ Signup Server Error:', err.message);
         return res.status(500).json({ status: 'error', message: 'Server error processing registration.' });
     }
 });
