@@ -726,69 +726,75 @@ app.post('/api/v1/auth/signup', async (req, res) => {
                     </div>
                     <div class="welcome-text">
                         Hello <strong>${merchantName}</strong>,<br><br>
-                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all banking apps and USSD channels.
-                        <div class="account-box">
-                            <div class="info-row"><span class="info-label">Account Number:</span><span class="info-val">${newMerchant.virtualNuban}</span></div>
-                            <div class="info-row"><span class="info-label">Bank Name:</span><span class="info-val">${newMerchant.virtualBank}</span></div>
-                            <div class="info-row"><span class="info-label">Beneficiary:</span><span class="info-val">${newMerchant.accountBeneficiary}</span></div>
-                            <div class="info-row"><span class="info-label">USSD Code:</span><span class="info-val">*737*35*${MASTER_SQUAD_USSD_MERCHANT_CODE}*Amount#</span></div>
-                        </div>
-                        You can now accept payments, manage savings, and disburse services directly from your merchant ledger with automated Access Bank sweeps.
+                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all Nigerian financial networks.
                     </div>
-                    <a href="https://www.alltimebusiness.com.ng/dashboard" class="action-btn">Access Dashboard</a>
+                    <div class="account-box">
+                        <div class="info-row"><span class="info-label">Account Name:</span><span class="info-val">${merchantName}</span></div>
+                        <div class="info-row"><span class="info-label">Virtual NUBAN:</span><span class="info-val" style="color:#38bdf8; font-size:15px;">${newMerchant.virtualNuban}</span></div>
+                        <div class="info-row"><span class="info-label">Bank Name:</span><span class="info-val">${newMerchant.virtualBank}</span></div>
+                        <div class="info-row"><span class="info-label">USSD Code:</span><span class="info-val">*411727*Amount#</span></div>
+                    </div>
+                    <a href="https://sovereign-rail-production-7218.up.railway.app/login" class="action-btn">Access Merchant Portal</a>
                     <div class="footer">
-                        &copy; 2026 ALL TIME BUSINESS LTD (RC: 950444). All Rights Reserved.<br>
-                        Lagos East Senatorial District Operations.
+                        &copy; 2026 ALL TIME BUSINESS LTD. All rights reserved.<br>
+                        Powered by Squad Co & Access Bank Automated Infrastructure.
                     </div>
                 </div>
             </body>
             </html>
         `;
 
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Account Provisioned', welcomeMailHtml);
+        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Virtual Account Active', welcomeMailHtml);
 
-        return res.status(201).json({
+        return res.status(200).json({
             status: 'success',
-            message: 'Merchant account onboarded successfully.',
-            data: {
+            message: 'Merchant registered and virtual account provisioned successfully.',
+            merchant: {
+                id: newMerchant.id,
                 merchantName: newMerchant.merchantName,
                 phone: newMerchant.phone,
                 email: newMerchant.email,
                 virtualNuban: newMerchant.virtualNuban,
-                virtualBank: newMerchant.virtualBank
+                virtualBank: newMerchant.virtualBank,
+                balance: newMerchant.balance
             }
         });
     } catch (err) {
-        console.error('❌ Onboarding Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal Server Error during registration.' });
+        console.error('❌ Signup Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error processing registration.' });
     }
 });
 
-app.post('/api/v1/auth/login', async (req, res) => {
+app.post('/api/v1/auth/signin', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
         const { phone, password } = req.body;
+
+        if (!phone || !password) {
+            return res.status(400).json({ status: 'error', message: 'Phone number and password are required.' });
+        }
 
         const cleanPhone = normalizePhoneNumber(phone);
         const account = merchantAccounts[cleanPhone];
 
         if (!account) {
-            return res.status(404).json({ status: 'error', message: 'Account not found with this phone number.' });
+            return res.status(404).json({ status: 'error', message: 'Account not found. Please sign up for a new account.' });
         }
 
         if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is locked. Please contact support.' });
+            return res.status(403).json({ status: 'error', message: 'Account is temporarily locked. Please contact support.' });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid password credential.' });
+            return res.status(401).json({ status: 'error', message: 'Invalid password. Please check your credentials.' });
         }
 
         return res.status(200).json({
             status: 'success',
-            message: 'Authentication successful.',
-            data: {
+            message: 'Sign in successful.',
+            merchant: {
+                id: account.id,
                 merchantName: account.merchantName,
                 phone: account.phone,
                 email: account.email,
@@ -798,23 +804,82 @@ app.post('/api/v1/auth/login', async (req, res) => {
             }
         });
     } catch (err) {
-        return res.status(500).json({ status: 'error', message: 'Server authentication error.' });
+        console.error('❌ Signin Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error processing sign in.' });
     }
 });
 
 // =========================================================================
-// 🚀 MASTER ENGINE STARTUP
+// 🏺 AJO EXPRESS SAVINGS & THRIFT ENGINE
 // =========================================================================
 
-app.listen(PORT, () => {
-    console.log(`
-====================================================================
-⚡ ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY SERVER ENGINE LIVE
-🚀 Operating on Port: ${PORT}
-🌐 Entity: ALL TIME BUSINESS LTD (RC: 950444)
-💳 Master Decal NUBAN: ${MASTER_SQUAD_NUBAN} (${MASTER_SQUAD_BANK})
-📲 Squad USSD Code: *737*35*${MASTER_SQUAD_USSD_MERCHANT_CODE}*Amount#
-🏦 Auto-Sweep Settlement Account: Access Bank (${ACCESS_BANK_DESTINATION_ACCOUNT})
-====================================================================
-    `);
+app.get('/api/v1/ajo/current-month', (req, res) => {
+    const details = getCurrentCalendarMonthDetails();
+    return res.status(200).json({
+        status: 'success',
+        ...details
+    });
+});
+
+app.post('/api/v1/ajo/subscribe', async (req, res) => {
+    try {
+        merchantAccounts = loadAccounts();
+        const { phone, dailyAmount, selectedMonth, durationMonths, totalDays } = req.body;
+
+        const cleanPhone = normalizePhoneNumber(phone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
+        }
+
+        const dailyAmt = parseFloat(dailyAmount);
+        if (isNaN(dailyAmt) || dailyAmt < 500) {
+            return res.status(400).json({ status: 'error', message: 'Minimum daily contribution is ₦500.' });
+        }
+
+        const monthsCount = parseInt(durationMonths) || 1;
+        const daysCount = parseInt(totalDays) || 30;
+        const grossAccumulated = dailyAmt * daysCount;
+        const gatewayFee = dailyAmt * monthsCount; // 1st contribution per month goes to gateway underwriting
+        const netEntitlement = grossAccumulated - gatewayFee;
+
+        account.ajoExpress = {
+            status: 'ACTIVE',
+            dailyAmount: dailyAmt,
+            selectedMonth: selectedMonth || getCurrentCalendarMonthDetails().monthName,
+            durationMonths: monthsCount,
+            totalDays: daysCount,
+            accumulatedAmount: 0,
+            grossAccumulated,
+            gatewayFee,
+            netEntitlement,
+            completedDays: 0,
+            startDate: new Date().toISOString()
+        };
+
+        saveAccounts(merchantAccounts);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Ajo Express savings plan activated successfully.',
+            ajoData: account.ajoExpress
+        });
+    } catch (err) {
+        console.error('❌ Ajo Subscribe Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Server error processing Ajo subscription.' });
+    }
+});
+
+// =========================================================================
+// 🚀 SERVER STARTUP
+// =========================================================================
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`============================================================`);
+    console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
+    console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
+    console.log(`Port: ${PORT} | Environment: Live Production Engine`);
+    console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
+    console.log(`============================================================`);
 });
