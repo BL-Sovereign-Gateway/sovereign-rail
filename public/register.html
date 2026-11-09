@@ -153,8 +153,30 @@ function togglePasswordVisibility(inputId, btn) {
     }
 }
 
+// Normalizes any input date format to strict YYYY-MM-DD required by Squad Co API
+function formatDobForSquad(rawDate) {
+    if (!rawDate) return "1995-01-01";
+    
+    // Check if format is DD-MM-YYYY or DD/MM/YYYY
+    if (rawDate.includes('-')) {
+        const parts = rawDate.split('-');
+        if (parts[0].length === 4) return rawDate; // Already YYYY-MM-DD
+        if (parts[2] && parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    
+    if (rawDate.includes('/')) {
+        const parts = rawDate.split('/');
+        if (parts[2] && parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+
+    return rawDate;
+}
+
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const rawDob = document.getElementById('dob').value;
+    const formattedDob = formatDobForSquad(rawDob);
 
     const payload = {
         merchantName: document.getElementById('merchantName').value.trim(),
@@ -162,7 +184,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         email: document.getElementById('email').value.trim(),
         phone: document.getElementById('phone').value.trim(),
         bvn: document.getElementById('bvn').value.trim(),
-        dob: document.getElementById('dob').value,
+        dob: formattedDob,
         gender: parseInt(document.getElementById('gender').value),
         password: document.getElementById('password').value,
         bankName: document.getElementById('bankName').value,
