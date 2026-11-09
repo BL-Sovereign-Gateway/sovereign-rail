@@ -30,9 +30,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve static assets from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables & Credentials
-const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sk_8000a1fe2299833dea7f8db8d6ab063fbe973740';
-const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://api-d.squadco.com';
+// Environment Variables & Sandbox Credentials
+const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_bb1ac0d875d528a9c353252737d522d9df7f667740c49130';
+const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://sandbox-api-d.squadco.com';
 const BL_SOVEREIGN_SUBACCOUNT_CODE = process.env.BL_SOVEREIGN_SUBACCOUNT_CODE || 'sub_acct_sample_code';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
@@ -864,7 +864,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: Live Production Engine`);
-    console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
+    console.log(`Port: ${PORT} | Environment: Live Production Engine (Sandbox Mode)`);
+    console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SUSS_MERCHANT_CODE || MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
