@@ -393,31 +393,34 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS - EXACT DASHBOARD ALIGNED)
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS)
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
     try {
-        console.log(`💳 Initiating Squad GTBank Virtual Account for: ${merchantData.merchantName}`);
+        console.log(`💳 Initiating Squad Virtual Account for: ${merchantData.merchantName}`);
 
         const nameParts = merchantData.merchantName.trim().split(' ');
         const firstName = nameParts[0] || 'Merchant';
         const lastName = nameParts.slice(1).join(' ') || 'User';
         const cleanPhone = normalizePhoneNumber(merchantData.phone);
+        const customerId = merchantData.customerIdentifier || cleanPhone;
 
+        // Squad API Payload Specs
         const payload = {
-            customer_identifier: cleanPhone,
+            customer_identifier: customerId,
             first_name: firstName,
             last_name: lastName,
-            middle_name: "",
             mobile_num: cleanPhone,
             email: merchantData.email,
             bvn: merchantData.bvn,
-            dob: "01/01/1995",
-            gender: 1,
+            dob: merchantData.dob || "1995-01-01", // Squad expects YYYY-MM-DD
+            gender: parseInt(merchantData.gender) || 1, // Integer: 1 = Male, 2 = Female
             address: "Lagos, Nigeria",
             beneficiary_account_number: ACCESS_BANK_DESTINATION_ACCOUNT
         };
+
+        console.log('📤 Sending Squad Payload:', payload);
 
         const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account`, payload, {
             headers: {
@@ -431,24 +434,24 @@ async function generateSquadVirtualAccount(merchantData) {
         if (response.data && (response.data.status === 200 || response.data.success) && response.data.data) {
             const accData = response.data.data;
             const assignedNuban = accData.virtual_account_number || accData.account_number;
-            console.log(`✅ Squad GTBank Virtual Account Created: ${assignedNuban} (GTBank)`);
+            console.log(`✅ SUCCESS! Unique Squad NUBAN Created: ${assignedNuban}`);
             return {
                 success: true,
                 virtualNuban: assignedNuban,
                 virtualBank: accData.bank_name || 'GTBank / Squad'
             };
         } else {
-            console.warn('⚠️ Squad rejected account creation, assigning master account fallback:', response.data.message);
+            console.error('❌ Squad rejected creation:', response.data.message || response.data);
             return {
-                success: true,
+                success: false,
                 virtualNuban: MASTER_SQUAD_NUBAN,
                 virtualBank: MASTER_SQUAD_BANK
             };
         }
     } catch (err) {
-        console.error('❌ Squad Virtual Account Error:', err.response ? err.response.data : err.message);
+        console.error('❌ Squad Virtual Account API Exception:', err.response ? err.response.data : err.message);
         return {
-            success: true,
+            success: false,
             virtualNuban: MASTER_SQUAD_NUBAN,
             virtualBank: MASTER_SQUAD_BANK
         };
@@ -473,7 +476,7 @@ async function generateDynamicSquadAccount(orderData) {
             currency: 'NGN',
             initiate_type: 'inline',
             transaction_ref: orderRef,
-            duration: 900 // 15 minutes expiration window
+            duration: 900
         };
 
         const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/initiated-dynamic-virtual-account`, payload, {
@@ -653,10 +656,10 @@ app.post('/api/v1/webhook/squad', async (req, res) => {
 app.post('/api/v1/auth/signup', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
-        const { merchantName, phone, email, bvn, password, settlementAccount, bankName, withdrawalPin } = req.body;
+        const { merchantName, customerIdentifier, phone, email, bvn, dob, gender, password, settlementAccount, bankName, withdrawalPin } = req.body;
 
         if (!merchantName || !phone || !email || !bvn || !password || !settlementAccount || !bankName) {
-            return res.status(400).json({ status: 'error', message: 'All fields including BVN/NIN are required.' });
+            return res.status(400).json({ status: 'error', message: 'All fields including BVN are required.' });
         }
 
         const cleanPhone = normalizePhoneNumber(phone);
@@ -675,11 +678,15 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         const cleanBvn = bvn.trim();
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Call Squad API with full parameters
         const squadRes = await generateSquadVirtualAccount({
             merchantName,
+            customerIdentifier,
             phone: cleanPhone,
             email: cleanEmail,
-            bvn: cleanBvn
+            bvn: cleanBvn,
+            dob,
+            gender
         });
 
         const newMerchant = {
@@ -702,54 +709,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
 
         merchantAccounts[cleanPhone] = newMerchant;
         saveAccounts(merchantAccounts);
-
-        const welcomeMailHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0d1322; color: #f1f5f9; margin: 0; padding: 20px; }
-                    .card { background: #162032; border: 1px solid #38bdf8; border-radius: 12px; max-width: 580px; margin: 0 auto; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-                    .brand-header { text-align: center; border-bottom: 2px solid #233148; padding-bottom: 20px; margin-bottom: 25px; }
-                    .brand-title { color: #38bdf8; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; margin: 0; }
-                    .brand-subtitle { color: #10b981; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
-                    .welcome-text { font-size: 15px; line-height: 1.6; color: #cbd5e1; }
-                    .account-box { background: #0d1322; border: 1px solid #233148; border-left: 4px solid #10b981; padding: 18px; border-radius: 8px; margin: 20px 0; }
-                    .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
-                    .info-label { color: #8295b3; font-weight: 600; }
-                    .info-val { color: #f1f5f9; font-weight: 700; font-family: Consolas, monospace; }
-                    .action-btn { display: block; width: 220px; margin: 25px auto 10px; background: #38bdf8; color: #0d1322; text-align: center; padding: 12px; border-radius: 6px; font-weight: 800; text-decoration: none; font-size: 14px; }
-                    .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #233148; font-size: 11px; color: #64748b; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <div class="brand-header">
-                        <div class="brand-title">@BL SOVEREIGN GATEWAY</div>
-                        <div class="brand-subtitle">ALL TIME BUSINESS LTD • RC: 950444</div>
-                    </div>
-                    <div class="welcome-text">
-                        Hello <strong>${merchantName}</strong>,<br><br>
-                        Welcome to <strong>@BL Sovereign Gateway</strong>. Your dedicated business collection NUBAN has been provisioned and is live to receive instant bank transfers across all Nigerian financial networks.
-                    </div>
-                    <div class="account-box">
-                        <div class="info-row"><span class="info-label">Account Name:</span><span class="info-val">${merchantName}</span></div>
-                        <div class="info-row"><span class="info-label">Virtual NUBAN:</span><span class="info-val" style="color:#38bdf8; font-size:15px;">${newMerchant.virtualNuban}</span></div>
-                        <div class="info-row"><span class="info-label">Bank Name:</span><span class="info-val">${newMerchant.virtualBank}</span></div>
-                        <div class="info-row"><span class="info-label">USSD Code:</span><span class="info-val">*411727*Amount#</span></div>
-                    </div>
-                    <a href="https://sovereign-rail-production-7218.up.railway.app/login" class="action-btn">Access Merchant Portal</a>
-                    <div class="footer">
-                        &copy; 2026 ALL TIME BUSINESS LTD. All rights reserved.<br>
-                        Powered by Squad Co & Access Bank Automated Infrastructure.
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        dispatchEmail(cleanEmail, 'Welcome to @BL Sovereign Gateway - Virtual Account Active', welcomeMailHtml);
 
         return res.status(200).json({
             status: 'success',
