@@ -11,6 +11,20 @@
         .brand-header { text-align: center; margin-bottom: 20px; }
         .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
         .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+
+        .wallet-badge {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
@@ -36,6 +50,11 @@
         <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
     </div>
 
+    <div class="wallet-badge">
+        <span>💼 Gateway Wallet:</span>
+        <strong id="walletBalanceDisplay" style="color:#10b981;">₦0.00</strong>
+    </div>
+
     <form id="bettingForm">
         <div class="form-group">
             <label>Select Bookmaker / Platform *</label>
@@ -57,52 +76,7 @@
         <label>Payment Method</label>
         <div class="payment-options">
             <div class="pay-option active" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
-            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
-            <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
-        </div>
-
-        <!-- COMPLETE NIGERIAN BANKS DROPDOWN -->
-        <div class="form-group" id="bankSelectorGroup" style="display:none; margin-top:12px;">
-            <label>Select Source / Transfer Bank (All Nigerian Banks) *</label>
-            <select id="sourceBankSelect">
-                <optgroup label="Commercial Banks">
-                    <option value="ACCESS">Access Bank</option>
-                    <option value="FBN">First Bank of Nigeria</option>
-                    <option value="GTB">Guaranty Trust Bank (GTBank)</option>
-                    <option value="ZENITH">Zenith Bank Plc</option>
-                    <option value="UBA">United Bank for Africa (UBA)</option>
-                    <option value="FCMB">First City Monument Bank (FCMB)</option>
-                    <option value="FIDELITY">Fidelity Bank</option>
-                    <option value="STANBIC">Stanbic IBTC Bank</option>
-                    <option value="STERLING">Sterling Bank</option>
-                    <option value="UNION">Union Bank of Nigeria</option>
-                    <option value="WEMA">Wema Bank</option>
-                    <option value="POLARIS">Polaris Bank</option>
-                    <option value="KEYSTONE">Keystone Bank</option>
-                    <option value="UNITY">Unity Bank</option>
-                    <option value="JAIZ">Jaiz Bank</option>
-                    <option value="TAJ">TAJ Bank</option>
-                    <option value="GLOBUS">Globus Bank</option>
-                    <option value="PARALLEX">Parallex Bank</option>
-                    <option value="SUNTRUST">SunTrust Bank</option>
-                    <option value="PROVIDUS">Providus Bank</option>
-                    <option value="CITIBANK">Citibank Nigeria</option>
-                    <option value="SCBN">Standard Chartered Bank</option>
-                </optgroup>
-                <optgroup label="Microfinance Banks & Digital Fintechs">
-                    <option value="OPAY">OPay Digital Services (Paycom)</option>
-                    <option value="PALMPAY">PalmPay</option>
-                    <option value="MONIEPOINT">Moniepoint MFB</option>
-                    <option value="KUDA">Kuda MFB</option>
-                    <option value="POCKET">PiggyTech (Pocket App)</option>
-                    <option value="VFD">VFD Microfinance Bank</option>
-                    <option value="SAFEHAVEN">Safe Haven MFB</option>
-                    <option value="HASAL">Hasal MFB</option>
-                    <option value="INFINITY">Infinity MFB</option>
-                    <option value="LIVINGTRUST">LivingTrust MFB</option>
-                    <option value="MINT">Mint MFB</option>
-                </optgroup>
-            </select>
+            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Dynamic 15-Min NUBAN</div>
         </div>
 
         <button type="submit" class="btn-submit" id="btnSubmit">Proceed to Fund Wallet</button>
@@ -120,6 +94,27 @@
 
 <script>
 let selectedPayMethod = 'WALLET';
+
+function getActiveMerchant() {
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
+    try { return JSON.parse(rawSession); } catch(err) { return {}; }
+}
+
+function refreshWalletIndicator() {
+    const merchant = getActiveMerchant();
+    const displayEl = document.getElementById('walletBalanceDisplay');
+
+    if (!merchant.phone) {
+        displayEl.textContent = 'Not Signed In';
+        displayEl.style.color = '#f59e0b';
+        return;
+    }
+
+    const bal = parseFloat(merchant.balance || 0);
+    const formatted = `₦${bal.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    displayEl.textContent = bal <= 0 ? `${formatted} (Empty)` : formatted;
+    displayEl.style.color = bal <= 0 ? '#ef4444' : '#10b981';
+}
 
 const FALLBACK_BOOKMAKERS = [
     { id: 'SportyBet', name: 'SportyBet' },
@@ -152,17 +147,21 @@ function setPayMethod(method, el) {
     selectedPayMethod = method;
     document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
     el.classList.add('active');
-
-    const bankGroup = document.getElementById('bankSelectorGroup');
-    if (method === 'TRANSFER') {
-        bankGroup.style.display = 'block';
-    } else {
-        bankGroup.style.display = 'none';
-    }
 }
 
 function closeModal() {
     document.getElementById('customModal').style.display = 'none';
+}
+
+function showWalletErrorModal(message) {
+    document.getElementById('modalBody').innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #ef4444; text-align:center;">
+            <p style="color:#ef4444; font-weight:800; font-size:1rem; margin-bottom:8px;">❌ WALLET PAYMENT DECLINED</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">${message}</p>
+            <a href="/dashboard" style="color:#38bdf8; font-size:0.8rem; text-decoration:underline;">Fund your wallet via GTBank Virtual Account</a>
+        </div>
+    `;
+    document.getElementById('customModal').style.display = 'flex';
 }
 
 function renderReceipt(data) {
@@ -176,7 +175,7 @@ function renderReceipt(data) {
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Account ID:</strong> ${data.recipient}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount Debited:</strong> ₦${parseFloat(data.amount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Payment Method:</strong> ${data.paymentMethod}</p>
-            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; padding-top:6px;">Squad Gateway Verified & Auto-Released</p>
         </div>
     `;
     document.getElementById('customModal').style.display = 'flex';
@@ -213,24 +212,19 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnSubmit');
     btn.disabled = true;
-    btn.textContent = 'Processing Payment...';
+    btn.textContent = 'Processing...';
 
-    const modalBody = document.getElementById('modalBody');
     const providerId = document.getElementById('bookmakerSelect').value;
     const userId = document.getElementById('userId').value;
     const amount = parseFloat(document.getElementById('amount').value);
     const txRef = `BLSG-BET-${Date.now()}`;
-    const selectedSourceBank = document.getElementById('sourceBankSelect').options[document.getElementById('sourceBankSelect').selectedIndex].text;
 
-    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
-    let merchant = {};
-    try { merchant = JSON.parse(rawSession); } catch(err) {}
+    const merchant = getActiveMerchant();
 
     // Pay via Wallet Balance
     if (selectedPayMethod === 'WALLET') {
         if (!merchant.phone) {
-            modalBody.innerHTML = "<p style='color:#ef4444;'>❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>";
-            document.getElementById('customModal').style.display = 'flex';
+            showWalletErrorModal('You are not signed in. Please sign in to pay from your wallet or select Dynamic 15-Min NUBAN.');
             btn.disabled = false;
             btn.textContent = 'Proceed to Fund Wallet';
             return;
@@ -254,6 +248,7 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
                 if (data.newBalance !== undefined) {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicator();
                 }
                 renderReceipt({
                     status: 'success',
@@ -264,24 +259,15 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
                     paymentMethod: 'Gateway Wallet Balance'
                 });
             } else {
-                renderReceipt({
-                    status: 'declined',
-                    orderRef: txRef,
-                    serviceTitle: providerId,
-                    recipient: userId,
-                    amount: amount,
-                    paymentMethod: 'Gateway Wallet Balance'
-                });
+                if (data.currentBalance !== undefined) {
+                    merchant.balance = data.currentBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicator();
+                }
+                showWalletErrorModal(data.message || 'Wallet balance is empty or insufficient.');
             }
         } catch (err) {
-            renderReceipt({
-                status: 'declined',
-                orderRef: txRef,
-                serviceTitle: providerId,
-                recipient: userId,
-                amount: amount,
-                paymentMethod: 'Gateway Wallet Balance'
-            });
+            showWalletErrorModal('Server communication error. Please try again.');
         }
         
         btn.disabled = false;
@@ -289,58 +275,52 @@ document.getElementById('bettingForm').addEventListener('submit', async (e) => {
         return;
     }
 
-    // Pay via External Checkout (Transfer / Card)
+    // Pay via Dynamic 15-Min Expiring Virtual Account
     try {
-        const res = await fetch('/api/v1/checkout/initialize', {
+        const res = await fetch('/api/v1/checkout/dynamic-account', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 serviceType: `Betting Topup (${providerId})`,
                 targetInput: userId,
                 amount: amount,
-                paymentMethod: selectedPayMethod,
-                sourceBank: selectedSourceBank,
-                reference: txRef
+                email: merchant.email || 'checkout@alltimebusiness.com.ng',
+                channel: 'va'
             })
         });
         const data = await res.json();
 
-        if (res.ok) {
-            if (selectedPayMethod === 'TRANSFER') {
-                modalBody.innerHTML = `
-                    <div style="text-align:center;">
-                        <h3 style="color:#38bdf8; margin-bottom:6px;">🏦 Squad Transfer & Release Clause</h3>
-                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer from <strong>${selectedSourceBank}</strong> to:</p>
-                        <div style="background:#0f172a; padding:12px; border-radius:8px; margin:10px 0; border:1px dashed #38bdf8;">
-                            <p style="font-size:0.75rem; color:#94a3b8;">GTBank (Squad Engine)</p>
-                            <p style="font-size:1.2rem; font-weight:800; color:#f59e0b; margin:4px 0;">3039182746</p>
-                            <p style="font-size:0.85rem; color:#10b981; font-weight:700;">₦${amount.toLocaleString('en-NG')}</p>
-                        </div>
-                        <p style="font-size:0.7rem; color:#38bdf8;">Ref: <strong>${txRef}</strong></p>
-                        <small style="color:#cbd5e1; display:block; margin-top:6px;">⚡ Instant automated wallet top-up upon payment credit!</small>
+        if (res.ok && data.status === 'success') {
+            const chk = data.checkout;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="text-align:center;">
+                    <h3 style="color:#38bdf8; margin-bottom:6px;">⏱️ 15-Min Dynamic Checkout NUBAN</h3>
+                    <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer exact total (Principal + Gateway/Squad Fees & VAT):</p>
+                    <div style="background:#0f172a; padding:12px; border-radius:8px; margin:10px 0; border:1px dashed #38bdf8;">
+                        <p style="font-size:0.75rem; color:#94a3b8;">${chk.virtualBank} (${chk.accountName})</p>
+                        <p style="font-size:1.4rem; font-weight:800; color:#f59e0b; margin:6px 0;">${chk.virtualNuban}</p>
+                        <p style="font-size:1rem; color:#10b981; font-weight:700;">₦${chk.expectedAmount.toLocaleString('en-NG')}</p>
                     </div>
-                `;
-            } else if (data.checkoutUrl) {
-                modalBody.innerHTML = `
-                    <p>Click below to complete your payment via Card or USSD:</p>
-                    <a href="${data.checkoutUrl}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 24px; background:#10b981; color:#fff; border-radius:8px; text-decoration:none; font-weight:800;">Open Card Gateway</a>
-                `;
-            } else {
-                modalBody.innerText = data.message || "Payment initialized successfully.";
-            }
+                    <p style="font-size:0.7rem; color:#38bdf8;">Ref: <strong>${data.orderRef}</strong></p>
+                    <small style="color:#f97316; display:block; margin-top:6px;">⏳ Account expires in 15 minutes. Betting wallet tops up automatically upon payment.</small>
+                </div>
+            `;
+            document.getElementById('customModal').style.display = 'flex';
         } else {
-            renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: providerId, recipient: userId, amount: amount, paymentMethod: selectedPayMethod });
+            showWalletErrorModal(data.message || 'Failed to generate dynamic account.');
         }
     } catch (err) {
-        renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: providerId, recipient: userId, amount: amount, paymentMethod: selectedPayMethod });
+        showWalletErrorModal('Server communication error. Please try again.');
     }
 
-    document.getElementById('customModal').style.display = 'flex';
     btn.disabled = false;
     btn.textContent = 'Proceed to Fund Wallet';
 });
 
-window.onload = loadBookmakers;
+window.onload = () => {
+    loadBookmakers();
+    refreshWalletIndicator();
+};
 </script>
 
 </body>
