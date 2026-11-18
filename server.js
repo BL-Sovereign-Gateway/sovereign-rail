@@ -136,11 +136,15 @@ let broadcastPosts = loadBroadcasts();
 let processedTxns = loadProcessedTxns();
 let pendingOrders = loadPendingOrders();
 
-// Resend Email Dispatcher Engine
+// Resend Email Dispatcher Engine (Safeguarded)
 const resendApiKey = process.env.RESEND_API_KEY;
-const resend = new Resend(resendApiKey);
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 async function dispatchEmail(targetEmail, subject, htmlContent) {
+    if (!resend) {
+        console.warn('⚠️ RESEND_API_KEY missing. Skipping email dispatch.');
+        return false;
+    }
     const defaultSender = process.env.SMTP_USER || 'ogegbodegreat@gmail.com';
     const recipient = (targetEmail && targetEmail.includes('@')) ? targetEmail.trim() : defaultSender;
 
@@ -864,7 +868,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: Live Production Engine (Sandbox Mode)`);
-    console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SUSS_MERCHANT_CODE || MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
+    console.log(`Port: ${PORT} | Environment: Sandbox Engine`);
+    console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
