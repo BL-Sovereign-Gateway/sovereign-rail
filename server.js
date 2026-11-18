@@ -30,9 +30,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Serve static assets from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Environment Variables & Sandbox Credentials
-const SQUAD_SECRET_KEY = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_bb1ac0d875d528a9c353252737d522d9df7f667740c49130';
-const SQUAD_BASE_URL = process.env.SQUAD_BASE_URL || 'https://sandbox-api-d.squadco.com';
+// Environment Variables & Credentials
+const SQUAD_SECRET_KEY = (process.env.SQUAD_SECRET_KEY || 'sandbox_sk_bb1ac0d875d528a9c353252737d522d9df7f667740c49130').trim();
+const SQUAD_BASE_URL = (process.env.SQUAD_BASE_URL || 'https://sandbox-api-d.squadco.com').trim();
 const BL_SOVEREIGN_SUBACCOUNT_CODE = process.env.BL_SOVEREIGN_SUBACCOUNT_CODE || 'sub_acct_sample_code';
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
@@ -432,18 +432,15 @@ async function generateSquadVirtualAccount(merchantData) {
             bvn: merchantData.bvn,
             dob: formattedDob,
             gender: merchantData.gender ? String(merchantData.gender) : "1",
-            address: "Lagos, Nigeria",
-            beneficiary_account_number: ACCESS_BANK_DESTINATION_ACCOUNT
+            address: "Lagos, Nigeria"
         };
 
-        const targetUrl = 'https://sandbox-api-d.squadco.com/virtual-account';
-        const authKey = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_bb1ac0d875d528a9c353252737d522d9df7f667740c49130';
-
+        const targetUrl = `${SQUAD_BASE_URL}/virtual-account`;
         console.log(`📤 Sending Payload to Squad API [${targetUrl}]:`, payload);
 
         const response = await axios.post(targetUrl, payload, {
             headers: {
-                'Authorization': `Bearer ${authKey}`,
+                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -500,7 +497,7 @@ async function generateDynamicSquadAccount(orderData) {
             duration: 900
         };
 
-        const response = await axios.post('https://sandbox-api-d.squadco.com/virtual-account/initiated-dynamic-virtual-account', payload, {
+        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/initiated-dynamic-virtual-account`, payload, {
             headers: {
                 'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
                 'Content-Type': 'application/json'
@@ -699,7 +696,6 @@ app.post('/api/v1/auth/signup', async (req, res) => {
         const cleanBvn = bvn.trim();
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Call Squad API and enforce failure if Squad rejects creation
         const squadRes = await generateSquadVirtualAccount({
             merchantName,
             customerIdentifier,
