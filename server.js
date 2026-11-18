@@ -9,7 +9,7 @@
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
  * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
- * Automated Real-Time Month & Calendar Engine | Dynamic 15-Min Expiring NUBANs & Checkout
+ * Automated Real-Time Month & Calendar Engine | Dynamic 15-Min Expiring NUBANs & Wallet Checkout
  * ============================================================================
  */
 
@@ -534,6 +534,79 @@ async function generateDynamicSquadAccount(orderData) {
 }
 
 // =========================================================================
+// 💼 WALLET CHECKOUT & BALANCE VERIFICATION ROUTE
+// =========================================================================
+
+app.post('/api/v1/checkout/wallet', async (req, res) => {
+    try {
+        merchantAccounts = loadAccounts();
+        const { merchantPhone, serviceType, targetInput, amount, reference } = req.body;
+
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found. Please sign in.' });
+        }
+
+        if (account.isLocked) {
+            return res.status(403).json({ status: 'error', message: 'Account is temporarily locked. Please contact support.' });
+        }
+
+        const debitAmount = parseFloat(amount);
+        const currentBalance = parseFloat(account.balance || 0);
+
+        if (isNaN(debitAmount) || debitAmount <= 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
+        }
+
+        if (currentBalance < debitAmount) {
+            console.warn(`⚠️ Wallet Debit Declined: Merchant [${cleanPhone}] has ₦${currentBalance.toLocaleString()} (Attempted: ₦${debitAmount.toLocaleString()})`);
+            return res.status(400).json({
+                status: 'error',
+                errorType: 'INSUFFICIENT_FUNDS',
+                currentBalance,
+                message: `Wallet balance is insufficient. Current Balance: ₦${currentBalance.toLocaleString()}. Required: ₦${debitAmount.toLocaleString()}. Please fund your account.`
+            });
+        }
+
+        // Deduct from merchant ledger
+        account.balance = currentBalance - debitAmount;
+        saveAccounts(merchantAccounts);
+
+        console.log(`✅ Wallet Debited: ₦${debitAmount.toLocaleString()} for [${serviceType}]. New Balance: ₦${account.balance.toLocaleString()}`);
+
+        // Trigger ClubKonnect Auto-Dispatch
+        const orderRef = reference || `WLT-${Date.now()}`;
+        await executeClubKonnectFulfillment({
+            serviceType,
+            targetInput,
+            amount: debitAmount,
+            orderRef
+        });
+
+        dispatchImmediateTransactionSMS(
+            cleanPhone,
+            serviceType,
+            targetInput,
+            debitAmount,
+            account.balance,
+            orderRef
+        );
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Wallet payment successful and service dispatched.',
+            txRef: orderRef,
+            newBalance: account.balance
+        });
+    } catch (err) {
+        console.error('❌ Wallet Checkout Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing wallet payment.' });
+    }
+});
+
+// =========================================================================
 // 🛒 DYNAMIC CHECKOUT & INSTANT ORDER INITIATION ROUTES
 // =========================================================================
 
@@ -932,7 +1005,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallbacks Active)`);
+    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallbacks & Wallet Active)`);
     console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
