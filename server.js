@@ -10,7 +10,7 @@
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
  * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
  * Automated Real-Time Month & Calendar Engine | Dynamic 15-Min Expiring NUBANs |
- * Wallet Checkout, Betting, VTU & Education / e-PIN Transaction Engine
+ * Wallet Checkout, Betting, VTU, Education & Utility Bill Payment Engine
  * ============================================================================
  */
 
@@ -255,6 +255,8 @@ async function executeClubKonnectFulfillment(orderData) {
             clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=betting&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
         } else if (serviceType && (serviceType.toLowerCase().includes('waec') || serviceType.toLowerCase().includes('jamb') || serviceType.toLowerCase().includes('education'))) {
             clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=education&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
+        } else if (serviceType && (serviceType.toLowerCase().includes('gotv') || serviceType.toLowerCase().includes('dstv') || serviceType.toLowerCase().includes('electricity') || serviceType.toLowerCase().includes('cable'))) {
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=utilities&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
         } else {
             clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=${serviceType}&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
         }
@@ -656,17 +658,13 @@ app.post('/api/v1/education/purchase', async (req, res) => {
             });
         }
 
-        // Deduct from wallet
         account.balance = currentBalance - debitAmount;
         saveAccounts(merchantAccounts);
 
         const orderRef = reference || `EDU-${Date.now()}`;
-        
-        // Generate simulated secure e-PIN for sandbox/testing
         const randomPin = Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000);
         const randomSerial = 'SER-' + Math.floor(100000 + Math.random() * 900000);
 
-        // Attempt ClubKonnect fulfillment if live endpoint exists
         await executeClubKonnectFulfillment({
             serviceType: serviceType || 'waec_checker',
             targetInput,
@@ -690,9 +688,69 @@ app.post('/api/v1/education/purchase', async (req, res) => {
     }
 });
 
-// Alias route mapping for unified checkout
 app.post(['/api/v1/education/transact', '/api/v1/education/donate'], (req, res, next) => {
     req.url = '/api/v1/education/purchase';
+    app.handle(req, res, next);
+});
+
+// =========================================================================
+// ⚡ UTILITY & BILL PAYMENTS SUPPORT ROUTES
+// =========================================================================
+
+app.post('/api/v1/bills/purchase', async (req, res) => {
+    try {
+        merchantAccounts = loadAccounts();
+        const { merchantPhone, serviceType, targetInput, amount, reference } = req.body;
+
+        const cleanPhone = normalizePhoneNumber(merchantPhone);
+        const account = merchantAccounts[cleanPhone];
+
+        if (!account) {
+            return res.status(404).json({ status: 'error', message: 'Merchant account not found. Please sign in.' });
+        }
+
+        const debitAmount = parseFloat(amount);
+        const currentBalance = parseFloat(account.balance || 0);
+
+        if (currentBalance < debitAmount) {
+            return res.status(400).json({
+                status: 'error',
+                errorType: 'INSUFFICIENT_FUNDS',
+                currentBalance,
+                message: `Wallet balance is insufficient. Current Balance: ₦${currentBalance.toLocaleString()}. Required: ₦${debitAmount.toLocaleString()}.`
+            });
+        }
+
+        account.balance = currentBalance - debitAmount;
+        saveAccounts(merchantAccounts);
+
+        const orderRef = reference || `BILL-${Date.now()}`;
+        const randomToken = Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000);
+
+        await executeClubKonnectFulfillment({
+            serviceType: serviceType || 'electricity',
+            targetInput,
+            amount: debitAmount,
+            orderRef
+        });
+
+        dispatchImmediateTransactionSMS(cleanPhone, `Bill Payment (${serviceType})`, targetInput, debitAmount, account.balance, orderRef);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Bill payment processed and token dispatched successfully.',
+            orderRef,
+            token: randomToken,
+            newBalance: account.balance
+        });
+    } catch (err) {
+        console.error('❌ Bill Payment Purchase Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing bill payment.' });
+    }
+});
+
+app.post(['/api/v1/bills/transact', '/api/v1/bills/pay'], (req, res, next) => {
+    req.url = '/api/v1/bills/purchase';
     app.handle(req, res, next);
 });
 
@@ -1096,7 +1154,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallbacks, Betting & Education Active)`);
+    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallbacks, Betting, Education & Bills Active)`);
     console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
