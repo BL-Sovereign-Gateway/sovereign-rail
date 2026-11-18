@@ -9,7 +9,8 @@
  * Access Bank Auto-Sweep | ClubKonnect Real-Time Auto-Dispatch Engine |
  * Flat ₦6.00 Termii SMS Engine | Resend Email Engine | Merchant Security PIN Layer |
  * Newsletter & Mass Media Broadcast Engine | Ajo Express Savings Engine |
- * Automated Real-Time Month & Calendar Engine | Dynamic 15-Min Expiring NUBANs & Wallet Checkout
+ * Automated Real-Time Month & Calendar Engine | Dynamic 15-Min Expiring NUBANs |
+ * Wallet Checkout & Betting / VTU Instant Transaction Engine
  * ============================================================================
  */
 
@@ -250,6 +251,8 @@ async function executeClubKonnectFulfillment(orderData) {
             const net = networkCode || '01';
             const plan = planCode || '1000'; 
             clubKonnectUrl = `https://www.nellobytesystems.com/APIDatabundleV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&MobileNetwork=${net}&DataPlan=${plan}&MobileNo=${targetInput}&RequestID=${orderRef}`;
+        } else if (serviceType && serviceType.toLowerCase().includes('betting')) {
+            clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=betting&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
         } else {
             clubKonnectUrl = `https://www.nellobytesystems.com/APIBillPaymentV1.asp?UserID=${CLUBKONNECT_USER_ID}&APIKey=${CLUBKONNECT_API_KEY}&ServiceCode=${serviceType}&AccountNo=${targetInput}&Amount=${amount}&RequestID=${orderRef}`;
         }
@@ -534,13 +537,43 @@ async function generateDynamicSquadAccount(orderData) {
 }
 
 // =========================================================================
-// 💼 WALLET CHECKOUT & BALANCE VERIFICATION ROUTE
+// 🎰 BETTING TOP-UP & INSTANT SERVICES SUPPORT ROUTES
 // =========================================================================
 
-app.post('/api/v1/checkout/wallet', async (req, res) => {
+app.get('/api/v1/betting/providers', (req, res) => {
+    const bookmakers = [
+        { id: 'SportyBet', name: 'SportyBet' },
+        { id: 'Bet9ja', name: 'Bet9ja' },
+        { id: '1xBet', name: '1xBet' },
+        { id: 'BetKing', name: 'BetKing' },
+        { id: 'MSport', name: 'MSport' },
+        { id: 'Betway', name: 'Betway' },
+        { id: 'Betano', name: 'Betano' },
+        { id: '1Win', name: '1Win' },
+        { id: '22Bet', name: '22Bet' },
+        { id: 'Melbet', name: 'Melbet' },
+        { id: 'BetWinner', name: 'BetWinner' },
+        { id: 'MozzartBet', name: 'MozzartBet' },
+        { id: 'BetPawa', name: 'BetPawa' },
+        { id: 'BangBet', name: 'BangBet' },
+        { id: 'Merrybet', name: 'Merrybet' },
+        { id: 'NairaBet', name: 'NairaBet' },
+        { id: 'AccessBet', name: 'AccessBet' },
+        { id: 'LiveScoreBet', name: 'LiveScoreBet' },
+        { id: 'iLotBet', name: 'iLotBet' },
+        { id: 'PariPesa', name: 'PariPesa' },
+        { id: 'ZEbet', name: 'ZEbet' },
+        { id: 'SureBet247', name: 'SureBet247' },
+        { id: 'Green Lotto', name: 'Green Lotto' },
+        { id: 'Winners Golden Bet', name: 'Winners Golden Bet' }
+    ];
+    return res.status(200).json({ status: 'success', data: bookmakers });
+});
+
+app.post('/api/v1/services/transact', async (req, res) => {
     try {
         merchantAccounts = loadAccounts();
-        const { merchantPhone, serviceType, targetInput, amount, reference } = req.body;
+        const { merchantPhone, serviceType, recipient, amount, reference } = req.body;
 
         const cleanPhone = normalizePhoneNumber(merchantPhone);
         const account = merchantAccounts[cleanPhone];
@@ -549,61 +582,48 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Merchant account not found. Please sign in.' });
         }
 
-        if (account.isLocked) {
-            return res.status(403).json({ status: 'error', message: 'Account is temporarily locked. Please contact support.' });
-        }
-
         const debitAmount = parseFloat(amount);
         const currentBalance = parseFloat(account.balance || 0);
 
-        if (isNaN(debitAmount) || debitAmount <= 0) {
-            return res.status(400).json({ status: 'error', message: 'Invalid transaction amount.' });
-        }
-
         if (currentBalance < debitAmount) {
-            console.warn(`⚠️ Wallet Debit Declined: Merchant [${cleanPhone}] has ₦${currentBalance.toLocaleString()} (Attempted: ₦${debitAmount.toLocaleString()})`);
             return res.status(400).json({
                 status: 'error',
                 errorType: 'INSUFFICIENT_FUNDS',
                 currentBalance,
-                message: `Wallet balance is insufficient. Current Balance: ₦${currentBalance.toLocaleString()}. Required: ₦${debitAmount.toLocaleString()}. Please fund your account.`
+                message: `Wallet balance is insufficient. Current Balance: ₦${currentBalance.toLocaleString()}. Required: ₦${debitAmount.toLocaleString()}.`
             });
         }
 
-        // Deduct from merchant ledger
         account.balance = currentBalance - debitAmount;
         saveAccounts(merchantAccounts);
 
-        console.log(`✅ Wallet Debited: ₦${debitAmount.toLocaleString()} for [${serviceType}]. New Balance: ₦${account.balance.toLocaleString()}`);
-
-        // Trigger ClubKonnect Auto-Dispatch
-        const orderRef = reference || `WLT-${Date.now()}`;
+        const orderRef = reference || `TXN-${Date.now()}`;
         await executeClubKonnectFulfillment({
             serviceType,
-            targetInput,
+            targetInput: recipient,
             amount: debitAmount,
             orderRef
         });
 
-        dispatchImmediateTransactionSMS(
-            cleanPhone,
-            serviceType,
-            targetInput,
-            debitAmount,
-            account.balance,
-            orderRef
-        );
+        dispatchImmediateTransactionSMS(cleanPhone, serviceType, recipient, debitAmount, account.balance, orderRef);
 
         return res.status(200).json({
             status: 'success',
-            message: 'Wallet payment successful and service dispatched.',
+            message: 'Transaction successful and service dispatched.',
             txRef: orderRef,
             newBalance: account.balance
         });
     } catch (err) {
-        console.error('❌ Wallet Checkout Error:', err.message);
-        return res.status(500).json({ status: 'error', message: 'Internal server error processing wallet payment.' });
+        console.error('❌ Service Transaction Error:', err.message);
+        return res.status(500).json({ status: 'error', message: 'Internal server error processing transaction.' });
     }
+});
+
+// Alias route for wallet checkout
+app.post('/api/v1/checkout/wallet', (req, res, next) => {
+    req.body.recipient = req.body.targetInput || req.body.recipient;
+    req.url = '/api/v1/services/transact';
+    app.handle(req, res, next);
 });
 
 // =========================================================================
@@ -612,9 +632,10 @@ app.post('/api/v1/checkout/wallet', async (req, res) => {
 
 app.post('/api/v1/checkout/dynamic-account', async (req, res) => {
     try {
-        const { serviceType, targetInput, amount, email, channel, networkCode, planCode } = req.body;
+        const { serviceType, targetInput, recipient, amount, email, channel, networkCode, planCode } = req.body;
+        const target = targetInput || recipient;
 
-        if (!targetInput || !amount || parseFloat(amount) < 50) {
+        if (!target || !amount || parseFloat(amount) < 50) {
             return res.status(400).json({ 
                 status: 'error', 
                 message: 'Valid recipient number/account and minimum amount of ₦50 are required.' 
@@ -636,8 +657,8 @@ app.post('/api/v1/checkout/dynamic-account', async (req, res) => {
         pendingOrders = loadPendingOrders();
         pendingOrders[orderRef] = {
             orderRef,
-            serviceType: serviceType || 'airtime',
-            targetInput: normalizePhoneNumber(targetInput),
+            serviceType: serviceType || 'Service Topup',
+            targetInput: normalizePhoneNumber(target),
             amount: parseFloat(amount),
             expectedAmount: dynamicRes.expectedAmount,
             dynamicNuban: dynamicRes.virtualNuban,
@@ -1005,7 +1026,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallbacks & Wallet Active)`);
+    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallbacks & Betting Active)`);
     console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
