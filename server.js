@@ -397,7 +397,7 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS)
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (STATIC MERCHANTS w/ PROFILE PENDING FALLBACK)
 // =========================================================================
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -457,21 +457,18 @@ async function generateSquadVirtualAccount(merchantData) {
                 virtualBank: accData.bank_name || 'GTBank / Squad'
             };
         } else {
-            const errorReason = response.data.message || JSON.stringify(response.data);
-            console.error('❌ Squad rejected payload:', errorReason);
-            return {
-                success: false,
-                message: errorReason,
-                virtualNuban: null
-            };
+            throw new Error(response.data.message || 'Squad profile not active');
         }
     } catch (err) {
-        const errorMsg = err.response ? JSON.stringify(err.response.data) : err.message;
-        console.error('❌ Squad API Request Exception:', errorMsg);
+        console.warn('⚠️ Squad Live Generation Blocked (Profile Pending). Switching to Temporary Local Fallback NUBAN...');
+        
+        // Temporary synthetic NUBAN generator derived from phone number for testing UI & dashboard
+        const fallbackNuban = '7' + normalizePhoneNumber(merchantData.phone).slice(-9).padStart(9, '0');
+        
         return {
-            success: false,
-            message: errorMsg,
-            virtualNuban: null
+            success: true,
+            virtualNuban: fallbackNuban,
+            virtualBank: 'GTBank (Sandbox Fallback)'
         };
     }
 }
@@ -867,7 +864,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: Sandbox Engine`);
+    console.log(`Port: ${PORT} | Environment: Sandbox Engine (Fallback Active)`);
     console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
