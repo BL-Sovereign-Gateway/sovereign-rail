@@ -31,6 +31,19 @@
         .brand-header h2 { font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin: 0; }
         .brand-header p { font-size: 0.72rem; color: #94a3b8; letter-spacing: 1px; margin-top: 3px; text-transform: uppercase; }
 
+        .wallet-badge {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; font-weight: 600; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
@@ -58,9 +71,15 @@
 
     <!-- COLUMN 1: INSTANT AIRTIME RECHARGE -->
     <div class="card">
-        <div class="brand-header">
-            <h2>📞 INSTANT AIRTIME</h2>
-            <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+        <div>
+            <div class="brand-header">
+                <h2>📞 INSTANT AIRTIME</h2>
+                <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+            </div>
+            <div class="wallet-badge" id="airtimeWalletBanner">
+                <span>💼 Gateway Wallet:</span>
+                <strong id="airtimeWalletDisplay" style="color:#10b981;">₦0.00</strong>
+            </div>
         </div>
 
         <form id="airtimeForm">
@@ -81,7 +100,7 @@
 
             <div class="form-group">
                 <label>Airtime Amount (₦) *</label>
-                <input type="number" id="airtimeAmount" placeholder="1000" min="100" required>
+                <input type="number" id="airtimeAmount" placeholder="1000" min="50" required>
             </div>
 
             <label>Payment Method</label>
@@ -96,9 +115,15 @@
 
     <!-- COLUMN 2: MOBILE DATA BUNDLES -->
     <div class="card">
-        <div class="brand-header">
-            <h2>📶 MOBILE DATA BUNDLES</h2>
-            <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+        <div>
+            <div class="brand-header">
+                <h2>📶 MOBILE DATA BUNDLES</h2>
+                <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+            </div>
+            <div class="wallet-badge" id="dataWalletBanner">
+                <span>💼 Gateway Wallet:</span>
+                <strong id="dataWalletDisplay" style="color:#10b981;">₦0.00</strong>
+            </div>
         </div>
 
         <form id="dataForm">
@@ -134,7 +159,7 @@
 
 </div>
 
-<!-- Universal Modal Popup for Receipts & Dynamic Virtual Accounts -->
+<!-- Universal Modal Popup for Receipts, Wallet Alerts & Dynamic Virtual Accounts -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
@@ -146,6 +171,35 @@
 <script>
 let selectedPayMethodAirtime = 'WALLET';
 let selectedPayMethodData = 'WALLET';
+
+function getActiveMerchant() {
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
+    try { return JSON.parse(rawSession); } catch(err) { return {}; }
+}
+
+function refreshWalletIndicators() {
+    const merchant = getActiveMerchant();
+    const airEl = document.getElementById('airtimeWalletDisplay');
+    const dataEl = document.getElementById('dataWalletDisplay');
+
+    if (!merchant.phone) {
+        airEl.textContent = 'Not Signed In';
+        airEl.style.color = '#f59e0b';
+        dataEl.textContent = 'Not Signed In';
+        dataEl.style.color = '#f59e0b';
+        return;
+    }
+
+    const bal = parseFloat(merchant.balance || 0);
+    const formatted = `₦${bal.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    const label = bal <= 0 ? `${formatted} (Empty)` : formatted;
+    const color = bal <= 0 ? '#ef4444' : '#10b981';
+
+    airEl.textContent = label;
+    airEl.style.color = color;
+    dataEl.textContent = label;
+    dataEl.style.color = color;
+}
 
 const dataPlans = {
     "MTN Nigeria": [
@@ -207,7 +261,16 @@ function closeModal() {
     document.getElementById('customModal').style.display = 'none';
 }
 
-updateDataPlans();
+function showWalletErrorModal(message) {
+    document.getElementById('modalBody').innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #ef4444; text-align:center;">
+            <p style="color:#ef4444; font-weight:800; font-size:1rem; margin-bottom:8px;">❌ WALLET PAYMENT DECLINED</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">${message}</p>
+            <a href="/dashboard" style="color:#38bdf8; font-size:0.8rem; text-decoration:underline;">Fund your wallet via GTBank Virtual Account</a>
+        </div>
+    `;
+    document.getElementById('customModal').style.display = 'flex';
+}
 
 function renderReceipt(data) {
     const modalBody = document.getElementById('modalBody');
@@ -220,11 +283,14 @@ function renderReceipt(data) {
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Recipient:</strong> ${data.recipient}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Amount Charged:</strong> ₦${parseFloat(data.amount).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Payment Method:</strong> ${data.paymentMethod}</p>
-            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; padding-top:6px;">Squad Gateway Verified & Auto-Released</p>
         </div>
     `;
     document.getElementById('customModal').style.display = 'flex';
 }
+
+updateDataPlans();
+refreshWalletIndicators();
 
 /* ==========================================
 1. AIRTIME FORM SUBMISSION
@@ -235,10 +301,7 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
-    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
-    let merchant = {};
-    try { merchant = JSON.parse(rawSession); } catch(err) {}
-
+    const merchant = getActiveMerchant();
     const network = document.getElementById('airtimeNetworkSelect').value;
     const phone = document.getElementById('airtimePhoneNumber').value;
     const amount = parseFloat(document.getElementById('airtimeAmount').value);
@@ -247,8 +310,7 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
     try {
         if (selectedPayMethodAirtime === 'WALLET') {
             if (!merchant.phone) {
-                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
-                document.getElementById('customModal').style.display = 'flex';
+                showWalletErrorModal('You are not signed in. Please sign in to pay from your wallet or select Dynamic 15-Min NUBAN.');
                 btn.disabled = false;
                 btn.textContent = 'Buy Airtime';
                 return;
@@ -271,13 +333,18 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
                 if (data.newBalance !== undefined) {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicators();
                 }
                 renderReceipt({ status: 'success', orderRef: data.txRef || txRef, serviceTitle: `Airtime (${network})`, recipient: phone, amount: amount, paymentMethod: 'Gateway Wallet Balance' });
             } else {
-                renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: `Airtime (${network})`, recipient: phone, amount: amount, paymentMethod: 'Gateway Wallet Balance' });
+                if (data.currentBalance !== undefined) {
+                    merchant.balance = data.currentBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicators();
+                }
+                showWalletErrorModal(data.message || 'Wallet balance is empty or insufficient.');
             }
         } else {
-            // Call Dynamic 15-Minute Expiring Virtual Account Endpoint
             const res = await fetch('/api/v1/checkout/dynamic-account', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -296,7 +363,7 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
                 document.getElementById('modalBody').innerHTML = `
                     <div style="text-align:center;">
                         <h3 style="color:#38bdf8; margin-bottom:6px;">⏱️ 15-Min Dynamic Checkout NUBAN</h3>
-                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer exact total to activate instant dispatch:</p>
+                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer exact total (Principal + Gateway/Squad Fees & VAT):</p>
                         <div style="background:#0f172a; padding:12px; border-radius:8px; margin:10px 0; border:1px dashed #38bdf8;">
                             <p style="font-size:0.75rem; color:#94a3b8;">${chk.virtualBank} (${chk.accountName})</p>
                             <p style="font-size:1.4rem; font-weight:800; color:#f59e0b; margin:6px 0;">${chk.virtualNuban}</p>
@@ -308,11 +375,11 @@ document.getElementById('airtimeForm').addEventListener('submit', async (e) => {
                 `;
                 document.getElementById('customModal').style.display = 'flex';
             } else {
-                alert(data.message || 'Failed to generate dynamic account.');
+                showWalletErrorModal(data.message || 'Failed to generate dynamic account.');
             }
         }
     } catch (err) {
-        alert('Server communication error.');
+        showWalletErrorModal('Server communication error. Please try again.');
     }
 
     btn.disabled = false;
@@ -328,10 +395,7 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
-    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
-    let merchant = {};
-    try { merchant = JSON.parse(rawSession); } catch(err) {}
-
+    const merchant = getActiveMerchant();
     const network = document.getElementById('dataNetworkSelect').value;
     const planSelect = document.getElementById('dataPlanSelect');
     const amount = parseFloat(planSelect.value);
@@ -342,8 +406,7 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
     try {
         if (selectedPayMethodData === 'WALLET') {
             if (!merchant.phone) {
-                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
-                document.getElementById('customModal').style.display = 'flex';
+                showWalletErrorModal('You are not signed in. Please sign in to pay from your wallet or select Dynamic 15-Min NUBAN.');
                 btn.disabled = false;
                 btn.textContent = 'Purchase Data Bundle';
                 return;
@@ -366,13 +429,18 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
                 if (data.newBalance !== undefined) {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicators();
                 }
                 renderReceipt({ status: 'success', orderRef: data.txRef || txRef, serviceTitle: `Data (${network} - ${planName})`, recipient: phone, amount: amount, paymentMethod: 'Gateway Wallet Balance' });
             } else {
-                renderReceipt({ status: 'declined', orderRef: txRef, serviceTitle: `Data (${network} - ${planName})`, recipient: phone, amount: amount, paymentMethod: 'Gateway Wallet Balance' });
+                if (data.currentBalance !== undefined) {
+                    merchant.balance = data.currentBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicators();
+                }
+                showWalletErrorModal(data.message || 'Wallet balance is empty or insufficient.');
             }
         } else {
-            // Call Dynamic 15-Minute Expiring Virtual Account Endpoint
             const res = await fetch('/api/v1/checkout/dynamic-account', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -391,7 +459,7 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
                 document.getElementById('modalBody').innerHTML = `
                     <div style="text-align:center;">
                         <h3 style="color:#38bdf8; margin-bottom:6px;">⏱️ 15-Min Dynamic Checkout NUBAN</h3>
-                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer exact total to activate instant dispatch:</p>
+                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer exact total (Principal + Gateway/Squad Fees & VAT):</p>
                         <div style="background:#0f172a; padding:12px; border-radius:8px; margin:10px 0; border:1px dashed #38bdf8;">
                             <p style="font-size:0.75rem; color:#94a3b8;">${chk.virtualBank} (${chk.accountName})</p>
                             <p style="font-size:1.4rem; font-weight:800; color:#f59e0b; margin:6px 0;">${chk.virtualNuban}</p>
@@ -403,11 +471,11 @@ document.getElementById('dataForm').addEventListener('submit', async (e) => {
                 `;
                 document.getElementById('customModal').style.display = 'flex';
             } else {
-                alert(data.message || 'Failed to generate dynamic account.');
+                showWalletErrorModal(data.message || 'Failed to generate dynamic account.');
             }
         }
     } catch (err) {
-        alert('Server communication error.');
+        showWalletErrorModal('Server communication error. Please try again.');
     }
 
     btn.disabled = false;
