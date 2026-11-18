@@ -12,6 +12,19 @@
         .brand-header h2 { font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0; }
         .brand-header p { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
 
+        .wallet-badge {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
@@ -37,6 +50,11 @@
     <div class="brand-header">
         <h2>⚡ UTILITY & BILL PAYMENTS</h2>
         <p>ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY</p>
+    </div>
+
+    <div class="wallet-badge">
+        <span>💼 Gateway Wallet:</span>
+        <strong id="walletBalanceDisplay" style="color:#10b981;">₦0.00</strong>
     </div>
 
     <form id="billForm">
@@ -74,60 +92,7 @@
         <label>Payment Method</label>
         <div class="payment-options">
             <div class="pay-option active" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
-            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Bank Transfer</div>
-            <div class="pay-option" onclick="setPayMethod('CARD', this)">💳 Card / USSD</div>
-        </div>
-
-        <!-- COMPLETE COMPREHENSIVE NIGERIAN BANKS SELECTOR -->
-        <div class="form-group" id="bankSelectorGroup" style="display:none; margin-top:12px;">
-            <label>Select Source / Transfer Bank (All Nigerian Banks) *</label>
-            <select id="sourceBankSelect">
-                <optgroup label="Commercial Banks">
-                    <option value="ACCESS">Access Bank</option>
-                    <option value="FBN">First Bank of Nigeria</option>
-                    <option value="GTB">Guaranty Trust Bank (GTBank)</option>
-                    <option value="ZENITH">Zenith Bank Plc</option>
-                    <option value="UBA">United Bank for Africa (UBA)</option>
-                    <option value="ACCESSDISTRIB">Access Bank (Diamond)</option>
-                    <option value="FCMB">First City Monument Bank (FCMB)</option>
-                    <option value="FIDELITY">Fidelity Bank</option>
-                    <option value="STANBIC">Stanbic IBTC Bank</option>
-                    <option value="STERLING">Sterling Bank</option>
-                    <option value="UNION">Union Bank of Nigeria</option>
-                    <option value="WEMA">Wema Bank</option>
-                    <option value="POLARIS">Polaris Bank</option>
-                    <option value="KEYSTONE">Keystone Bank</option>
-                    <option value="UNITY">Unity Bank</option>
-                    <option value="JAIZ">Jaiz Bank</option>
-                    <option value="TAJ">TAJ Bank</option>
-                    <option value="GLOBUS">Globus Bank</option>
-                    <option value="PARALLEX">Parallex Bank</option>
-                    <option value="SUNTRUST">SunTrust Bank</option>
-                    <option value="PMB">Providus Bank</option>
-                    <option value="CITIBANK">Citibank Nigeria</option>
-                    <option value="SCBN">Standard Chartered Bank</option>
-                    <option value="NOVA">Nova Merchant Bank</option>
-                </optgroup>
-                <optgroup label="Microfinance Banks & Digital Fintechs">
-                    <option value="OPAY">OPay Digital Services (Paycom)</option>
-                    <option value="PALMPAY">PalmPay</option>
-                    <option value="MONIEPOINT">Moniepoint MFB</option>
-                    <option value="KUDAMFB">Kuda MFB</option>
-                    <option value="PIGGYVEST">PiggyTech (Pocket App)</option>
-                    <option value="COOP">Coronation Merchant Bank</option>
-                    <option value="HASAL">Hasal MFB</option>
-                    <option value="INFINITY">Infinity MFB</option>
-                    <option value="LIVINGTRUST">LivingTrust MFB</option>
-                    <option value="MINT">Mint MFB</option>
-                    <option value="REVO_MFB">Revo MFB</option>
-                    <option value="AMJU">Amju Unique MFB</option>
-                    <option value="ABSL">AB Microfinance Bank</option>
-                    <option value="TCFB">Tangerine Money</option>
-                    <option value="VFD">VFD Microfinance Bank</option>
-                    <option value="SAFEHAVEN">Safe Haven MFB</option>
-                    <option value="CIBN">Central Bank of Nigeria (CBN)</option>
-                </optgroup>
-            </select>
+            <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Dynamic 15-Min NUBAN</div>
         </div>
 
         <button type="submit" class="btn-submit" id="submitBtn">Proceed to Pay Bill</button>
@@ -137,13 +102,35 @@
 <!-- Modal Container -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
-        <div id="modalBody"></div>
-        <button onclick="document.getElementById('customModal').style.display='none'" style="margin-top:12px; padding:8px 20px; background:#334155; color:#fff; border:none; border-radius:6px; cursor:pointer;">Close</button>
+        <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
+        <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.5; margin-bottom:15px; text-align:left;"></div>
+        <button onclick="document.getElementById('customModal').style.display='none'" style="margin-top:12px; padding:8px 20px; background:#0ea5e9; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:700;">Close</button>
     </div>
 </div>
 
 <script>
 let selectedPayMethod = 'WALLET';
+
+function getActiveMerchant() {
+    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
+    try { return JSON.parse(rawSession); } catch(err) { return {}; }
+}
+
+function refreshWalletIndicator() {
+    const merchant = getActiveMerchant();
+    const displayEl = document.getElementById('walletBalanceDisplay');
+
+    if (!merchant.phone) {
+        displayEl.textContent = 'Not Signed In';
+        displayEl.style.color = '#f59e0b';
+        return;
+    }
+
+    const bal = parseFloat(merchant.balance || 0);
+    const formatted = `₦${bal.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    displayEl.textContent = bal <= 0 ? `${formatted} (Empty)` : formatted;
+    displayEl.style.color = bal <= 0 ? '#ef4444' : '#10b981';
+}
 
 function handleCategoryChange() {
     const category = document.getElementById('categorySelect').value;
@@ -177,28 +164,31 @@ function setPayMethod(method, el) {
     selectedPayMethod = method;
     document.querySelectorAll('.pay-option').forEach(opt => opt.classList.remove('active'));
     el.classList.add('active');
-
-    const bankGroup = document.getElementById('bankSelectorGroup');
-    if (method === 'TRANSFER') {
-        bankGroup.style.display = 'block';
-    } else {
-        bankGroup.style.display = 'none';
-    }
 }
 
-function renderReceiptFallback(data) {
+function showWalletErrorModal(message) {
+    document.getElementById('modalBody').innerHTML = `
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #ef4444; text-align:center;">
+            <p style="color:#ef4444; font-weight:800; font-size:1rem; margin-bottom:8px;">❌ WALLET PAYMENT DECLINED</p>
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">${message}</p>
+            <a href="/dashboard" style="color:#38bdf8; font-size:0.8rem; text-decoration:underline;">Fund your wallet via GTBank Virtual Account</a>
+        </div>
+    `;
+    document.getElementById('customModal').style.display = 'flex';
+}
+
+function renderReceipt(data) {
     const modalBody = document.getElementById('modalBody');
     const isSuccess = data.status === 'success';
     modalBody.innerHTML = `
-        <div style="text-align:left; padding:10px; background:#0f172a; border-radius:10px; border:1px solid ${isSuccess ? '#10b981' : '#ef4444'};">
+        <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid ${isSuccess ? '#10b981' : '#ef4444'};">
             <p style="color:${isSuccess ? '#10b981' : '#ef4444'}; font-weight:800; font-size:1rem; margin-bottom:8px;">${isSuccess ? '✅ BILL TRANSACTION SUCCESSFUL' : '❌ BILL TRANSACTION DECLINED'}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Transaction Ref:</strong> <span style="color:#38bdf8;">${data.orderRef}</span></p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Service:</strong> ${data.serviceTitle}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Target ID:</strong> ${data.beneficiary}</p>
             <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Total Charged:</strong> ₦${parseFloat(data.totalCharged).toLocaleString('en-NG', {minimumFractionDigits:2})}</p>
-            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:4px;"><strong>Gateway Fee:</strong> ₦50.00 (Special Utility)</p>
-            ${data.tokenOrPin && data.tokenOrPin !== 'N/A' ? `<p style="font-size:0.9rem; color:#38bdf8; font-weight:700; margin-top:8px;">Token/Pin: ${data.tokenOrPin}</p>` : ''}
-            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; pt:4px;">Squad Gateway Verified & Auto-Released</p>
+            ${data.tokenOrPin && data.tokenOrPin !== 'N/A' ? `<p style="font-size:0.95rem; color:#38bdf8; font-weight:800; margin-top:10px; padding:8px; background:#1e293b; border-radius:6px; border:1px dashed #38bdf8;">⚡ Token/Pin: ${data.tokenOrPin}</p>` : ''}
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px; border-top:1px dashed #334155; padding-top:6px;">Squad Gateway Verified & Auto-Released</p>
         </div>
     `;
     document.getElementById('customModal').style.display = 'flex';
@@ -209,7 +199,7 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = 'Processing Payment...';
+    btn.textContent = 'Processing...';
 
     const category = document.getElementById('categorySelect').value;
     const bouquetSelect = document.getElementById('bouquetSelect');
@@ -219,24 +209,20 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
         
     const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
-    const txRef = `BLSG-REF-${Date.now()}`;
-    const selectedSourceBank = document.getElementById('sourceBankSelect').options[document.getElementById('sourceBankSelect').selectedIndex].text;
+    const txRef = `BLSG-BILL-${Date.now()}`;
 
-    const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
-    let merchant = {};
-    try { merchant = JSON.parse(rawSession); } catch(err) {}
+    const merchant = getActiveMerchant();
 
     try {
         if (selectedPayMethod === 'WALLET') {
             if (!merchant.phone) {
-                document.getElementById('modalBody').innerHTML = `<p style="color:#ef4444;">❌ Please sign in to your merchant dashboard to pay via wallet balance.</p>`;
-                document.getElementById('customModal').style.display = 'flex';
+                showWalletErrorModal('You are not signed in. Please sign in to pay from your wallet or select Dynamic 15-Min NUBAN.');
                 btn.disabled = false;
                 btn.textContent = 'Proceed to Pay Bill';
                 return;
             }
 
-            let res = await fetch('/api/v1/checkout/wallet', {
+            const res = await fetch('/api/v1/bills/purchase', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -248,100 +234,78 @@ document.getElementById('billForm').addEventListener('submit', async (e) => {
                 })
             });
 
-            if (!res.ok) {
-                res = await fetch('/api/v1/services/transact', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        merchantPhone: merchant.phone,
-                        serviceType: `Bill Payment (${serviceTitle})`,
-                        recipient: targetInput,
-                        amount: amount,
-                        reference: txRef
-                    })
-                });
-            }
-
             const data = await res.json();
 
             if (res.ok && (data.status === 'success' || data.success)) {
                 if (data.newBalance !== undefined) {
                     merchant.balance = data.newBalance;
                     localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicator();
                 }
 
-                const receiptData = {
+                renderReceipt({
                     status: 'success',
                     orderRef: data.orderRef || txRef,
                     serviceTitle: serviceTitle,
                     beneficiary: targetInput,
                     totalCharged: amount,
-                    tokenOrPin: data.token || '7389-1092-4821-9932 (Generated)',
-                    paymentMethod: 'Gateway Wallet Balance'
-                };
-
-                if (typeof triggerPrintableReceipt === 'function') {
-                    triggerPrintableReceipt(receiptData);
-                } else {
-                    renderReceiptFallback(receiptData);
-                }
+                    tokenOrPin: data.token || 'N/A'
+                });
             } else {
-                const declinedReceipt = {
-                    status: 'declined',
-                    orderRef: txRef,
-                    serviceTitle: serviceTitle,
-                    beneficiary: targetInput,
-                    totalCharged: amount,
-                    tokenOrPin: 'N/A'
-                };
-                renderReceiptFallback(declinedReceipt);
+                if (data.currentBalance !== undefined) {
+                    merchant.balance = data.currentBalance;
+                    localStorage.setItem('activeMerchant', JSON.stringify(merchant));
+                    refreshWalletIndicator();
+                }
+                showWalletErrorModal(data.message || 'Wallet balance is empty or insufficient.');
             }
         } else {
-            // Bank Transfer or Card Payment with Complete Bank Selector & Squad Ref
-            const res = await fetch('/api/v1/checkout/initialize', {
+            // Dynamic 15-Minute Expiring Virtual Account Checkout
+            const res = await fetch('/api/v1/checkout/dynamic-account', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    serviceType: category === 'cable' ? bouquetSelect.value : 'electricity',
+                    serviceType: serviceTitle,
                     targetInput: targetInput,
                     amount: amount,
-                    paymentMethod: selectedPayMethod,
-                    sourceBank: selectedSourceBank,
-                    reference: txRef
+                    email: merchant.email || 'checkout@alltimebusiness.com.ng',
+                    channel: 'va'
                 })
             });
             const data = await res.json();
 
-            if (res.ok) {
+            if (res.ok && data.status === 'success') {
+                const chk = data.checkout;
                 document.getElementById('modalBody').innerHTML = `
-                    <div style="text-align:center; padding:10px;">
-                        <h3 style="color:#38bdf8; margin-bottom:8px;">🏦 Squad Transfer & Release Clause</h3>
-                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:10px;">Transfer from <strong>${selectedSourceBank}</strong> to the virtual NUBAN below:</p>
-                        
-                        <div style="background:#0f172a; padding:14px; border-radius:10px; margin:10px 0; border:1px dashed #38bdf8;">
-                            <p style="font-size:0.8rem; color:#94a3b8;">Bank: <strong>GTBank (Squad Engine)</strong></p>
-                            <p style="font-size:1.3rem; font-weight:800; color:#f59e0b; margin:6px 0;">3039182746</p>
-                            <p style="font-size:0.9rem; color:#10b981; font-weight:700;">Exact Amount: ₦${amount.toLocaleString('en-NG')}</p>
+                    <div style="text-align:center;">
+                        <h3 style="color:#38bdf8; margin-bottom:6px;">⏱️ 15-Min Dynamic Checkout NUBAN</h3>
+                        <p style="font-size:0.8rem; color:#cbd5e1; margin-bottom:8px;">Transfer exact total (Principal + Gateway/Squad Fees & VAT):</p>
+                        <div style="background:#0f172a; padding:12px; border-radius:8px; margin:10px 0; border:1px dashed #38bdf8;">
+                            <p style="font-size:0.75rem; color:#94a3b8;">${chk.virtualBank} (${chk.accountName})</p>
+                            <p style="font-size:1.4rem; font-weight:800; color:#f59e0b; margin:6px 0;">${chk.virtualNuban}</p>
+                            <p style="font-size:1rem; color:#10b981; font-weight:700;">₦${chk.expectedAmount.toLocaleString('en-NG')}</p>
                         </div>
-                        
-                        <p style="font-size:0.75rem; color:#38bdf8; margin-bottom:6px;">Ref: <strong>${txRef}</strong></p>
-                        <p style="font-size:0.75rem; color:#cbd5e1; line-height:1.4;">⚡ Token auto-dispatches immediately upon Squad webhooks confirming settlement credit.</p>
+                        <p style="font-size:0.7rem; color:#38bdf8;">Ref: <strong>${data.orderRef}</strong></p>
+                        <small style="color:#f97316; display:block; margin-top:6px;">⏳ Account expires in 15 minutes. Token dispatches automatically upon payment.</small>
                     </div>
                 `;
                 document.getElementById('customModal').style.display = 'flex';
             } else {
-                renderReceiptFallback({ status: 'declined', orderRef: txRef, serviceTitle, beneficiary: targetInput, totalCharged: amount });
+                showWalletErrorModal(data.message || 'Failed to generate dynamic account.');
             }
         }
     } catch (err) {
-        renderReceiptFallback({ status: 'declined', orderRef: txRef, serviceTitle, beneficiary: targetInput, totalCharged: amount });
+        showWalletErrorModal('Server communication error. Please try again.');
     }
 
     btn.disabled = false;
     btn.textContent = 'Proceed to Pay Bill';
 });
 
-window.onload = handleCategoryChange;
+window.onload = () => {
+    handleCategoryChange();
+    refreshWalletIndicator();
+};
 </script>
 
 </body>
