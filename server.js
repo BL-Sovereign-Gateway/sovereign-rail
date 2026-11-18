@@ -436,11 +436,14 @@ async function generateSquadVirtualAccount(merchantData) {
             beneficiary_account_number: ACCESS_BANK_DESTINATION_ACCOUNT
         };
 
-        console.log('📤 Sending Payload to Squad API:', payload);
+        const targetUrl = 'https://sandbox-api-d.squadco.com/virtual-account';
+        const authKey = process.env.SQUAD_SECRET_KEY || 'sandbox_sk_bb1ac0d875d528a9c353252737d522d9df7f667740c49130';
 
-        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account`, payload, {
+        console.log(`📤 Sending Payload to Squad API [${targetUrl}]:`, payload);
+
+        const response = await axios.post(targetUrl, payload, {
             headers: {
-                'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
+                'Authorization': `Bearer ${authKey}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -497,7 +500,7 @@ async function generateDynamicSquadAccount(orderData) {
             duration: 900
         };
 
-        const response = await axios.post(`${SQUAD_BASE_URL}/virtual-account/initiated-dynamic-virtual-account`, payload, {
+        const response = await axios.post('https://sandbox-api-d.squadco.com/virtual-account/initiated-dynamic-virtual-account', payload, {
             headers: {
                 'Authorization': `Bearer ${SQUAD_SECRET_KEY}`,
                 'Content-Type': 'application/json'
