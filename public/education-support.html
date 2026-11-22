@@ -24,22 +24,22 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .tab-group { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { flex: 1; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: #cbd5e1; }
         .tab-btn.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
-        
+
         .form-group { margin-bottom: 14px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.9rem; outline: none; }
         input:focus, select:focus { border-color: #38bdf8; }
-        
+
         .price-tag { font-size: 0.8rem; color: #10b981; font-weight: 700; margin-top: 4px; display: block; }
-        
+
         .payment-options { display: flex; gap: 10px; margin: 15px 0; }
         .pay-option { flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
         .pay-option.active { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
-        
+
         .btn-submit { width: 100%; padding: 14px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         .btn-submit:hover { background: #059669; }
 
@@ -60,14 +60,12 @@
         <strong id="walletBalanceDisplay" style="color:#10b981;">₦0.00</strong>
     </div>
 
-    <!-- Mode Selector -->
     <div class="tab-group">
         <div class="tab-btn active" onclick="switchAction('BUY', this)">🎟 Buy e-PINs</div>
         <div class="tab-btn" onclick="switchAction('DONATE', this)">🎁 Support a Student</div>
     </div>
 
     <form id="eduForm">
-        <!-- Bouquet Dropdown -->
         <div class="form-group" id="bouquetGroup">
             <label>Select Examination Bouquet *</label>
             <select id="examSelect" onchange="updatePriceDisplay()" required>
@@ -96,13 +94,11 @@
             <div class="pay-option active" onclick="setPayMethod('WALLET', this)">💼 Gateway Wallet</div>
             <div class="pay-option" onclick="setPayMethod('TRANSFER', this)">🏦 Dynamic 15-Min NUBAN</div>
         </div>
-    </form>
 
         <button type="submit" class="btn-submit" id="submitBtn">Proceed to Buy e-PIN</button>
     </form>
 </div>
 
-<!-- Modal Container -->
 <div class="modal-overlay" id="customModal">
     <div class="modal-box">
         <h3 style="color:#38bdf8; margin-bottom:12px;">@BL SOVEREIGN GATEWAY</h3>
@@ -142,7 +138,7 @@ function updatePriceDisplay() {
         const selectedOption = select.options[select.selectedIndex];
         const price = selectedOption.getAttribute('data-price');
         const customFee = selectedOption.getAttribute('data-fee') || '50';
-        
+
         document.getElementById('amount').value = price;
         document.getElementById('priceNotice').textContent = `Official e-PIN Price + ₦${customFee} Gateway Fee (Total: ₦${parseInt(price).toLocaleString('en-NG')})`;
     }
@@ -212,7 +208,6 @@ function renderReceipt(data) {
     document.getElementById('customModal').style.display = 'flex';
 }
 
-// 🚀 Form Submission Handler
 document.getElementById('eduForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -220,12 +215,11 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
     btn.textContent = 'Processing...';
 
     const examSelect = document.getElementById('examSelect');
-    const examType = activeAction === 'BUY' ? examSelect.value : 'DONATION_FUND';
     const selectedOption = examSelect.options[examSelect.selectedIndex];
-    const serviceTitle = activeAction === 'BUY' 
+    const serviceTitle = activeAction === 'BUY'
         ? selectedOption.text.split(' — ')[0]
         : 'Education Sponsorship Fund';
-        
+
     const targetInput = document.getElementById('targetInput').value;
     const amount = parseFloat(document.getElementById('amount').value);
     const txRef = `BLSG-EDU-${Date.now()}`;
@@ -280,7 +274,6 @@ document.getElementById('eduForm').addEventListener('submit', async (e) => {
                 showWalletErrorModal(data.message || 'Wallet balance is empty or insufficient.');
             }
         } else {
-            // Dynamic 15-Minute Expiring Virtual Account Checkout
             const res = await fetch('/api/v1/checkout/dynamic-account', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
