@@ -28,7 +28,8 @@
         .auth-links-row a:hover { text-decoration: underline; }
 
         button.btn { width: 100%; padding: 14px; background: #0ea5e9; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 14px; }
-        button.btn:hover { background: #38bdf8; color: #0f172a; }
+        button.btn:hover:not(:disabled) { background: #38bdf8; color: #0f172a; }
+        button.btn:disabled { opacity: 0.65; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -104,7 +105,7 @@
             <input type="text" id="settlementAccount" placeholder="0037323182" maxlength="10" required>
         </div>
 
-        <button type="submit" class="btn">Register Merchant Account & Generate NUBAN</button>
+        <button type="submit" id="submitBtn" class="btn">Register Merchant Account & Generate NUBAN</button>
 
         <div class="auth-links-row">
             <a href="/login">Already registered? Sign In</a>
@@ -218,6 +219,10 @@ function togglePasswordVisibility(inputId, btn) {
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Registering Merchant Account...';
 
     const rawDob = document.getElementById('dob').value;
 
@@ -263,10 +268,14 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             window.location.href = '/dashboard';
         } else {
             alert(`Error: ${result.message || 'Registration failed'}`);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     } catch (err) {
         console.error('Registration error:', err);
         alert('Failed to connect to registration server.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 });
 </script>
