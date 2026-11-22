@@ -11,9 +11,9 @@
         .header { text-align: center; margin-bottom: 20px; }
         .header h2 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 6px; }
         .header p { color: #94a3b8; font-size: 0.85rem; }
-        
+
         .cashback-banner { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 8px; padding: 10px; text-align: center; color: #10b981; font-weight: 700; font-size: 0.85rem; margin-bottom: 20px; }
-        
+
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
@@ -96,16 +96,6 @@
             <label>Settlement Bank Name *</label>
             <select id="bankName" required>
                 <option value="" disabled selected>Select Settlement Bank...</option>
-                <option value="Access Bank Plc">Access Bank Plc</option>
-                <option value="Zenith Bank">Zenith Bank</option>
-                <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank)</option>
-                <option value="First Bank of Nigeria">First Bank of Nigeria</option>
-                <option value="United Bank for Africa (UBA)">United Bank for Africa (UBA)</option>
-                <option value="Fidelity Bank">Fidelity Bank</option>
-                <option value="Moniepoint Microfinance Bank">Moniepoint Microfinance Bank</option>
-                <option value="OPay Digital Services">OPay Digital Services</option>
-                <option value="PalmPay">PalmPay</option>
-                <option value="Kuda Bank">Kuda Bank</option>
             </select>
         </div>
 
@@ -124,6 +114,97 @@
 </div>
 
 <script>
+const FALLBACK_BANKS = [
+    "Access Bank Plc",
+    "Alpha Morgan Bank",
+    "Citibank Nigeria Limited",
+    "Ecobank Nigeria Plc",
+    "Fidelity Bank Plc",
+    "First Bank Nigeria Limited",
+    "First City Monument Bank (FCMB)",
+    "Globus Bank Limited",
+    "Guaranty Trust Bank (GTBank / GTCO)",
+    "Keystone Bank Limited",
+    "Nova Commercial Bank Ltd",
+    "Optimus Bank",
+    "Parallex Bank Ltd",
+    "Polaris Bank Plc",
+    "Premium Trust Bank",
+    "Providus Bank Ltd",
+    "Signature Bank Ltd",
+    "Stanbic IBTC Bank Plc",
+    "Standard Chartered Bank Nigeria Ltd",
+    "Sterling Bank Plc",
+    "Summit Bank",
+    "SunTrust Bank Nigeria Ltd",
+    "Tatum Bank",
+    "Titan Trust Bank Ltd",
+    "Union Bank of Nigeria Plc",
+    "United Bank for Africa (UBA) Plc",
+    "Unity Bank Plc",
+    "Wema Bank Plc (ALAT)",
+    "Zenith Bank Plc",
+    "Jaiz Bank Plc",
+    "Lotus Bank Ltd",
+    "TAJBank Limited",
+    "The Alternative Bank Ltd",
+    "Coronation Merchant Bank",
+    "FBNQuest Merchant Bank",
+    "FSDH Merchant Bank",
+    "Greenwich Merchant Bank",
+    "Nova Merchant Bank",
+    "Rand Merchant Bank",
+    "9Payment Service Bank (9PSB)",
+    "Airtel SmartCash PSB",
+    "MTN MoMo PSB",
+    "Hope PSB",
+    "MoneyMaster PSB",
+    "OPay Digital Services",
+    "PalmPay Limited",
+    "Moniepoint Microfinance Bank",
+    "Kuda Microfinance Bank",
+    "FairMoney Microfinance Bank",
+    "Rubies Microfinance Bank",
+    "Sparkle Microfinance Bank",
+    "VFD Microfinance Bank",
+    "LAPO Microfinance Bank",
+    "AB Microfinance Bank",
+    "Accion Microfinance Bank",
+    "Seedvest Microfinance Bank",
+    "Mint Microfinance Bank",
+    "Advans La Fayette Microfinance Bank",
+    "Covenant Microfinance Bank",
+    "Infinity Microfinance Bank",
+    "Mainstreet Microfinance Bank",
+    "PecanTrust Microfinance Bank",
+    "Solid Allianze Microfinance Bank"
+];
+
+function renderBankOptions(bankList) {
+    const select = document.getElementById('bankName');
+    if (!select) return;
+    const uniqueBanks = [...new Set(bankList)].sort((a, b) => a.localeCompare(b));
+    select.innerHTML = '<option value="" disabled selected>Select Settlement Bank...</option>' +
+        uniqueBanks.map(bank => `<option value="${bank}">${bank}</option>`).join('');
+}
+
+async function loadAllNigerianBanks() {
+    renderBankOptions(FALLBACK_BANKS);
+    try {
+        const res = await fetch('/api/v1/banks');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'success' && Array.isArray(data.banks) && data.banks.length > 0) {
+                renderBankOptions(data.banks);
+            }
+        }
+    } catch (_) {
+        // Fallback banks already rendered
+    }
+}
+
+window.addEventListener('DOMContentLoaded', loadAllNigerianBanks);
+
 function togglePasswordVisibility(inputId, btn) {
     const input = document.getElementById(inputId);
     if (input.type === 'password') {
@@ -139,7 +220,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     e.preventDefault();
 
     const rawDob = document.getElementById('dob').value;
-    
+
     // Normalize date string to MM/DD/YYYY format for Squad API
     let formattedDob = "01/01/1995";
     if (rawDob) {
@@ -165,9 +246,9 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     try {
         const response = await fetch('/api/v1/auth/signup', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json' 
+                'Accept': 'application/json'
             },
             body: JSON.stringify(payload)
         });
@@ -176,7 +257,9 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 
         if (response.ok && result.status === 'success') {
             alert('🎉 Account created successfully! Your unique GTBank Virtual Account is active.');
-            localStorage.setItem('activeMerchant', JSON.stringify(result.merchant));
+            const serialized = JSON.stringify(result.merchant);
+            localStorage.setItem('activeMerchant', serialized);
+            localStorage.setItem('merchantSession', serialized);
             window.location.href = '/dashboard';
         } else {
             alert(`Error: ${result.message || 'Registration failed'}`);
