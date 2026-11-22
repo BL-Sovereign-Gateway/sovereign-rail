@@ -3,7 +3,8 @@
  * ALL TIME BUSINESS LTD | @BL SOVEREIGN GATEWAY - MASTER SERVER ENGINE
  * Entity: ALL TIME BUSINESS LTD (RC: 950444) | www.alltimebusiness.com.ng
  * Features: Squad Co GTBank Virtual Account API (Individual & Business KYC) |
- * Production-Safe VA Provisioning (Blocks Fake NUBANs in Live Mode) |
+ * Local/Sandbox VA Fallback Support + Live Key Guardrail |
+ * Full Nigerian Banks Directory API (/api/v1/banks) |
  * Full Squad Static VA UAT Compliance (Scenarios 1-7) |
  * Merchant Agreement Reconciliation, Settlement & Audit Trail Engine |
  * Live Merchant Balance & VA Status API (/api/v1/merchant/balance/:phone) |
@@ -53,6 +54,73 @@ const MASTER_SQUAD_BANK = 'GTCO (Guaranty Trust Bank)';
 const MASTER_SQUAD_ACCOUNT_NAME = 'ALL TIME BUSINESS LTD';
 const MASTER_SQUAD_USSD_MERCHANT_CODE = '411727';
 const VAT_RATE = 0.075; // Statutory VAT rate (7.5%)
+
+// Full Nigerian Banks Directory (Commercial, Non-Interest, Merchant, PSB & MFBs)
+const NIGERIAN_BANKS = [
+    "Access Bank Plc",
+    "Alpha Morgan Bank",
+    "Citibank Nigeria Limited",
+    "Ecobank Nigeria Plc",
+    "Fidelity Bank Plc",
+    "First Bank Nigeria Limited",
+    "First City Monument Bank (FCMB)",
+    "Globus Bank Limited",
+    "Guaranty Trust Bank (GTBank / GTCO)",
+    "Keystone Bank Limited",
+    "Nova Commercial Bank Ltd",
+    "Optimus Bank",
+    "Parallex Bank Ltd",
+    "Polaris Bank Plc",
+    "Premium Trust Bank",
+    "Providus Bank Ltd",
+    "Signature Bank Ltd",
+    "Stanbic IBTC Bank Plc",
+    "Standard Chartered Bank Nigeria Ltd",
+    "Sterling Bank Plc",
+    "Summit Bank",
+    "SunTrust Bank Nigeria Ltd",
+    "Tatum Bank",
+    "Titan Trust Bank Ltd",
+    "Union Bank of Nigeria Plc",
+    "United Bank for Africa (UBA) Plc",
+    "Unity Bank Plc",
+    "Wema Bank Plc (ALAT)",
+    "Zenith Bank Plc",
+    "Jaiz Bank Plc",
+    "Lotus Bank Ltd",
+    "TAJBank Limited",
+    "The Alternative Bank Ltd",
+    "Coronation Merchant Bank",
+    "FBNQuest Merchant Bank",
+    "FSDH Merchant Bank",
+    "Greenwich Merchant Bank",
+    "Nova Merchant Bank",
+    "Rand Merchant Bank",
+    "9Payment Service Bank (9PSB)",
+    "Airtel SmartCash PSB",
+    "MTN MoMo PSB",
+    "Hope PSB",
+    "MoneyMaster PSB",
+    "OPay Digital Services",
+    "PalmPay Limited",
+    "Moniepoint Microfinance Bank",
+    "Kuda Microfinance Bank",
+    "FairMoney Microfinance Bank",
+    "Rubies Microfinance Bank",
+    "Sparkle Microfinance Bank",
+    "VFD Microfinance Bank",
+    "LAPO Microfinance Bank",
+    "AB Microfinance Bank",
+    "Accion Microfinance Bank",
+    "Seedvest Microfinance Bank",
+    "Mint Microfinance Bank",
+    "Advans La Fayette Microfinance Bank",
+    "Covenant Microfinance Bank",
+    "Infinity Microfinance Bank",
+    "Mainstreet Microfinance Bank",
+    "PecanTrust Microfinance Bank",
+    "Solid Allianze Microfinance Bank"
+];
 
 // Persistent Database Handlers
 const DB_FILE = path.join(__dirname, 'database.json');
@@ -350,6 +418,21 @@ app.get('/news', serveModuleFile('newsletter.html'));
 app.get('/publish', serveModuleFile('publish.html', 'dashboard.html'));
 app.get('/private', serveModuleFile('private.html', 'dashboard.html'));
 
+// Full Nigerian Banks Directory Route (for Onboarding & Withdrawals)
+app.get('/api/v1/banks', (req, res) => {
+    const q = (req.query.q || '').trim().toLowerCase();
+    const filtered = q
+        ? NIGERIAN_BANKS.filter(b => b.toLowerCase().includes(q))
+        : NIGERIAN_BANKS;
+
+    return res.status(200).json({
+        status: 'success',
+        count: filtered.length,
+        banks: filtered,
+        data: filtered.map((name, index) => ({ id: index + 1, name }))
+    });
+});
+
 // =========================================================================
 // 📲 TERMII SMS DISPATCH ENGINE (UNIFIED ₦6.00 RATE)
 // =========================================================================
@@ -444,11 +527,12 @@ async function executeAccessBankAutoSweep(amount, referenceId, sourceDescription
 }
 
 // =========================================================================
-// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (PRODUCTION-SAFE + UAT SCENARIOS 1 & 2)
+// 💳 SQUAD GTBANK VIRTUAL ACCOUNT ENGINE (LOCAL TEST FRIENDLY + LIVE GUARD)
 // =========================================================================
 
-function isLiveSquadMode() {
-    return process.env.NODE_ENV === 'production' || SQUAD_SECRET_KEY.startsWith('live_sk_');
+function shouldUseStrictLiveMode() {
+    if (process.env.ALLOW_SANDBOX_VA_FALLBACK === 'true') return false;
+    return SQUAD_SECRET_KEY.startsWith('live_sk_');
 }
 
 async function generateSquadVirtualAccount(merchantData) {
@@ -516,7 +600,7 @@ async function generateSquadVirtualAccount(merchantData) {
         }
     } catch (err) {
         const errorMsg = err.response?.data?.message || err.message;
-        if (isLiveSquadMode()) {
+        if (shouldUseStrictLiveMode()) {
             console.error('❌ Live Squad Virtual Account Provisioning Failed:', errorMsg);
             return {
                 success: false,
@@ -525,14 +609,14 @@ async function generateSquadVirtualAccount(merchantData) {
             };
         }
 
-        console.warn('⚠️ Squad Sandbox Generation Blocked (Profile Pending). Switching to Temporary Local Fallback NUBAN...');
+        console.warn('⚠️ Squad VA not yet profiled on merchant account. Using Local Sandbox Fallback NUBAN for testing...');
         const fallbackNuban = '7' + normalizePhoneNumber(merchantData.phone).slice(-9).padStart(9, '0');
 
         return {
             success: true,
             isLive: false,
             virtualNuban: fallbackNuban,
-            virtualBank: 'GTBank (Sandbox Fallback)'
+            virtualBank: 'GTBank (Local Test Fallback)'
         };
     }
 }
@@ -561,7 +645,7 @@ async function generateSquadBusinessVirtualAccount(businessData) {
         throw new Error(response.data?.message || 'Business VA creation failed');
     } catch (err) {
         const errorMsg = err.response?.data?.message || err.message;
-        if (isLiveSquadMode()) {
+        if (shouldUseStrictLiveMode()) {
             return {
                 success: false,
                 source: 'squad_api_error',
@@ -569,11 +653,11 @@ async function generateSquadBusinessVirtualAccount(businessData) {
             };
         }
 
-        console.warn('⚠️ Squad Business VA Blocked (Profile Pending). Switching to Temporary Business Sandbox Fallback...');
+        console.warn('⚠️ Squad Business VA not yet profiled. Using Local Test Fallback...');
         const fallbackNuban = '7' + String(payload.mobile_num || '08012345678').slice(-9).padStart(9, '0');
         return {
             success: true,
-            source: 'sandbox_fallback',
+            source: 'local_test_fallback',
             warning: errorMsg,
             data: {
                 customer_identifier: payload.customer_identifier,
@@ -599,7 +683,8 @@ app.get('/api/v1/merchant/balance/:phone', (req, res) => {
         return res.status(404).json({ status: 'error', message: 'Merchant account not found.' });
     }
 
-    const isSandboxFallback = String(account.virtualBank || '').toLowerCase().includes('sandbox');
+    const bankLabel = String(account.virtualBank || '').toLowerCase();
+    const isFallback = bankLabel.includes('sandbox') || bankLabel.includes('fallback');
 
     return res.status(200).json({
         status: 'success',
@@ -608,7 +693,7 @@ app.get('/api/v1/merchant/balance/:phone', (req, res) => {
         virtualBank: account.virtualBank || 'GTBank / Squad',
         accountBeneficiary: account.accountBeneficiary || MASTER_SQUAD_ACCOUNT_NAME,
         ussdCode: `*737*35*${MASTER_SQUAD_USSD_MERCHANT_CODE}*Amount#`,
-        isLiveVirtualAccount: !isSandboxFallback
+        isLiveVirtualAccount: !isFallback
     });
 });
 
@@ -671,7 +756,7 @@ app.post('/api/v1/squad/virtual-account/simulate/payment', async (req, res) => {
             status: 200,
             success: true,
             message: 'Success',
-            source: 'sandbox_fallback',
+            source: 'local_test_fallback',
             warning: err.response?.data?.message || err.message,
             data: {
                 transaction_reference: txRef,
@@ -859,7 +944,7 @@ async function generateDynamicSquadAccount(orderData) {
             throw new Error(response.data.message || 'Squad dynamic account generation failed.');
         }
     } catch (err) {
-        console.warn('⚠️ Squad Dynamic VA Blocked (Profile Pending). Switching to Temporary Dynamic Checkout Fallback...');
+        console.warn('⚠️ Squad Dynamic VA not yet profiled. Using Local Test Dynamic Checkout Fallback...');
 
         const randomSuffix = Math.floor(100000000 + Math.random() * 900000000);
         const fallbackDynamicNuban = `8${randomSuffix}`;
@@ -867,7 +952,7 @@ async function generateDynamicSquadAccount(orderData) {
         return {
             success: true,
             virtualNuban: fallbackDynamicNuban,
-            virtualBank: 'GTBank (Dynamic Sandbox)',
+            virtualBank: 'GTBank (Dynamic Local Test)',
             accountName: 'ALL TIME BUSINESS LTD - INSTANT CHECKOUT',
             principalAmount: parseFloat(amount),
             expectedAmount: totalPayable,
@@ -1529,7 +1614,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`============================================================`);
     console.log(`⚡ @BL SOVEREIGN GATEWAY MASTER SERVER ONLINE`);
     console.log(`Entity: ALL TIME BUSINESS LTD (RC: 950444)`);
-    console.log(`Port: ${PORT} | Environment: ${isLiveSquadMode() ? 'LIVE PRODUCTION' : 'SANDBOX ENGINE'}`);
+    console.log(`Port: ${PORT} | Mode: ${shouldUseStrictLiveMode() ? 'STRICT LIVE KEY' : 'LOCAL TEST FALLBACK ENABLED'}`);
     console.log(`Master GTBank NUBAN: ${MASTER_SQUAD_NUBAN} | USSD Code: *${MASTER_SQUAD_USSD_MERCHANT_CODE}#`);
     console.log(`============================================================`);
 });
