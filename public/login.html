@@ -11,7 +11,7 @@
         .header { text-align: center; margin-bottom: 24px; }
         .header h2 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 6px; }
         .header p { color: #94a3b8; font-size: 0.85rem; }
-        
+
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
         input { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; color: #fff; font-size: 0.95rem; outline: none; }
@@ -101,9 +101,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     try {
         const response = await fetch('/api/v1/auth/signin', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json' 
+                'Accept': 'application/json'
             },
             body: JSON.stringify(payload)
         });
@@ -112,7 +112,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
         if (response.ok && result.status === 'success') {
             alert('🎉 Sign in successful! Redirecting to dashboard...');
-            localStorage.setItem('activeMerchant', JSON.stringify(result.merchant));
+            const serialized = JSON.stringify(result.merchant);
+            localStorage.setItem('activeMerchant', serialized);
+            localStorage.setItem('merchantSession', serialized);
             window.location.href = '/dashboard';
         } else {
             alert(`Error: ${result.message || 'Invalid credentials'}`);
