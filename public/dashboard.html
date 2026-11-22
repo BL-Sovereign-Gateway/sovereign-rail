@@ -297,7 +297,7 @@
 <!-- SINGLE UNIFIED HEADER NAVIGATION -->
 <nav class="top-nav">
     <a href="/dashboard" class="brand-logo">📊 @BL SOVEREIGN GATEWAY</a>
-    
+
     <ul class="nav-links">
         <li class="nav-item"><a href="/dashboard" class="active">📊 Dashboard Desk</a></li>
         <li class="nav-item"><a href="/vtu-support">📞 Buy Airtime & Data</a></li>
@@ -410,35 +410,115 @@ let idleTimer = null;
 let currentServerMonth = { monthName: "November", year: 2026, daysInMonth: 30 };
 
 const NIGERIAN_BANKS = [
+    // Commercial Banks (International, National & Regional)
     "Access Bank Plc",
-    "Guaranty Trust Bank (GTBank / GTCO)",
-    "Zenith Bank Plc",
-    "First Bank of Nigeria",
-    "United Bank for Africa (UBA)",
-    "Kuda Microfinance Bank",
-    "OPay Digital Services (Paycom)",
-    "Moniepoint Microfinance Bank",
-    "PalmPay Limited",
+    "Alpha Morgan Bank",
+    "Citibank Nigeria Limited",
+    "Ecobank Nigeria Plc",
     "Fidelity Bank Plc",
-    "Stanbic IBTC Bank",
-    "Sterling Bank Plc",
-    "Wema Bank Plc (ALAT)",
-    "Union Bank of Nigeria",
-    "Ecobank Nigeria",
-    "FCMB (First City Monument Bank)",
+    "First Bank Nigeria Limited",
+    "First City Monument Bank (FCMB)",
+    "Globus Bank Limited",
+    "Guaranty Trust Bank (GTBank / GTCO)",
+    "Keystone Bank Limited",
+    "Nova Commercial Bank Ltd",
+    "Optimus Bank",
+    "Parallex Bank Ltd",
     "Polaris Bank Plc",
+    "Premium Trust Bank",
+    "Providus Bank Ltd",
+    "Signature Bank Ltd",
+    "Stanbic IBTC Bank Plc",
+    "Standard Chartered Bank Nigeria Ltd",
+    "Sterling Bank Plc",
+    "Summit Bank",
+    "SunTrust Bank Nigeria Ltd",
+    "Tatum Bank",
+    "Titan Trust Bank Ltd",
+    "Union Bank of Nigeria Plc",
+    "United Bank for Africa (UBA) Plc",
+    "Unity Bank Plc",
+    "Wema Bank Plc (ALAT)",
+    "Zenith Bank Plc",
+
+    // Non-Interest (Islamic) Banks
     "Jaiz Bank Plc",
-    "Providus Bank",
-    "Taj Bank",
-    "Lotus Bank",
-    "FairMoney Microfinance Bank"
+    "Lotus Bank Ltd",
+    "TAJBank Limited",
+    "The Alternative Bank Ltd",
+
+    // Merchant Banks
+    "Coronation Merchant Bank",
+    "FBNQuest Merchant Bank",
+    "FSDH Merchant Bank",
+    "Greenwich Merchant Bank",
+    "Nova Merchant Bank",
+    "Rand Merchant Bank",
+
+    // Payment Service Banks (PSBs) & Major Digital / Microfinance Banks
+    "9Payment Service Bank (9PSB)",
+    "Airtel SmartCash PSB",
+    "MTN MoMo PSB",
+    "Hope PSB",
+    "MoneyMaster PSB",
+    "OPay Digital Services",
+    "PalmPay Limited",
+    "Moniepoint Microfinance Bank",
+    "Kuda Microfinance Bank",
+    "FairMoney Microfinance Bank",
+    "Rubies Microfinance Bank",
+    "Sparkle Microfinance Bank",
+    "VFD Microfinance Bank",
+    "LAPO Microfinance Bank",
+    "AB Microfinance Bank",
+    "Accion Microfinance Bank",
+    "Seedvest Microfinance Bank",
+    "Mint Microfinance Bank",
+    "Advans La Fayette Microfinance Bank",
+    "Covenant Microfinance Bank",
+    "Infinity Microfinance Bank",
+    "Mainstreet Microfinance Bank",
+    "PecanTrust Microfinance Bank",
+    "Solid Allianze Microfinance Bank"
 ];
+
+function saveMerchantSession(data) {
+    const serialized = JSON.stringify(data);
+    localStorage.setItem('activeMerchant', serialized);
+    localStorage.setItem('merchantSession', serialized);
+}
+
+async function syncLiveBalanceFromServer() {
+    if (!merchant.phone) return;
+    try {
+        const res = await fetch(`/api/v1/merchant/balance/${encodeURIComponent(merchant.phone)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'success') {
+            merchant = {
+                ...merchant,
+                balance: data.balance,
+                virtualNuban: data.virtualNuban || merchant.virtualNuban || '5000759098',
+                virtualBank: data.virtualBank || merchant.virtualBank || 'GTBank / Squad',
+                accountBeneficiary: data.accountBeneficiary || 'ALL TIME BUSINESS LTD',
+                ussdCode: data.ussdCode || '*737*35*411727*Amount#'
+            };
+            saveMerchantSession(merchant);
+            document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban}`;
+            if (isLedgerVisible) {
+                refreshLedgerDisplay();
+            }
+        }
+    } catch (e) {
+        console.warn('Live balance sync skipped:', e.message);
+    }
+}
 
 async function initSession() {
     const rawSession = localStorage.getItem('activeMerchant') || localStorage.getItem('merchantSession') || '{}';
-    try { 
-        merchant = JSON.parse(rawSession); 
-    } catch(err) {
+    try {
+        merchant = JSON.parse(rawSession);
+    } catch (err) {
         merchant = {};
     }
 
@@ -453,6 +533,8 @@ async function initSession() {
 
     document.getElementById('merchantGreeting').textContent = `Hi, ${merchant.merchantName || 'Tope Ogegbo'}`;
     document.getElementById('virtualNubanDisplay').textContent = `GTBank Virtual Account: ${merchant.virtualNuban || '5000759098'}`;
+
+    await syncLiveBalanceFromServer();
 
     try {
         const res = await fetch('/api/v1/ajo/current-month');
@@ -512,23 +594,39 @@ function toggleBalance(type) {
 }
 
 function refreshLedgerDisplay() {
-    const val = parseFloat(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits: 2});
+    const val = parseFloat(merchant.balance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 });
     document.getElementById('ledgerBalance').textContent = isLedgerVisible ? `₦${val}` : '₦••••••••';
 }
 
-// Modal actions placeholders
-function openFundModal() {
+async function openFundModal() {
+    await syncLiveBalanceFromServer();
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
+    const ussd = merchant.ussdCode || '*737*35*411727*Amount#';
     modalTitle.textContent = "➕ FUND WALLET & GATEWAY LEDGER";
     modalBody.innerHTML = `
         <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.82rem; color:#cbd5e1; margin-bottom:12px;">
             <p style="color:#10b981; font-weight:800; margin-bottom:6px;">💳 DEDICATED GTBANK VIRTUAL ACCOUNT:</p>
             <p style="font-family:monospace; font-size:1.1rem; color:#38bdf8; font-weight:800; margin-bottom:6px;">${merchant.virtualNuban || '5000759098'}</p>
-            <p>Transfer any amount from any bank app or USSD code <b>(*737*35*411727*Amount#)</b>. Funds credit your ledger instantly with automated Access Bank sweeps.</p>
+            <p style="font-size:0.75rem; color:#94a3b8; margin-bottom:6px;">Beneficiary: <b>${merchant.accountBeneficiary || 'ALL TIME BUSINESS LTD'}</b> (${merchant.virtualBank || 'GTBank / Squad'})</p>
+            <p>Transfer any NGN amount from any bank app or USSD code <b>(${ussd})</b>. Funds credit your ledger upon Squad webhook confirmation with automated Access Bank sweeps.</p>
         </div>
+        <button onclick="syncLiveBalanceFromServer().then(() => { refreshLedgerDisplay(); alert('Balance refreshed: ₦' + parseFloat(merchant.balance || 0).toLocaleString('en-NG', {minimumFractionDigits: 2})); })" class="modal-btn" style="background:#10b981; font-weight:700; width:100%; margin-top:0;">🔄 Refresh Ledger Balance</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
+}
+
+function filterWithdrawBanks(query) {
+    const select = document.getElementById('withdrawBank');
+    if (!select) return;
+    const term = (query || '').trim().toLowerCase();
+    const matches = term
+        ? NIGERIAN_BANKS.filter(b => b.toLowerCase().includes(term))
+        : NIGERIAN_BANKS;
+
+    select.innerHTML = matches.length
+        ? matches.map(b => `<option value="${b}">${b}</option>`).join('')
+        : `<option value="">No matching bank found</option>`;
 }
 
 function openWithdrawModal() {
@@ -537,7 +635,8 @@ function openWithdrawModal() {
     modalTitle.textContent = "💸 WITHDRAW FUNDS FROM LEDGER";
     modalBody.innerHTML = `
         <div class="form-group">
-            <label>Destination Bank</label>
+            <label>Search & Select Destination Bank (${NIGERIAN_BANKS.length} Banks)</label>
+            <input type="text" id="withdrawBankSearch" placeholder="Type bank name (e.g. OPay, GTBank, Moniepoint, TAJBank)..." oninput="filterWithdrawBanks(this.value)" style="margin-bottom:8px;">
             <select id="withdrawBank">
                 ${NIGERIAN_BANKS.map(b => `<option value="${b}">${b}</option>`).join('')}
             </select>
@@ -560,12 +659,46 @@ function openWithdrawModal() {
 }
 
 function processWithdrawal() {
-    alert('Withdrawal request submitted securely for processing.');
+    const bank = (document.getElementById('withdrawBank')?.value || '').trim();
+    const acct = (document.getElementById('withdrawAcct')?.value || '').trim();
+    const amt = parseFloat(document.getElementById('withdrawAmount')?.value || 0);
+    if (!bank || acct.length !== 10 || isNaN(amt) || amt <= 0) {
+        return alert('Please select a bank and enter a valid 10-digit account number and withdrawal amount.');
+    }
+    alert(`Withdrawal request of ₦${amt.toLocaleString('en-NG')} to ${bank} (${acct}) submitted securely for processing.`);
     closeModal();
 }
 
-function downloadBankStatement() {
-    alert('Generating official PDF/CSV statement of account for @BL Sovereign Gateway...');
+async function downloadBankStatement() {
+    try {
+        const res = await fetch('/api/v1/reconciliation/daily');
+        const data = await res.json();
+        const txns = Array.isArray(data.transactions) ? data.transactions : [];
+        const rows = [
+            ['Reference', 'Channel', 'Service', 'Recipient', 'Principal (NGN)', 'Settled (NGN)', 'Status', 'Settlement Window', 'Timestamp'],
+            ...txns.map(t => [
+                t.transaction_reference || t.txRef || '',
+                t.channel || '',
+                t.serviceType || '',
+                t.recipient || '',
+                t.principalAmount ?? 0,
+                t.settledAmount ?? 0,
+                t.status || '',
+                t.settlementWindow || '',
+                t.updatedAt || t.createdAt || ''
+            ])
+        ];
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BL-Sovereign-Statement-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert('Unable to fetch statement ledger right now.');
+    }
 }
 
 function openResetPinModal() {
@@ -581,13 +714,24 @@ function openResetPinModal() {
             <label>New 4-Digit PIN</label>
             <input type="password" id="newPin" maxlength="4" placeholder="••••">
         </div>
-        <button onclick="alert('Security PIN updated successfully!'); closeModal();" class="modal-btn" style="width:100%;">Update PIN</button>
+        <button onclick="saveNewSecurityPin()" class="modal-btn" style="width:100%;">Update PIN</button>
     `;
     document.getElementById('dashboardModal').style.display = 'flex';
 }
 
+function saveNewSecurityPin() {
+    const newPin = (document.getElementById('newPin')?.value || '').trim();
+    if (!/^\d{4}$/.test(newPin)) {
+        return alert('Please enter a valid 4-digit PIN.');
+    }
+    merchant.withdrawalPin = newPin;
+    saveMerchantSession(merchant);
+    alert('Security PIN updated successfully!');
+    closeModal();
+}
+
 // =========================================================================
-// 🏺 AJO EXPRESS FRONTEND (AUTOMATED NOVEMBER 2026 CALENDAR & STATEMENT)
+// 🏺 AJO EXPRESS FRONTEND (AUTOMATED CALENDAR & STATEMENT)
 // =========================================================================
 
 window.openAjoExpressModal = function() {
@@ -598,7 +742,7 @@ window.openAjoExpressModal = function() {
             localStorage.removeItem('activeAjoPlan');
             activeAjo = null;
         } else {
-            openAjoSpace(); 
+            openAjoSpace();
             return;
         }
     }
@@ -610,18 +754,18 @@ window.openAjoExpressModal = function() {
     const defaultDays = currentServerMonth.daysInMonth;
 
     const monthsList = [
-        {name: "January", days: 31},
-        {name: "February", days: 28},
-        {name: "March", days: 31},
-        {name: "April", days: 30},
-        {name: "May", days: 31},
-        {name: "June", days: 30},
-        {name: "July", days: 31},
-        {name: "August", days: 31},
-        {name: "September", days: 30},
-        {name: "October", days: 31},
-        {name: "November", days: 30},
-        {name: "December", days: 31}
+        { name: "January", days: 31 },
+        { name: "February", days: 28 },
+        { name: "March", days: 31 },
+        { name: "April", days: 30 },
+        { name: "May", days: 31 },
+        { name: "June", days: 30 },
+        { name: "July", days: 31 },
+        { name: "August", days: 31 },
+        { name: "September", days: 30 },
+        { name: "October", days: 31 },
+        { name: "November", days: 30 },
+        { name: "December", days: 31 }
     ];
 
     let monthOptions = monthsList.map((m) => {
@@ -693,9 +837,13 @@ window.startAjoPlan = async function() {
 
         const result = await response.json();
         if (result.status === 'success') {
-            result.ajoData.selectedMonth = `${selectedMonthName} ${currentServerMonth.year}`;
-            result.ajoData.daysInMonth = daysInMonth;
-            localStorage.setItem('activeAjoPlan', JSON.stringify(result.ajoData));
+            const ajoPlan = {
+                ...result.ajoData,
+                accumulatedProceeds: result.ajoData.accumulatedProceeds ?? result.ajoData.grossAccumulated ?? (amount * totalDays),
+                selectedMonth: `${selectedMonthName} ${currentServerMonth.year}`,
+                daysInMonth: daysInMonth
+            };
+            localStorage.setItem('activeAjoPlan', JSON.stringify(ajoPlan));
             alert('🎉 Ajo Subscription Successful! Welcome to your automated Ajo Space.');
             openAjoSpace();
         } else {
@@ -733,8 +881,11 @@ window.openAjoSpace = function() {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const monthDisplay = (ajo.selectedMonth || `NOVEMBER ${currentServerMonth.year}`).toUpperCase();
+    const monthDisplay = (ajo.selectedMonth || `${currentServerMonth.monthName} ${currentServerMonth.year}`).toUpperCase();
     const totalDaysDisplay = ajo.totalDays || ajo.daysInMonth || 30;
+    const grossVal = parseFloat(ajo.accumulatedProceeds ?? ajo.accumulatedAmount ?? ajo.grossAccumulated ?? 0);
+    const feeVal = parseFloat(ajo.gatewayFee ?? 0);
+    const netVal = parseFloat(ajo.netEntitlement ?? (grossVal - feeVal));
 
     modalTitle.textContent = "🏺 YOUR DEDICATED AJO SPACE";
     modalBody.innerHTML = `
@@ -746,20 +897,20 @@ window.openAjoSpace = function() {
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>Daily Contribution:</span>
-                <span style="color:#10b981; font-weight:700;">₦${parseFloat(ajo.dailyAmount).toLocaleString()}</span>
+                <span style="color:#10b981; font-weight:700;">₦${parseFloat(ajo.dailyAmount || 0).toLocaleString()}</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>Gross Accumulated Proceeds:</span>
-                <span style="color:#fff; font-weight:700;">₦${parseFloat(ajo.accumulatedProceeds).toLocaleString()}</span>
+                <span style="color:#fff; font-weight:700;">₦${grossVal.toLocaleString()}</span>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
                 <span>1st Contributions (@BL Underwriting):</span>
-                <span style="color:#ef4444; font-weight:700;">- ₦${parseFloat(ajo.gatewayFee).toLocaleString()} (Unnegotiable)</span>
+                <span style="color:#ef4444; font-weight:700;">- ₦${feeVal.toLocaleString()} (Unnegotiable)</span>
             </div>
             <hr style="border-color:#334155; margin:8px 0;">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span>Total Net Due to Merchant:</span>
-                <span style="color:#f59e0b; font-weight:800; font-size:1.1rem;">₦${parseFloat(ajo.netEntitlement).toLocaleString()}</span>
+                <span style="color:#f59e0b; font-weight:800; font-size:1.1rem;">₦${netVal.toLocaleString()}</span>
             </div>
             <div style="padding:8px; background:#1e293b; border-radius:6px; font-size:0.75rem; color:#10b981; font-weight:700; text-align:center;">
                 🌟 "Consistency is the DNA of true wealth creation. Keep your streak glowing!"
@@ -777,11 +928,11 @@ window.openAjoSpace = function() {
 
 window.viewAjoCalendar = function() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { daysInMonth: 30, completedDays: 0, selectedMonth: `November ${currentServerMonth.year}` };
+    const ajo = rawAjo ? JSON.parse(rawAjo) : { daysInMonth: 30, completedDays: 0, selectedMonth: `${currentServerMonth.monthName} ${currentServerMonth.year}` };
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
 
-    const monthName = (ajo.selectedMonth || `NOVEMBER ${currentServerMonth.year}`).toUpperCase();
+    const monthName = (ajo.selectedMonth || `${currentServerMonth.monthName} ${currentServerMonth.year}`).toUpperCase();
     const totalDaysInMonth = ajo.daysInMonth || ajo.totalDays || 30;
     const completedCount = ajo.completedDays || 0;
 
@@ -791,8 +942,10 @@ window.viewAjoCalendar = function() {
     for (let day = 1; day <= totalDaysInMonth; day++) {
         let isCompleted = day <= completedCount;
         let bgStyle = isCompleted ? 'background:#10b981; color:#0f172a; border-color:#059669;' : 'background:#0f172a; color:#94a3b8; border-color:#334155;';
-        let statusBadge = isCompleted ? '<span style="font-size:0.65rem; color:#0f172a; background:#fff; padding:1px 4px; border-radius:4px; margin-top:2px; font-weight:800;">MARKED ✓</span>' : '<span style="font-size:0.65rem; color:#f59e0b; background:#1e293b; padding:1px 4px; border-radius:4px; margin-top:2px; font-weight:800;">LOCKED 🔒</span>';
-        
+        let statusBadge = isCompleted
+            ? '<span style="font-size:0.65rem; color:#0f172a; background:#fff; padding:1px 4px; border-radius:4px; margin-top:2px; font-weight:800;">MARKED ✓</span>'
+            : '<span style="font-size:0.65rem; color:#f59e0b; background:#1e293b; padding:1px 4px; border-radius:4px; margin-top:2px; font-weight:800;">LOCKED 🔒</span>';
+
         calendarGridHtml += `
             <div style="${bgStyle} border:1px solid; border-radius:6px; padding:8px 4px; text-align:center; font-size:0.75rem; font-weight:800; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <span>Day ${day}</span>
@@ -802,57 +955,49 @@ window.viewAjoCalendar = function() {
     }
 
     modalBody.innerHTML = `
-        <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.82rem; color:#cbd5e1;">
-            <p style="color:#38bdf8; font-weight:800; text-align:center; font-size:0.95rem; margin-bottom:6px;">🌟 @BL SOVEREIGN GATEWAY THRIFT TRACKER (${monthName}) 🌟</p>
-            <p style="text-align:center; color:#10b981; font-weight:700; font-size:0.8rem; margin-bottom:12px;">"Small drops of daily savings make a mighty ocean of financial freedom!"</p>
-            
-            <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; margin-bottom:12px; max-height:180px; overflow-y:auto; padding:4px;">
-                ${calendarGridHtml}
-            </div>
-
-            <div style="padding:10px; background:#162032; border-radius:8px; border:1px dashed #10b981; text-align:center;">
-                <p style="color:#f59e0b; font-weight:800; font-size:0.9rem;">🔥 Streak Status: ${completedCount} / ${totalDaysInMonth} Days Marked & Locked!</p>
-                <p style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Monthly first contributions underwritten by @BL.</p>
-            </div>
+        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; text-align:left; margin-bottom:12px;">
+            ${calendarGridHtml}
         </div>
-        <button onclick="openAjoSpace()" class="modal-btn" style="background:#334155; width:100%; margin-top:10px;">← Back to Ajo Space</button>
+        <button onclick="openAjoSpace()" class="modal-btn" style="background:#334155; width:100%; margin-top:0;">⬅ Back to Ajo Space</button>
     `;
+    document.getElementById('dashboardModal').style.display = 'flex';
 };
 
 window.downloadAjoStatement = function() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
-    const ajo = rawAjo ? JSON.parse(rawAjo) : { dailyAmount: 4000, netEntitlement: 116000, selectedMonth: `November ${currentServerMonth.year}`, durationMonths: 1, daysInMonth: 30, totalDays: 30, accumulatedProceeds: 120000, gatewayFee: 4000 };
-    
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
-
-    const monthName = (ajo.selectedMonth || `NOVEMBER ${currentServerMonth.year}`).toUpperCase();
-    const totalDaysCount = ajo.daysInMonth || ajo.totalDays || 30;
-
-    modalTitle.textContent = "📄 AJO EXPRESS STATEMENT OF ACCOUNT";
-    modalBody.innerHTML = `
-        <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #38bdf8; text-align:left; font-size:0.8rem; color:#cbd5e1; font-family:monospace;">
-            <p style="color:#38bdf8; font-weight:800; text-align:center; margin-bottom:8px;">@BL SOVEREIGN GATEWAY - OFFICIAL AJO STATEMENT</p>
-            <p><b>Merchant Name:</b> ${merchant.merchantName || 'Tope Ogegbo'}</p>
-            <p><b>Target Month & Days:</b> <span style="color:#38bdf8; font-weight:800;">${monthName} (${totalDaysCount} Days Auto-Aligned)</span></p>
-            <p><b>Plan Duration:</b> ${ajo.durationMonths || 1} Month(s)</p>
-            <p><b>Daily Contribution:</b> ₦${parseFloat(ajo.dailyAmount).toLocaleString()}</p>
-            <p><b>Gross Accumulated:</b> ₦${parseFloat(ajo.accumulatedProceeds || 0).toLocaleString()}</p>
-            <p><b>Underwriting Fee:</b> ₦${parseFloat(ajo.gatewayFee || 0).toLocaleString()}</p>
-            <hr style="border-color:#334155; margin:6px 0;">
-            <p style="color:#10b981; font-weight:800; font-size:0.9rem;">Net Entitlement: ₦${parseFloat(ajo.netEntitlement || 0).toLocaleString()}</p>
-        </div>
-        <button onclick="openAjoSpace()" class="modal-btn" style="background:#334155; width:100%; margin-top:10px;">← Back to Ajo Space</button>
-    `;
+    if (!rawAjo) return alert('No active Ajo plan found.');
+    const ajo = JSON.parse(rawAjo);
+    const lines = [
+        'AJO EXPRESS STATEMENT - @BL SOVEREIGN GATEWAY',
+        `Month: ${ajo.selectedMonth || ''}`,
+        `Daily Amount: NGN ${ajo.dailyAmount || 0}`,
+        `Duration (Months): ${ajo.durationMonths || 1}`,
+        `Total Days: ${ajo.totalDays || ajo.daysInMonth || 30}`,
+        `Gateway Underwriting Fee: NGN ${ajo.gatewayFee || 0}`,
+        `Net Entitlement: NGN ${ajo.netEntitlement || 0}`
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Ajo-Express-Statement.txt';
+    a.click();
+    URL.revokeObjectURL(url);
 };
 
 window.triggerEmergencyExit = function() {
-    if (confirm('Are you sure you want to exit your Ajo plan early? A 5% administrative penalty will apply.')) {
+    const rawAjo = localStorage.getItem('activeAjoPlan');
+    if (!rawAjo) return;
+    const ajo = JSON.parse(rawAjo);
+    const net = parseFloat(ajo.netEntitlement || 0);
+    const penalty = net * 0.05;
+    if (confirm(`Emergency exit attracts a 5% administrative penalty (₦${penalty.toLocaleString()}). Proceed?`)) {
         localStorage.removeItem('activeAjoPlan');
-        alert('Plan terminated with emergency penalty applied. Balance updated.');
+        alert('Ajo plan closed under emergency exit terms.');
         closeModal();
     }
 };
 </script>
+
 </body>
 </html>
