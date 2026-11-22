@@ -410,7 +410,6 @@ let idleTimer = null;
 let currentServerMonth = { monthName: "November", year: 2026, daysInMonth: 30 };
 
 const NIGERIAN_BANKS = [
-    // Commercial Banks (International, National & Regional)
     "Access Bank Plc",
     "Alpha Morgan Bank",
     "Citibank Nigeria Limited",
@@ -440,22 +439,16 @@ const NIGERIAN_BANKS = [
     "Unity Bank Plc",
     "Wema Bank Plc (ALAT)",
     "Zenith Bank Plc",
-
-    // Non-Interest (Islamic) Banks
     "Jaiz Bank Plc",
     "Lotus Bank Ltd",
     "TAJBank Limited",
     "The Alternative Bank Ltd",
-
-    // Merchant Banks
     "Coronation Merchant Bank",
     "FBNQuest Merchant Bank",
     "FSDH Merchant Bank",
     "Greenwich Merchant Bank",
     "Nova Merchant Bank",
     "Rand Merchant Bank",
-
-    // Payment Service Banks (PSBs) & Major Digital / Microfinance Banks
     "9Payment Service Bank (9PSB)",
     "Airtel SmartCash PSB",
     "MTN MoMo PSB",
@@ -670,10 +663,17 @@ function processWithdrawal() {
 }
 
 async function downloadBankStatement() {
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    modalTitle.textContent = "📄 BANK & GATEWAY STATEMENT PREVIEW";
+    modalBody.innerHTML = `<p style="color:#94a3b8; padding:12px;">Loading ledger transactions...</p>`;
+    document.getElementById('dashboardModal').style.display = 'flex';
+
     try {
         const res = await fetch('/api/v1/reconciliation/daily');
         const data = await res.json();
         const txns = Array.isArray(data.transactions) ? data.transactions : [];
+
         const rows = [
             ['Reference', 'Channel', 'Service', 'Recipient', 'Principal (NGN)', 'Settled (NGN)', 'Status', 'Settlement Window', 'Timestamp'],
             ...txns.map(t => [
@@ -689,17 +689,55 @@ async function downloadBankStatement() {
             ])
         ];
         const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `BL-Sovereign-Statement-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+        window.__latestBankStatementCsv = csv;
+
+        const previewRowsHtml = txns.length
+            ? txns.slice(0, 15).map(t => `
+                <tr style="border-bottom:1px solid #334155;">
+                    <td style="padding:8px 6px; font-family:monospace; font-size:0.72rem; color:#38bdf8;">${t.transaction_reference || t.txRef || '-'}</td>
+                    <td style="padding:8px 6px; font-size:0.75rem;">${t.serviceType || t.channel || '-'}</td>
+                    <td style="padding:8px 6px; font-size:0.75rem; color:#10b981; font-weight:700;">₦${parseFloat(t.principalAmount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                    <td style="padding:8px 6px; font-size:0.72rem; color:#cbd5e1;">${t.status || 'SETTLED'}</td>
+                </tr>
+            `).join('')
+            : `<tr><td colspan="4" style="padding:14px; text-align:center; color:#94a3b8;">No ledger transactions recorded yet.</td></tr>`;
+
+        modalBody.innerHTML = `
+            <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px; text-align:left; margin-bottom:12px; max-height:280px; overflow-y:auto;">
+                <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#94a3b8; margin-bottom:8px;">
+                    <span>Total Transactions: <b style="color:#fff;">${txns.length}</b></span>
+                    <span>Total Settled: <b style="color:#10b981;">₦${parseFloat(data.totalSettled || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</b></span>
+                </div>
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #475569; color:#94a3b8; font-size:0.72rem; text-align:left;">
+                            <th style="padding:6px;">Ref</th>
+                            <th style="padding:6px;">Service / Channel</th>
+                            <th style="padding:6px;">Amount</th>
+                            <th style="padding:6px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>${previewRowsHtml}</tbody>
+                </table>
+            </div>
+            <button onclick="confirmBankStatementDownload()" class="modal-btn" style="background:#0ea5e9; font-weight:800; width:100%; margin-top:0;">⬇️ Download Bank Statement (CSV)</button>
+        `;
     } catch (e) {
-        alert('Unable to fetch statement ledger right now.');
+        modalBody.innerHTML = `<p style="color:#ef4444; padding:12px;">Unable to load bank statement preview right now.</p>`;
     }
 }
+
+window.confirmBankStatementDownload = function() {
+    const csv = window.__latestBankStatementCsv;
+    if (!csv) return alert('No statement data available to download.');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BL-Sovereign-Statement-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+};
 
 function openResetPinModal() {
     const modalTitle = document.getElementById('modalTitle');
@@ -967,16 +1005,47 @@ window.downloadAjoStatement = function() {
     const rawAjo = localStorage.getItem('activeAjoPlan');
     if (!rawAjo) return alert('No active Ajo plan found.');
     const ajo = JSON.parse(rawAjo);
+
+    const grossVal = parseFloat(ajo.accumulatedProceeds ?? ajo.accumulatedAmount ?? ajo.grossAccumulated ?? 0);
+    const feeVal = parseFloat(ajo.gatewayFee ?? 0);
+    const netVal = parseFloat(ajo.netEntitlement ?? (grossVal - feeVal));
+    const totalDays = ajo.totalDays || ajo.daysInMonth || 30;
+
     const lines = [
         'AJO EXPRESS STATEMENT - @BL SOVEREIGN GATEWAY',
         `Month: ${ajo.selectedMonth || ''}`,
         `Daily Amount: NGN ${ajo.dailyAmount || 0}`,
         `Duration (Months): ${ajo.durationMonths || 1}`,
-        `Total Days: ${ajo.totalDays || ajo.daysInMonth || 30}`,
-        `Gateway Underwriting Fee: NGN ${ajo.gatewayFee || 0}`,
-        `Net Entitlement: NGN ${ajo.netEntitlement || 0}`
+        `Total Days: ${totalDays}`,
+        `Gross Accumulated Proceeds: NGN ${grossVal}`,
+        `Gateway Underwriting Fee: NGN ${feeVal}`,
+        `Net Entitlement: NGN ${netVal}`
     ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' });
+    window.__latestAjoStatementText = lines.join('\n');
+
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    modalTitle.textContent = "📄 AJO EXPRESS STATEMENT PREVIEW";
+    modalBody.innerHTML = `
+        <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #10b981; text-align:left; font-size:0.82rem; color:#cbd5e1; margin-bottom:12px;">
+            <p style="color:#10b981; font-weight:800; margin-bottom:8px;">AJO EXPRESS STATEMENT SUMMARY</p>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Active Plan:</span><b>${ajo.selectedMonth || 'Current Plan'} (${totalDays} Days)</b></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Daily Contribution:</span><b style="color:#10b981;">₦${parseFloat(ajo.dailyAmount || 0).toLocaleString()}</b></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Gross Proceeds:</span><b>₦${grossVal.toLocaleString()}</b></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Underwriting Fee:</span><b style="color:#ef4444;">- ₦${feeVal.toLocaleString()}</b></div>
+            <hr style="border-color:#334155; margin:8px 0;">
+            <div style="display:flex; justify-content:space-between;"><span>Net Entitlement:</span><b style="color:#f59e0b; font-size:1rem;">₦${netVal.toLocaleString()}</b></div>
+        </div>
+        <button onclick="confirmAjoStatementDownload()" class="modal-btn" style="background:#10b981; font-weight:800; width:100%; margin-top:0;">⬇️ Download Ajo Statement (TXT)</button>
+        <button onclick="openAjoSpace()" class="modal-btn" style="background:#334155; width:100%;">⬅ Back to Ajo Space</button>
+    `;
+    document.getElementById('dashboardModal').style.display = 'flex';
+};
+
+window.confirmAjoStatementDownload = function() {
+    const content = window.__latestAjoStatementText;
+    if (!content) return alert('No Ajo statement available to download.');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
